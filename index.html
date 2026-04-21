@@ -1,0 +1,5223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0E0F13" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#FAF8F3" media="(prefers-color-scheme: light)"/>
+<meta name="format-detection" content="telephone=no"/>
+<title>Dashboard de pilotage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root, [data-theme="dark"] {
+    --bg: #0E0F13;
+    --bg-elev: #14161C;
+    --bg-elev-2: #1A1D26;
+    --border: #242834;
+    --border-strong: #353B4C;
+    --text: #EEF0F5;
+    --text-dim: #9098AB;
+    --text-muted: #5C6478;
+
+    --accent: #E4C068;
+    --accent-soft: rgba(228, 192, 104, 0.12);
+    --accent-dim: #9A824A;
+
+    --ok: #4ADE80;
+    --ok-bg: rgba(74, 222, 128, 0.08);
+    --warn: #F5B942;
+    --warn-bg: rgba(245, 185, 66, 0.08);
+    --danger: #EF5A5A;
+    --danger-bg: rgba(239, 90, 90, 0.08);
+    --info: #7AB8E4;
+    --info-bg: rgba(122, 184, 228, 0.08);
+    --purple: #B18BE0;
+    --purple-bg: rgba(177, 139, 224, 0.08);
+
+    --ambient-1: rgba(228, 192, 104, 0.04);
+    --ambient-2: rgba(122, 184, 228, 0.03);
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.2);
+
+    /* Ratio chart - teintes douces */
+    --ratio-sal: #4A6E8A;
+    --ratio-ps: #8A7048;
+  }
+
+  [data-theme="light"] {
+    --bg: #FAF8F3;
+    --bg-elev: #FFFFFF;
+    --bg-elev-2: #F3EFE7;
+    --border: #E6DFCE;
+    --border-strong: #CFC5AC;
+    --text: #1A1D26;
+    --text-dim: #5C6478;
+    --text-muted: #8A8D96;
+
+    --accent: #B8894A;
+    --accent-soft: rgba(184, 137, 74, 0.12);
+    --accent-dim: #8C6A38;
+
+    --ok: #2E9E5B;
+    --ok-bg: rgba(46, 158, 91, 0.10);
+    --warn: #C78E1C;
+    --warn-bg: rgba(199, 142, 28, 0.10);
+    --danger: #C84444;
+    --danger-bg: rgba(200, 68, 68, 0.10);
+    --info: #3B7FB3;
+    --info-bg: rgba(59, 127, 179, 0.10);
+    --purple: #8463BF;
+    --purple-bg: rgba(132, 99, 191, 0.10);
+
+    --ambient-1: rgba(184, 137, 74, 0.05);
+    --ambient-2: rgba(59, 127, 179, 0.04);
+    --shadow-card: 0 1px 3px rgba(26, 29, 38, 0.06);
+
+    /* Ratio chart - teintes douces */
+    --ratio-sal: #8FB1CC;
+    --ratio-ps: #C9B58E;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 15% 0%, var(--ambient-1) 0%, transparent 40%),
+      radial-gradient(circle at 85% 100%, var(--ambient-2) 0%, transparent 40%);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .title-block h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 54px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .title-block h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+  .title-block .subtitle {
+    color: var(--text-dim);
+    font-size: 16px;
+    letter-spacing: 0.02em;
+  }
+  .meta {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+  }
+  .meta .tjm {
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0;
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: inline-flex;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 10px 22px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 56px;
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .section-title .year-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+  .section-sub {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+  .kpi.ok::before { background: var(--ok); }
+  .kpi.warn::before { background: var(--warn); }
+  .kpi.danger::before { background: var(--danger); }
+  .kpi.info::before { background: var(--info); }
+  .kpi .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .kpi .value {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .kpi .value .unit {
+    font-size: 18px;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-left: 2px;
+  }
+  .kpi .hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi .trend {
+    display: inline-block;
+    padding: 3px 7px;
+    font-size: 11px;
+    border-radius: 2px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .kpi .trend.up { background: var(--ok-bg); color: var(--ok); }
+  .kpi .trend.down { background: var(--danger-bg); color: var(--danger); }
+
+  /* CHART CARDS */
+  .chart-grid {
+    display: grid;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .chart-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .chart-grid.cols-3 { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 900px) {
+    .chart-grid.cols-2, .chart-grid.cols-3 { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+  }
+  .chart-card .chart-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .chart-card .chart-sub {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  /* LINE CHART (SVG) */
+  .line-chart {
+    width: 100%;
+    height: 360px;
+  }
+  .line-chart .grid-line {
+    stroke: var(--border);
+    stroke-dasharray: 2,4;
+  }
+  .line-chart .axis-label {
+    fill: var(--text-dim);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .line-chart path.line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .line-chart path.area {
+    stroke: none;
+    opacity: 0.12;
+  }
+  .line-chart circle.point {
+    stroke: var(--bg-elev);
+    stroke-width: 2;
+    transition: r 0.2s;
+  }
+  .line-chart circle.point:hover { r: 5; }
+
+  .chart-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .chart-legend .li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chart-legend .li .dot {
+    width: 14px;
+    height: 3px;
+  }
+
+  /* RATIO BARS */
+  .ratio-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ratio-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 110px;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+  }
+  .ratio-row .rmois {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+  .ratio-bar-container {
+    height: 22px;
+    background: var(--bg);
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--border);
+  }
+  .ratio-seg-sal { background: var(--ratio-sal); }
+  .ratio-seg-ps { background: var(--ratio-ps); }
+  .ratio-values {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-align: right;
+  }
+  .ratio-values .sal { color: var(--ratio-sal); }
+  .ratio-values .ps { color: var(--ratio-ps); }
+
+  /* CLIENT CARDS */
+  .client-list {
+    display: grid;
+    gap: 16px;
+  }
+  .client-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 20px;
+  }
+  .client-card .name {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    margin-bottom: 6px;
+  }
+  .client-card .sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .client-card .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .client-card .metric {
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+  }
+  .client-card .metric .l {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .client-card .metric .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .client-card.primary .metric { border-left-color: var(--accent); }
+  .client-card.secondary .metric { border-left-color: var(--purple); }
+
+  .client-bar {
+    height: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    margin: 16px 0 24px;
+  }
+  .client-bar .seg-primary { background: var(--accent); }
+  .client-bar .seg-secondary { background: var(--purple); }
+
+  /* DSO CARDS */
+  .dso-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 768px) { .dso-grid { grid-template-columns: 1fr; }}
+  .dso-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 20px;
+  }
+  .dso-card .dso-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .dso-card .dso-big {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 400;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .dso-card .dso-unit {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .dso-card .dso-detail {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .dso-card .dso-detail .ddl {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  .dso-card .dso-detail .ddv {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* FISCAL GAUGE */
+  .fiscal-card {
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .fiscal-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+  }
+  .fiscal-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .fiscal-card .note {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 30px;
+    line-height: 1.5;
+  }
+  .fiscal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .fiscal-row {
+    padding: 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .fiscal-row .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .fiscal-row .big {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .fiscal-row .big.ok { color: var(--ok); }
+  .fiscal-row .big.warn { color: var(--warn); }
+  .fiscal-row .big.danger { color: var(--danger); }
+  .fiscal-row .big.info { color: var(--info); }
+  .fiscal-row .detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .fiscal-row .detail .case-ref {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 2px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  /* Tax inputs */
+  .tax-inputs {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .tax-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .tax-input-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .tax-parts-input {
+    width: 56px !important;
+  }
+
+  /* Tax breakdown (barème tranches) */
+  .tax-breakdown-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .tax-tranches {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .tax-tranche {
+    display: grid;
+    grid-template-columns: 1fr 120px 100px 120px;
+    gap: 16px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid var(--border);
+  }
+  .tax-tranche:last-child { border-bottom: none; }
+  .tax-tranche.active { background: var(--accent-soft); }
+  .tax-tranche .tb-range { color: var(--text-dim); }
+  .tax-tranche .tb-rate {
+    text-align: right;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .tax-tranche .tb-base {
+    text-align: right;
+    color: var(--text-muted);
+  }
+  .tax-tranche .tb-tax {
+    text-align: right;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .tax-tranche.active .tb-tax { color: var(--accent); }
+  .tax-tranche.total {
+    background: var(--bg-elev-2);
+    border-top: 2px solid var(--border-strong);
+    font-weight: 700;
+  }
+  .tax-tranche.total .tb-range { color: var(--text); }
+  .tax-tranche.total .tb-tax { color: var(--accent); font-size: 15px; }
+
+  /* RISK GAUGE */
+  .risk-gauge {
+    width: 100%;
+    height: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    position: relative;
+    margin: 20px 0;
+    overflow: hidden;
+  }
+  .risk-gauge .bar {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--ok) 0%, var(--warn) 50%, var(--danger) 100%);
+  }
+  .risk-gauge .marker {
+    position: absolute;
+    top: -4px;
+    width: 2px;
+    height: calc(100% + 8px);
+    background: var(--text);
+  }
+  .risk-gauge .marker::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background: var(--text);
+    border-radius: 50%;
+  }
+  .risk-gauge .label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--bg);
+  }
+  .risk-gauge .label.l { left: 12px; }
+  .risk-gauge .label.c { left: 50%; transform: translate(-50%, -50%); }
+  .risk-gauge .label.r { right: 12px; }
+
+  /* MONTH LIST (même que v1) */
+  .month-list {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .month-row { border-bottom: 1px solid var(--border); }
+  .month-row:last-child { border-bottom: none; }
+  .month-header {
+    display: grid;
+    grid-template-columns: 140px 1fr 130px 130px 130px 140px 40px;
+    gap: 16px;
+    padding: 16px 24px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .month-header:hover { background: var(--bg-elev-2); }
+  .month-label {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .month-label .year {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-left: 4px;
+  }
+  .month-days {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .month-days .num {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .month-value { text-align: right; }
+  .month-value .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .month-value .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .month-value.pending .amount { color: var(--warn); }
+  .month-value.paid .amount { color: var(--ok); }
+  .month-value.total .amount {
+    color: var(--accent);
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+  .month-value.total .label {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .chevron {
+    color: var(--text-muted);
+    transition: transform 0.25s;
+    font-size: 16px;
+    text-align: center;
+  }
+  .month-row.open .chevron {
+    transform: rotate(90deg);
+    color: var(--accent);
+  }
+
+  .month-detail {
+    display: none;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 24px 28px;
+  }
+  .month-row.open .month-detail { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  @media (max-width: 900px) {
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+
+  .detail-section h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+  .detail-line .desc { color: var(--text-dim); }
+  .detail-line .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .detail-line.positive .val { color: var(--ok); }
+  .detail-line.negative .val { color: var(--danger); }
+  .detail-line.total {
+    border-top: 1px solid var(--border-strong);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-weight: 600;
+  }
+  .detail-line.total .desc { color: var(--text); font-weight: 500; }
+  .detail-line.total .val { font-size: 14px; }
+
+  .ps-items {
+    margin-top: 10px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+  .ps-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    font-size: 13px;
+  }
+  .ps-item .left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .status-pill.ok {
+    background: var(--ok-bg);
+    color: var(--ok);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+  }
+  .status-pill.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+    border: 1px solid rgba(245, 185, 66, 0.2);
+  }
+  .ps-item .date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .ps-item .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  /* PENDING ZONE */
+  .pending-zone {
+    background: linear-gradient(135deg, rgba(245, 185, 66, 0.04), rgba(239, 90, 90, 0.03));
+    border: 1px solid rgba(245, 185, 66, 0.2);
+    border-radius: 4px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .pending-zone h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .pending-zone .sub {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 26px;
+  }
+  .pending-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .pending-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 18px 20px;
+  }
+  .pending-card .month {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  .pending-card .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 13px;
+  }
+  .pending-card .row .l { color: var(--text-dim); }
+  .pending-card .row .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  .pending-card .total {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+  }
+  .pending-card .total .v {
+    color: var(--warn);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .callout {
+    padding: 18px 22px;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-top: 18px;
+  }
+  .callout.warn {
+    background: var(--warn-bg);
+    border: 1px solid rgba(245, 185, 66, 0.25);
+    color: var(--warn);
+  }
+  .callout.warn strong { color: var(--text); }
+
+  /* IMPORT BUTTON */
+  .import-zone {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .last-import {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .last-import .val { color: var(--accent); }
+  .import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .import-btn:hover {
+    background: var(--bg-elev-2);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .import-btn .icon {
+    font-size: 16px;
+  }
+  .import-btn.danger {
+    border-color: rgba(239, 90, 90, 0.3);
+  }
+  .import-btn.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  #csv-file-input {
+    display: none;
+  }
+
+  /* TOAST / FLASH */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 1000;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-left: 4px solid var(--ok);
+    border-radius: 4px;
+    padding: 18px 24px;
+    min-width: 320px;
+    max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transform: translateX(500px);
+    transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  .toast.visible { transform: translateX(0); }
+  .toast.error { border-left-color: var(--danger); }
+  .toast .t-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+  .toast .t-body {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .toast .t-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .toast .t-stats .s-label { color: var(--text-muted); }
+  .toast .t-stats .s-value { color: var(--text); font-weight: 600; margin-left: 4px; }
+  .toast .t-stats .s-value.ok { color: var(--ok); }
+  .toast .t-stats .s-value.warn { color: var(--warn); }
+
+  /* PROJECTION WIDGET */
+  .projection-widget {
+    background: linear-gradient(135deg, rgba(122, 184, 228, 0.04), rgba(228, 192, 104, 0.02));
+    border: 1px solid rgba(122, 184, 228, 0.2);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .projection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 28px;
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 20px;
+  }
+  .projection-header:hover {
+    background: rgba(122, 184, 228, 0.04);
+  }
+  .ph-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ph-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--info);
+    flex-shrink: 0;
+  }
+  .ph-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 3px;
+  }
+  .ph-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .ph-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .ph-total {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--info);
+    font-weight: 600;
+    text-align: right;
+  }
+  .ph-total .big {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    color: var(--info);
+    line-height: 1;
+  }
+  .ph-total .lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .ph-arrow {
+    color: var(--text-muted);
+    font-size: 22px;
+    transition: transform 0.25s;
+  }
+  .projection-widget.open .ph-arrow {
+    transform: rotate(90deg);
+    color: var(--info);
+  }
+  .projection-body {
+    display: none;
+    padding: 0 28px 28px;
+    border-top: 1px solid rgba(122, 184, 228, 0.15);
+    padding-top: 24px;
+  }
+  .projection-widget.open .projection-body {
+    display: block;
+  }
+  .projection-legend {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+  .pl-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pl-swatch {
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+  }
+  .projection-table-wrapper {
+    overflow-x: auto;
+    margin: 0 -28px;
+    padding: 0 28px;
+  }
+  .projection-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 720px;
+  }
+  .projection-table th {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-align: right;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .projection-table th.left { text-align: left; }
+  .projection-table td {
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    text-align: right;
+    border-bottom: 1px solid rgba(36, 40, 52, 0.5);
+  }
+  .projection-table td.left { text-align: left; }
+  .projection-table tbody tr.known { opacity: 0.7; }
+  .projection-table tbody tr.known td { color: var(--text-muted); }
+  .projection-table tbody tr.current-mo td { color: var(--accent); font-weight: 600; }
+  .projection-table tbody tr.future td { color: var(--text); }
+  .projection-table tbody tr td.editable { position: relative; }
+  .days-input-wrap {
+    display: inline-flex;
+    align-items: stretch;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .days-input-wrap:hover,
+  .days-input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+  input.days-input {
+    width: 44px;
+    padding: 6px 4px 6px 8px;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input.days-input:focus { outline: none; }
+  input.days-input::-webkit-outer-spin-button,
+  input.days-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .days-steppers {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+  }
+  .days-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.1s;
+    line-height: 0;
+  }
+  .days-stepper:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .days-stepper:active {
+    background: var(--accent-dim);
+  }
+  .days-stepper + .days-stepper {
+    border-top: 1px solid var(--border);
+  }
+  .days-stepper svg {
+    width: 8px;
+    height: 8px;
+    fill: currentColor;
+    display: block;
+  }
+  .days-stepper:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+  }
+  .projection-table .mo-label {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .projection-table .mo-year {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-left: 6px;
+  }
+  .projection-table tfoot tr {
+    background: rgba(122, 184, 228, 0.05);
+  }
+  .projection-table tfoot td {
+    padding: 14px 12px;
+    font-weight: 700;
+    border-top: 2px solid var(--border-strong);
+    border-bottom: none;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .projection-table tfoot td.sum-highlight {
+    color: var(--info);
+    font-size: 16px;
+  }
+  .proj-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 8px;
+  }
+  .proj-tag.done { background: rgba(74, 222, 128, 0.15); color: var(--ok); }
+  .proj-tag.future { background: rgba(122, 184, 228, 0.15); color: var(--info); }
+
+  .projection-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .proj-summary-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px 16px;
+  }
+  .proj-summary-card .l {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .proj-summary-card .v {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .proj-summary-card .v.info { color: var(--info); }
+  .proj-summary-card .v.accent { color: var(--accent); }
+  .proj-summary-card .v.warn { color: var(--warn); }
+  .proj-summary-card .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* CONFIRM MODAL (custom, remplace confirm() natif bloqué dans iframes) */
+  .confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .confirm-modal.visible { display: flex; }
+  .confirm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .confirm-box {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    max-width: 460px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+  }
+  .confirm-box h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .confirm-box .msg {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 24px;
+    white-space: pre-line;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .confirm-btn {
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elev-2);
+    color: var(--text);
+  }
+  .confirm-btn:hover { border-color: var(--text); }
+  .confirm-btn.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .confirm-btn.danger:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+  @media (max-width: 768px) {
+    .confirm-box { padding: 22px; }
+    .confirm-box h3 { font-size: 20px; }
+    .confirm-actions { flex-direction: column-reverse; }
+    .confirm-btn { width: 100%; padding: 14px; }
+  }
+
+  /* AUDIT — badge bouton + modal */
+  .audit-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .audit-badge.warn { background: var(--warn); }
+  .audit-badge.ok { background: var(--ok); }
+
+  .audit-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .audit-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .audit-modal-content {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+  .audit-header {
+    padding: 24px 28px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .audit-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .audit-close {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .audit-close:hover { color: var(--danger); border-color: var(--danger); }
+
+  .audit-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-summary-card {
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .audit-summary-card .n {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    line-height: 1;
+  }
+  .audit-summary-card .l {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-weight: 700;
+  }
+  .audit-summary-card.danger .n { color: var(--danger); }
+  .audit-summary-card.warn .n { color: var(--warn); }
+  .audit-summary-card.info .n { color: var(--info); }
+  .audit-summary-card.ok .n { color: var(--ok); }
+
+  .audit-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 28px 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .audit-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin: 20px 0 10px;
+  }
+  .audit-section-title:first-child { margin-top: 0; }
+  .audit-item {
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    align-items: flex-start;
+  }
+  .audit-item .bar { align-self: stretch; border-radius: 2px; }
+  .audit-item.danger .bar { background: var(--danger); }
+  .audit-item.warn .bar { background: var(--warn); }
+  .audit-item.info .bar { background: var(--info); }
+  .audit-item.ok .bar { background: var(--ok); }
+  .audit-item .body { min-width: 0; }
+  .audit-item .title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .audit-item .desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .audit-item .detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border);
+  }
+  .audit-item .right {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  .audit-item.ok .title { color: var(--ok); }
+  .audit-item.danger .title { color: var(--danger); }
+  .audit-item.warn .title { color: var(--warn); }
+  .audit-item.info .title { color: var(--info); }
+
+  .audit-footer {
+    padding: 14px 28px;
+    border-top: 1px solid var(--border);
+  }
+  .audit-legend {
+    display: flex;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+  .audit-legend .al-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .audit-legend .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  @media (max-width: 768px) {
+    .audit-modal { padding: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    .audit-modal-content { max-height: 100vh; border-radius: 0; border: none; }
+    .audit-header { padding: 20px 20px 14px; }
+    .audit-header h2 { font-size: 22px; }
+    .audit-summary { grid-template-columns: 1fr 1fr; padding: 16px 20px; gap: 8px; }
+    .audit-summary-card .n { font-size: 24px; }
+    .audit-list { padding: 10px 20px 16px; }
+    .audit-item { padding: 12px 14px; }
+    .audit-footer { padding: 12px 20px; }
+    .audit-legend { gap: 14px; font-size: 10px; }
+  }
+
+  /* THEME TOGGLE */
+  #theme-toggle {
+    position: fixed;
+    bottom: 32px;
+    left: 32px;
+    z-index: 1000;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    transition: all 0.3s ease;
+  }
+  #theme-toggle:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+  #theme-toggle:active { transform: translateY(0); }
+  #theme-toggle svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  #theme-toggle .icon-moon { display: none; }
+  [data-theme="light"] #theme-toggle .icon-sun { display: none; }
+  [data-theme="light"] #theme-toggle .icon-moon { display: block; }
+
+  /* Ajustements spécifiques thème clair */
+  [data-theme="light"] .kpi,
+  [data-theme="light"] .chart-card,
+  [data-theme="light"] .dso-card,
+  [data-theme="light"] .pending-card,
+  [data-theme="light"] .client-card,
+  [data-theme="light"] .fiscal-row,
+  [data-theme="light"] .proj-summary-card,
+  [data-theme="light"] .ledger-col,
+  [data-theme="light"] .balance-line {
+    box-shadow: var(--shadow-card);
+  }
+  [data-theme="light"] .balance-widget,
+  [data-theme="light"] .month-list,
+  [data-theme="light"] .fiscal-card,
+  [data-theme="light"] .projection-widget {
+    box-shadow: var(--shadow-card);
+  }
+  [data-theme="light"] .tab-btn.active {
+    color: #FFFFFF;
+  }
+  [data-theme="light"] .import-btn .icon,
+  [data-theme="light"] #reset-btn { color: var(--accent); }
+  [data-theme="light"] .stacked-bar .segment {
+    color: #FFFFFF;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 80px 32px;
+    border: 2px dashed var(--border-strong);
+    border-radius: 8px;
+    margin: 40px 0;
+  }
+  .empty-state h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+  .empty-state p {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 32px;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+  .empty-state .import-btn {
+    font-size: 15px;
+    padding: 16px 32px;
+  }
+
+  /* BALANCE WIDGET */
+  .balance-widget {
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 0;
+    margin-bottom: 40px;
+    overflow: hidden;
+    position: relative;
+  }
+  .balance-widget::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--warn) 50%, var(--danger) 100%);
+  }
+  .balance-header {
+    padding: 24px 32px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .balance-header:hover {
+    background: rgba(228, 192, 104, 0.03);
+  }
+  .balance-widget.expanded .balance-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .balance-header .collapse-arrow {
+    color: var(--text-muted);
+    font-size: 22px;
+    transition: transform 0.25s;
+    align-self: center;
+    margin-left: 8px;
+  }
+  .balance-widget.expanded .balance-header .collapse-arrow {
+    transform: rotate(90deg);
+    color: var(--accent);
+  }
+  .balance-collapsible {
+    display: none;
+  }
+  .balance-widget.expanded .balance-collapsible {
+    display: block;
+  }
+  .balance-title h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .balance-title .sub {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .balance-total {
+    text-align: right;
+  }
+  .balance-total .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .balance-total .amount {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .balance-total .amount .unit {
+    font-size: 22px;
+    color: var(--accent-dim);
+    margin-left: 4px;
+  }
+
+  .balance-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  @media (max-width: 768px) {
+    .balance-body { grid-template-columns: 1fr; }
+  }
+
+  .balance-section {
+    padding: 24px 32px;
+  }
+  .balance-section + .balance-section {
+    border-left: 1px solid var(--border);
+  }
+  @media (max-width: 768px) {
+    .balance-section + .balance-section {
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+  }
+  .balance-section .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  .balance-section .section-label .dot-icon {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .balance-section.receivable .section-label .dot-icon { background: var(--warn); }
+  .balance-section.advance .section-label .dot-icon { background: var(--info); }
+
+  .balance-subtotal {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+    line-height: 1;
+  }
+  .balance-section.receivable .balance-subtotal { color: var(--warn); }
+  .balance-section.advance .balance-subtotal { color: var(--info); }
+  .balance-subtotal .unit {
+    font-size: 18px;
+    opacity: 0.7;
+    margin-left: 4px;
+  }
+
+  .balance-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .balance-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 18px;
+    background: var(--bg);
+    font-size: 14px;
+  }
+  .balance-line .line-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .balance-line .line-name {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .balance-line .line-hint {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .balance-line .line-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .balance-note {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* BALANCE OFFICIAL (les 2 soldes) */
+  .balance-official {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 24px 32px;
+    background: rgba(228, 192, 104, 0.03);
+    border-bottom: 1px solid var(--border);
+    gap: 32px;
+  }
+  @media (max-width: 768px) {
+    .balance-official {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .official-separator { display: none; }
+  }
+  .official-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .official-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .official-value {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ok);
+  }
+  .official-value.warn { color: var(--warn); }
+  .official-value .u {
+    font-size: 20px;
+    opacity: 0.7;
+  }
+  .official-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .official-separator {
+    width: 1px;
+    height: 60px;
+    background: var(--border);
+  }
+
+  /* BALANCE LEDGER (détail du calcul) */
+  .balance-ledger {
+    border-top: 1px solid var(--border);
+  }
+  .ledger-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ledger-toggle:hover {
+    background: var(--bg-elev-2);
+  }
+  .ledger-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .ledger-arrow {
+    transition: transform 0.2s;
+    font-size: 16px;
+    color: var(--accent);
+  }
+  .balance-widget.ledger-open .ledger-arrow {
+    transform: rotate(90deg);
+  }
+  .ledger-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ok);
+  }
+  .ledger-content {
+    display: none;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    padding: 24px 32px 32px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .balance-widget.ledger-open .ledger-content {
+    display: grid;
+  }
+  @media (max-width: 900px) {
+    .ledger-content { grid-template-columns: 1fr; gap: 16px; }
+  }
+  .ledger-col {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px;
+  }
+  .ledger-col-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ledger-col-title.positive { color: var(--ok); }
+  .ledger-col-title.negative { color: var(--danger); }
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .ledger-row .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .ledger-row.total {
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ledger-row.total .v { font-size: 14px; }
+  .ledger-final {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 26px;
+    background: linear-gradient(90deg, rgba(74, 222, 128, 0.08), rgba(74, 222, 128, 0.02));
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 3px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .ledger-final .v {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--ok);
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 20px 14px calc(120px + env(safe-area-inset-bottom)) 14px;
+    }
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+    }
+    .title-block h1 { font-size: 32px; }
+    .title-block .subtitle { font-size: 13px; }
+    .meta { text-align: left; font-size: 11px; }
+    .meta .tjm { font-size: 16px; }
+
+    /* Import bar en bas fixé pour garder accessible */
+    .import-zone {
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+      margin-bottom: 20px;
+    }
+    .last-import { font-size: 10px; width: 100%; }
+    .import-btn { font-size: 11px; padding: 10px 14px; }
+
+    /* Tabs scrollables horizontalement */
+    .tabs {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+      margin-bottom: 24px;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      font-size: 11px;
+      padding: 8px 14px;
+      flex-shrink: 0;
+    }
+
+    /* Section titles plus compacts */
+    .section { margin-bottom: 36px; }
+    .section-title { font-size: 22px; }
+    .section-title .year-tag {
+      display: block;
+      margin-left: 0;
+      margin-top: 4px;
+      font-size: 10px;
+    }
+
+    /* KPI : 2 colonnes plutôt qu'auto-fit */
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi { padding: 14px 16px; }
+    .kpi .label { font-size: 9px; margin-bottom: 6px; }
+    .kpi .value { font-size: 24px; }
+    .kpi .value .unit { font-size: 14px; }
+    .kpi .hint { font-size: 10px; margin-top: 6px; }
+
+    /* Balance widget */
+    .balance-widget { margin-bottom: 28px; }
+    .balance-header {
+      padding: 18px 20px 14px;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .balance-title h2 { font-size: 22px; }
+    .balance-title .sub { font-size: 12px; }
+    .balance-total { width: 100%; text-align: left; }
+    .balance-total .amount { font-size: 36px; }
+    .balance-total .amount .unit { font-size: 16px; }
+    .collapse-arrow {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+    }
+    .balance-header { position: relative; }
+    .balance-official {
+      grid-template-columns: 1fr;
+      padding: 18px 20px;
+      gap: 14px;
+    }
+    .official-separator { display: none; }
+    .official-value { font-size: 32px; }
+    .balance-body { grid-template-columns: 1fr; }
+    .balance-section { padding: 20px; }
+    .balance-section + .balance-section {
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+    .balance-subtotal { font-size: 30px; }
+    .balance-line { padding: 12px 14px; font-size: 13px; }
+    .balance-line .line-value { font-size: 14px; }
+    .ledger-toggle { padding: 14px 20px; }
+    .ledger-label { font-size: 10px; }
+    .ledger-content { padding: 18px 20px 20px; grid-template-columns: 1fr; gap: 14px; }
+    .ledger-col { padding: 14px; }
+    .ledger-row { font-size: 12px; }
+    .ledger-final { padding: 16px 20px; font-size: 11px; }
+    .ledger-final .v { font-size: 24px; }
+
+    /* Evolution chart */
+    .chart-card { padding: 18px 16px; }
+    .chart-card .chart-title { font-size: 18px; }
+    .chart-card .chart-sub { font-size: 12px; margin-bottom: 18px; }
+    .line-chart { height: 260px; }
+    #dso-histogram, #days-chart { height: 200px !important; }
+    .chart-legend { gap: 12px; font-size: 11px; }
+    .axis-label { font-size: 10px; }
+
+    /* Ratio chart */
+    .ratio-row { grid-template-columns: 56px 1fr 70px; gap: 8px; font-size: 11px; }
+    .ratio-row .rmois { font-size: 9px; }
+    .ratio-values { font-size: 10px; }
+    #ratio-donut svg { width: 160px !important; height: 160px !important; }
+    #ratio-donut { height: 180px !important; }
+
+    /* DSO */
+    .dso-grid { grid-template-columns: 1fr; gap: 12px; }
+    .dso-card { padding: 16px; }
+    .dso-card .dso-big { font-size: 38px; }
+
+    /* Clients */
+    .client-card { padding: 16px; }
+    .client-card .name { font-size: 20px; }
+    .client-card .metrics { gap: 8px; }
+    .client-card .metric .v { font-size: 14px; }
+
+    /* Pending */
+    .pending-zone { padding: 20px 18px; }
+    .pending-zone h3 { font-size: 22px; }
+    .pending-list { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Fiscal cards */
+    .fiscal-card { padding: 20px 16px; }
+    .fiscal-card h3 { font-size: 22px; }
+    .fiscal-card .note { font-size: 12px; margin-bottom: 20px; }
+    .fiscal-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .fiscal-row { padding: 14px; }
+    .fiscal-row .label { font-size: 9px; margin-bottom: 6px; }
+    .fiscal-row .big { font-size: 22px; }
+    .fiscal-row .detail { font-size: 10px; }
+    /* Tax input : wrap en colonne */
+    .tax-inputs { width: 100%; margin-top: 8px; }
+    .fiscal-card > div[style*="flex-wrap"] {
+      flex-direction: column;
+    }
+    /* Tax tranches : table scrollable */
+    .tax-tranches { overflow-x: auto; }
+    .tax-tranche {
+      grid-template-columns: 1fr 60px 80px 80px;
+      padding: 8px 10px;
+      font-size: 11px;
+      gap: 8px;
+    }
+    .tax-tranche.total .tb-tax { font-size: 13px; }
+
+    /* Projection */
+    .projection-header { padding: 16px 18px; gap: 10px; flex-wrap: wrap; }
+    .ph-title { font-size: 18px; }
+    .ph-sub { font-size: 11px; }
+    .ph-right { width: 100%; justify-content: space-between; }
+    .ph-total .big { font-size: 22px; }
+    .projection-body { padding: 0 18px 20px; padding-top: 18px; }
+    .projection-legend { font-size: 11px; gap: 14px; }
+    .projection-table-wrapper { margin: 0 -18px; padding: 0 18px; }
+    .projection-table-wrapper::-webkit-scrollbar { height: 4px; }
+    .projection-table-wrapper::-webkit-scrollbar-thumb {
+      background: var(--border-strong); border-radius: 2px;
+    }
+    .projection-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .proj-summary-card { padding: 12px; }
+    .proj-summary-card .v { font-size: 18px; }
+
+    /* Month list : layout 2 lignes */
+    .month-header {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 8px 12px;
+      padding: 14px 16px;
+    }
+    .month-header > *:nth-child(1) { grid-column: 1 / -1; }
+    .month-header > *:nth-child(2) { grid-column: 1 / -1; margin-bottom: 4px; }
+    .month-label { font-size: 20px; }
+    .month-days { font-size: 11px; }
+    .month-value .label { font-size: 9px; }
+    .month-value .amount { font-size: 13px; }
+    .month-value.total .amount { font-size: 16px; }
+    .chevron { display: none; }
+    .month-detail { padding: 18px 16px; }
+    .detail-grid { grid-template-columns: 1fr; gap: 20px; }
+    .detail-line { font-size: 13px; padding: 8px 0; }
+    .ps-item { flex-wrap: wrap; gap: 4px; font-size: 11px; }
+    .status-pill { font-size: 10px; padding: 3px 7px; }
+
+    /* Floating buttons adaptés aux safe areas iOS */
+    #theme-toggle {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: calc(16px + env(safe-area-inset-left));
+      width: 46px;
+      height: 46px;
+    }
+    #theme-toggle svg { width: 18px; height: 18px; }
+
+    /* Risk gauge */
+    .risk-gauge { height: 50px; }
+    .risk-gauge .label { font-size: 10px; }
+
+    /* Callouts */
+    .callout { padding: 14px 16px; font-size: 12px; }
+
+    /* Empty state */
+    .empty-state { padding: 50px 20px; }
+    .empty-state h2 { font-size: 24px; }
+    .empty-state p { font-size: 13px; }
+
+    /* Toast */
+    .toast {
+      right: calc(16px + env(safe-area-inset-right));
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: calc(16px + env(safe-area-inset-left));
+      max-width: none;
+    }
+  }
+
+  /* Smartphones petits / portrait stricte */
+  @media (max-width: 380px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .fiscal-grid { grid-template-columns: 1fr; }
+    .projection-summary { grid-template-columns: 1fr; }
+    .title-block h1 { font-size: 28px; }
+    .kpi .value { font-size: 28px; }
+    .balance-total .amount { font-size: 32px; }
+  }
+
+  /* iPhone en paysage : respecter safe-areas gauche/droite (encoche) */
+  @media (max-width: 932px) and (orientation: landscape) {
+    .container {
+      padding-left: max(14px, env(safe-area-inset-left));
+      padding-right: max(14px, env(safe-area-inset-right));
+    }
+  }
+
+  /* Améliorations tactiles : zones de clic minimum 44×44px (guidelines Apple) */
+  @media (hover: none) and (pointer: coarse) {
+    .month-header { min-height: 56px; }
+    .tab-btn { min-height: 40px; }
+    .ledger-toggle { min-height: 48px; }
+    .projection-header { min-height: 56px; }
+    .balance-header { min-height: 56px; }
+    .days-stepper { min-height: 22px; }
+    .import-btn { min-height: 42px; }
+    #theme-toggle { min-height: 46px; min-width: 46px; }
+    /* Les hovers ne fonctionnent pas au tactile, on neutralise les transforms */
+    .import-btn:hover,
+    #theme-toggle:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="title-block">
+      <h1>Pilotage <em>Freelance</em></h1>
+      <div class="subtitle">Dashboard de pilotage financier · Analyse & Projection</div>
+    </div>
+    <div class="meta">
+      <div>Mission principale</div>
+      <div>via plateforme</div>
+      <span class="tjm" id="header-tjm">—</span>
+    </div>
+  </header>
+
+  <!-- IMPORT BAR -->
+  <div class="import-zone">
+    <div class="last-import" id="last-import-info"></div>
+    <input type="file" id="csv-file-input" accept=".csv" />
+    <button class="import-btn danger" id="reset-btn" style="display:none;">
+      <span class="icon">⌫</span> Réinitialiser
+    </button>
+    <button class="import-btn" id="audit-btn" onclick="runAudit()" style="display:none;">
+      <span class="icon">🔍</span> Vérifier
+      <span class="audit-badge" id="audit-badge" style="display:none;"></span>
+    </button>
+    <label class="import-btn" for="csv-file-input">
+      <span class="icon">↑</span> Importer CSV
+    </label>
+  </div>
+
+  <!-- AUDIT MODAL -->
+  <div class="audit-modal" id="audit-modal" style="display:none;">
+    <div class="audit-modal-backdrop" onclick="closeAudit()"></div>
+    <div class="audit-modal-content">
+      <div class="audit-header">
+        <div>
+          <h2>Vérification des calculs</h2>
+          <div class="audit-sub" id="audit-sub">Audit automatique de ton historique</div>
+        </div>
+        <button class="audit-close" onclick="closeAudit()">×</button>
+      </div>
+      <div class="audit-summary" id="audit-summary"></div>
+      <div class="audit-list" id="audit-list"></div>
+      <div class="audit-footer">
+        <div class="audit-legend">
+          <span class="al-item"><span class="dot" style="background: var(--danger)"></span>Critique</span>
+          <span class="al-item"><span class="dot" style="background: var(--warn)"></span>Attention</span>
+          <span class="al-item"><span class="dot" style="background: var(--info)"></span>Info</span>
+          <span class="al-item"><span class="dot" style="background: var(--ok)"></span>OK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE (affiché si pas de données) -->
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <h2>Commence par importer ton CSV</h2>
+    <p>Extraie le tableau de l'intranet de ton portage avec le script console, télécharge-le en CSV, puis dépose-le ici. Tu peux réimporter un CSV plus récent à tout moment — les données seront fusionnées automatiquement sans doublon.</p>
+    <label class="import-btn" for="csv-file-input">
+      <span class="icon">↑</span> Importer mon premier CSV
+    </label>
+  </div>
+
+  <!-- MAIN CONTENT (affiché si données présentes) -->
+  <div id="main-content">
+
+  <!-- BALANCE WIDGET -->
+  <div class="balance-widget" id="balance-widget">
+    <div class="balance-header" onclick="document.getElementById('balance-widget').classList.toggle('expanded')">
+      <div class="balance-title">
+        <h2>Solde du compte de portage</h2>
+        <div class="sub">Argent qui te reste sur ton compte au 16 avril 2026 · clique pour voir le détail</div>
+      </div>
+      <div class="balance-total">
+        <div class="label">Total à récupérer</div>
+        <div class="amount">26 716<span class="unit">€</span></div>
+      </div>
+      <div class="collapse-arrow">›</div>
+    </div>
+
+    <div class="balance-collapsible">
+      <!-- BALANCE OFFICIELLE -->
+      <div class="balance-official">
+        <div class="official-item">
+          <div class="official-label">Solde sur encaissé</div>
+          <div class="official-value">4 060,66<span class="u"> €</span></div>
+          <div class="official-hint">Trésorerie disponible sur ton compte · argent déjà reçu par ta société de portage mais pas encore reversé</div>
+        </div>
+        <div class="official-separator"></div>
+        <div class="official-item">
+          <div class="official-label">Solde sur facturé</div>
+          <div class="official-value warn">26 715,60<span class="u"> €</span></div>
+          <div class="official-hint">Total acquis · ce que ton portage te doit en additionnant les prestations facturées non encore payées</div>
+        </div>
+      </div>
+
+      <div class="balance-body">
+        <div class="balance-section receivable">
+          <div class="section-label">
+            <span class="dot-icon"></span>
+            Ils te paieront plus tard
+          </div>
+          <div class="balance-subtotal">22 512<span class="unit">€</span></div>
+          <div class="balance-lines">
+            <div class="balance-line">
+              <div class="line-left">
+                <span class="line-name">Profit share janvier 2026</span>
+                <span class="line-hint">Émis 16/02/2026 · en attente</span>
+              </div>
+              <span class="line-value">7 729,85 €</span>
+            </div>
+            <div class="balance-line">
+              <div class="line-left">
+                <span class="line-name">Profit share février 2026</span>
+                <span class="line-hint">Émis 16/03/2026 · en attente</span>
+              </div>
+              <span class="line-value">7 187,57 €</span>
+            </div>
+            <div class="balance-line">
+              <div class="line-left">
+                <span class="line-name">Profit share mars 2026</span>
+                <span class="line-hint">Émis 16/04/2026 · en attente</span>
+              </div>
+              <span class="line-value">7 594,37 €</span>
+            </div>
+          </div>
+          <div class="balance-note">Délai médian constaté : 91 jours entre émission et encaissement.</div>
+        </div>
+        <div class="balance-section advance">
+          <div class="section-label">
+            <span class="dot-icon"></span>
+            Provisions & autres créances
+          </div>
+          <div class="balance-subtotal">4 204<span class="unit">€</span></div>
+          <div class="balance-lines">
+            <div class="balance-line">
+              <div class="line-left">
+                <span class="line-name">Provision congés payés</span>
+                <span class="line-hint">13 mois × 283 € · jamais versés</span>
+              </div>
+              <span class="line-value">3 679,00 €</span>
+            </div>
+            <div class="balance-line">
+              <div class="line-left">
+                <span class="line-name">Cooptation Sofiane AZIRI</span>
+                <span class="line-hint">Mars 2026 · en attente</span>
+              </div>
+              <span class="line-value">524,80 €</span>
+            </div>
+          </div>
+          <div class="balance-note">La provision congés s'accumule à chaque mois de salaire. À récupérer à la sortie ou lors d'une prise de congés.</div>
+        </div>
+      </div>
+
+      <!-- DÉTAIL DU SOLDE SUR ENCAISSÉ -->
+      <div class="balance-ledger">
+        <div class="ledger-toggle" onclick="event.stopPropagation(); document.querySelector('.balance-widget').classList.toggle('ledger-open')">
+          <span class="ledger-label">
+            <span class="ledger-arrow">›</span>
+            Détail du calcul du solde sur encaissé
+          </span>
+          <span class="ledger-value">4 060,66 €</span>
+        </div>
+        <div class="ledger-content">
+          <div class="ledger-col">
+            <div class="ledger-col-title positive">Entrées — encaissements sur compte</div>
+            <div class="ledger-row">
+              <span>Facturation client payée</span>
+              <span class="v">+146 070,00 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Cooptation encaissée</span>
+              <span class="v">+2 412,80 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Refacturation client</span>
+              <span class="v">+206,89 €</span>
+            </div>
+            <div class="ledger-row total">
+              <span>Sous-total encaissements</span>
+              <span class="v">+148 689,69 €</span>
+            </div>
+          </div>
+          <div class="ledger-col">
+            <div class="ledger-col-title negative">Sorties — charges payées par le portage</div>
+            <div class="ledger-row">
+              <span>Commission portage (6%)</span>
+              <span class="v">−8 764,20 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Charges sociales salaire</span>
+              <span class="v">−20 835,43 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Charges sur profit share</span>
+              <span class="v">−5 214,30 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Impôts France (PAS)</span>
+              <span class="v">−762,84 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Charges diverses</span>
+              <span class="v">−312,00 €</span>
+            </div>
+            <div class="ledger-row total">
+              <span>Sous-total charges</span>
+              <span class="v">−35 888,77 €</span>
+            </div>
+          </div>
+          <div class="ledger-col">
+            <div class="ledger-col-title negative">Sorties — versements vers toi</div>
+            <div class="ledger-row">
+              <span>Salaires nets versés</span>
+              <span class="v">−30 859,01 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Profit shares versés</span>
+              <span class="v">−65 895,80 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Notes de frais remboursées</span>
+              <span class="v">−6 110,65 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Tickets restaurant</span>
+              <span class="v">−3 718,00 €</span>
+            </div>
+            <div class="ledger-row">
+              <span>Cooptations reversées</span>
+              <span class="v">−2 156,80 €</span>
+            </div>
+            <div class="ledger-row total">
+              <span>Sous-total versements</span>
+              <span class="v">−108 740,26 €</span>
+            </div>
+          </div>
+          <div class="ledger-final">
+            <span>SOLDE SUR ENCAISSÉ</span>
+            <span class="v">+4 060,66 €</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview">Vue d'ensemble</button>
+    <button class="tab-btn" data-tab="analytics">Analytics</button>
+    <button class="tab-btn" data-tab="fiscal">Fiscal & Forecast</button>
+    <button class="tab-btn" data-tab="detail">Détail mensuel</button>
+  </div>
+
+  <!-- TAB OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Cumul depuis le début <span class="year-tag" id="activity-months"></span></div>
+      </div>
+
+      <div class="kpi-grid" id="kpi-overview"></div>
+    </div>
+
+    <!-- Evolution chart -->
+    <div class="section">
+      <div class="chart-card">
+        <div class="chart-title">Évolution mensuelle des revenus</div>
+        <div class="chart-sub">CA facturé, salaire net et profit share par mois de prestation — depuis janvier 2025</div>
+        <svg class="line-chart" id="evolution-chart" viewBox="0 0 800 320" preserveAspectRatio="none"></svg>
+        <div class="chart-legend">
+          <div class="li"><div class="dot" style="background: var(--accent)"></div>CA facturé</div>
+          <div class="li"><div class="dot" style="background: var(--info)"></div>Salaire net</div>
+          <div class="li"><div class="dot" style="background: var(--warn)"></div>Profit share</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ratio chart -->
+    <div class="section">
+      <div class="chart-grid cols-3">
+        <div class="chart-card">
+          <div class="chart-title">Ratio salaire / profit share par mois</div>
+          <div class="chart-sub">Asymétrie structurelle — le salaire représente en moyenne ~25% de ta rémunération totale. C'est ce ratio qui alerte un contrôleur URSSAF.</div>
+          <div class="ratio-chart" id="ratio-chart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Ratio moyen</div>
+          <div class="chart-sub" id="ratio-donut-sub">Sur la période</div>
+          <div id="ratio-donut" style="display: flex; justify-content: center; align-items: center; height: 240px;"></div>
+          <div class="chart-legend" id="ratio-donut-legend" style="justify-content: center; margin-top: 0;"></div>
+          <div class="callout warn">
+            <strong>Zone rouge fiscale.</strong> Un portage salarial agréé a typiquement 50% salaire / 50% profit share max.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB ANALYTICS -->
+  <div class="tab-content" id="tab-analytics">
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Délais de paiement (DSO)</div>
+        <div class="section-sub">Analyse des délais entre facturation/émission et encaissement</div>
+      </div>
+
+      <div class="dso-grid">
+        <div class="dso-card" id="dso-ca"></div>
+        <div class="dso-card" id="dso-ps"></div>
+      </div>
+
+      <div class="callout warn" style="margin-top: 20px;">
+        <strong>Impact trésorerie :</strong> le profit share a un délai structurel de plusieurs mois. Cette somme reste dans le pipeline et constitue la créance à récupérer à la rupture.
+      </div>
+    </div>
+
+    <!-- DSO Distribution -->
+    <div class="section">
+      <div class="chart-card">
+        <div class="chart-title">Distribution des délais de paiement Profit Share</div>
+        <div class="chart-sub">Combien de fois chaque délai s'est produit (en jours)</div>
+        <svg class="line-chart" id="dso-histogram" viewBox="0 0 800 240" preserveAspectRatio="none" style="height: 240px;"></svg>
+      </div>
+    </div>
+
+    <!-- Clients -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Répartition par client</div>
+      </div>
+
+      <div class="client-bar" id="client-bar"></div>
+
+      <div class="client-list" id="client-list"></div>
+    </div>
+
+    <!-- Jours travaillés -->
+    <div class="section">
+      <div class="chart-card">
+        <div class="chart-title">Jours facturés par mois</div>
+        <div class="chart-sub">Ligne pointillée = plafond théorique 22j ouvrés. Barres bleues = multi-clients (dépassement normal). Barres ambres = intermission ou congés.</div>
+        <svg class="line-chart" id="days-chart" viewBox="0 0 800 240" preserveAspectRatio="none" style="height: 240px;"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB FISCAL & FORECAST -->
+  <div class="tab-content" id="tab-fiscal">
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Déclaration fiscale 2025 <span class="year-tag">Deadline 04/06/2026</span></div>
+      </div>
+
+      <div class="fiscal-card">
+        <h3>Éléments à déclarer</h3>
+        <div class="note">Récapitulatif des revenus perçus en 2025 à reporter sur ta déclaration. Le salaire est pré-rempli par ton employeur, le profit share doit être déclaré manuellement (case 5XJ + annexe 2047 + report 8TK).</div>
+        <div class="fiscal-grid" id="fiscal-grid-declaration"></div>
+      </div>
+
+      <div class="fiscal-card" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h3>Estimation d'impôt 2025</h3>
+            <div class="note" style="margin-bottom: 0;">Calculé au barème progressif 2025. Modifie le nombre de parts selon ta situation familiale pour voir l'impact.</div>
+          </div>
+          <div class="tax-inputs">
+            <label class="tax-input-wrap">
+              <span class="tax-input-label">Nombre de parts</span>
+              <div class="days-input-wrap">
+                <input type="number" class="days-input tax-parts-input" id="tax-parts-input" min="1" max="10" step="0.25" value="1" />
+                <div class="days-steppers">
+                  <button type="button" class="days-stepper" data-tax-action="up" aria-label="Augmenter">
+                    <svg viewBox="0 0 8 8"><path d="M4 1 L7 6 L1 6 Z"/></svg>
+                  </button>
+                  <button type="button" class="days-stepper" data-tax-action="down" aria-label="Diminuer">
+                    <svg viewBox="0 0 8 8"><path d="M4 7 L1 2 L7 2 Z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="fiscal-grid" id="fiscal-grid-tax" style="margin-top: 24px;"></div>
+        <div id="tax-breakdown" style="margin-top: 24px;"></div>
+      </div>
+
+      <div class="fiscal-card" style="margin-top: 20px;">
+        <h3>Scénarios LLP — avec vs sans crédit d'impôt</h3>
+        <div class="note">La méthode fiscaliste recommandée prévoit un crédit d'impôt égal à l'impôt français sur la quote-part LLP (case 8TK) → neutralise l'IR. Si contestée par l'administration en cas de contrôle, tu devrais payer IR + PS 17,2%.</div>
+        <div class="fiscal-grid" id="fiscal-grid-scenarios"></div>
+      </div>
+    </div>
+
+    <!-- Risk gauge -->
+    <div class="section">
+      <div class="chart-card">
+        <div class="chart-title">Jauge de risque fiscal</div>
+        <div class="chart-sub">Évaluation globale du risque de redressement compte tenu de la structure du montage et de tes déclarations.</div>
+        <div class="risk-gauge">
+          <div class="bar" style="width: 100%"></div>
+          <div class="marker" style="left: 55%"></div>
+          <div class="label l">SÉCURISÉ</div>
+          <div class="label c" style="color: rgba(0,0,0,0.6)">MODÉRÉ</div>
+          <div class="label r">CRITIQUE</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">Pourquoi modéré-élevé</div>
+            <div style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">Montage LLP + salaire sous-estimé + ratio 75/25</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">Facteur atténuant</div>
+            <div style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">Déclaration dans les délais + note juridique</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">Action prioritaire</div>
+            <div style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">Validation par avocat fiscaliste indépendant</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB DETAIL -->
+  <div class="tab-content" id="tab-detail">
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">2026 <span class="year-tag">3 mois — Q1</span></div>
+      </div>
+
+      <div class="pending-zone">
+        <h3>Profit share en attente</h3>
+        <div class="sub">Prestations réalisées, facturées au client, non encore payées.</div>
+        <div class="pending-list">
+          <div class="pending-card">
+            <div class="month">Janvier 2026</div>
+            <div class="row"><span class="l">Profit share</span><span class="v">7 729,85 €</span></div>
+            <div class="row"><span class="l">Émis le</span><span class="v">16/02/2026</span></div>
+            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
+            <div class="total"><span>À recevoir</span><span class="v">7 729,85 €</span></div>
+          </div>
+          <div class="pending-card">
+            <div class="month">Février 2026</div>
+            <div class="row"><span class="l">Profit share</span><span class="v">7 187,57 €</span></div>
+            <div class="row"><span class="l">Émis le</span><span class="v">16/03/2026</span></div>
+            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
+            <div class="total"><span>À recevoir</span><span class="v">7 187,57 €</span></div>
+          </div>
+          <div class="pending-card">
+            <div class="month">Mars 2026</div>
+            <div class="row"><span class="l">Profit share</span><span class="v">7 594,37 €</span></div>
+            <div class="row"><span class="l">Émis le</span><span class="v">16/04/2026</span></div>
+            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
+            <div class="total"><span>À recevoir</span><span class="v">7 594,37 €</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTION -->
+      <div class="projection-widget" id="projection-widget">
+        <div class="projection-header" onclick="document.getElementById('projection-widget').classList.toggle('open')">
+          <div class="ph-left">
+            <div class="ph-dot"></div>
+            <div>
+              <div class="ph-title">Projection jusqu'à fin d'année</div>
+              <div class="ph-sub">Estimation salaire, profit share et trésorerie sur les mois à venir — clique pour afficher</div>
+            </div>
+          </div>
+          <div class="ph-right">
+            <div class="ph-total" id="projection-total"></div>
+            <div class="ph-arrow">›</div>
+          </div>
+        </div>
+        <div class="projection-body">
+          <div class="projection-legend">
+            <div class="pl-item">
+              <div class="pl-swatch" style="background: var(--accent)"></div>
+              <span>Modifiable · mets tes jours réels attendus</span>
+            </div>
+            <div class="pl-item">
+              <div class="pl-swatch" style="background: var(--info); opacity: 0.5"></div>
+              <span>Calculé automatiquement</span>
+            </div>
+          </div>
+          <div class="projection-table-wrapper">
+            <table class="projection-table" id="projection-table">
+              <thead>
+                <tr>
+                  <th class="left">Mois</th>
+                  <th>Jours ouvrés</th>
+                  <th>Jours facturés</th>
+                  <th>CA facturé</th>
+                  <th>Salaire net</th>
+                  <th>Profit share</th>
+                  <th>Tickets resto</th>
+                  <th>Total perçu</th>
+                </tr>
+              </thead>
+              <tbody id="projection-tbody"></tbody>
+              <tfoot id="projection-tfoot"></tfoot>
+            </table>
+          </div>
+          <div class="projection-summary" id="projection-summary"></div>
+        </div>
+      </div>
+
+      <div class="month-list" id="months-2026"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">2025 <span class="year-tag">12 mois clôturés</span></div>
+        <div class="section-sub">Clique sur un mois pour voir le détail complet</div>
+      </div>
+      <div class="month-list" id="months-2025"></div>
+    </div>
+  </div>
+  </div><!-- fin main-content -->
+
+  <footer>
+    <span id="footer-text">Importe un CSV pour démarrer</span>
+  </footer>
+</div>
+
+<!-- Theme toggle -->
+<button id="theme-toggle" aria-label="Basculer thème clair/sombre" title="Basculer thème clair/sombre">
+  <svg class="icon-sun" viewBox="0 0 24 24">
+    <path d="M12 4.5a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V5.5a1 1 0 0 1 1-1zm0 11.5a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0 1.5a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V18.5a1 1 0 0 1 1-1zM4.5 12a1 1 0 0 1 1-1H7a1 1 0 1 1 0 2H5.5a1 1 0 0 1-1-1zm12.5 0a1 1 0 0 1 1-1h1.5a1 1 0 1 1 0 2H18a1 1 0 0 1-1-1zM6.22 6.22a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 1 1-1.42 1.42L6.22 7.64a1 1 0 0 1 0-1.42zm9.08 9.08a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 1 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 0-1.42zm0-9.08a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0zm-9.08 9.08a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 0 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0z"/>
+  </svg>
+  <svg class="icon-moon" viewBox="0 0 24 24">
+    <path d="M12.14 2.5a.75.75 0 0 1 .61 1.05 7.5 7.5 0 0 0 7.7 10.47.75.75 0 0 1 .79.99 9.5 9.5 0 1 1-9.85-12.53.75.75 0 0 1 .75.02z"/>
+  </svg>
+</button>
+
+<!-- Confirm modal (remplace confirm() natif bloqué en iframe) -->
+<div class="confirm-modal" id="confirm-modal">
+  <div class="confirm-backdrop"></div>
+  <div class="confirm-box">
+    <h3 id="confirm-title">Confirmation</h3>
+    <div class="msg" id="confirm-message"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn" id="confirm-cancel">Annuler</button>
+      <button class="confirm-btn danger" id="confirm-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast">
+  <div class="t-title" id="toast-title"></div>
+  <div class="t-body" id="toast-body"></div>
+  <div class="t-stats" id="toast-stats"></div>
+</div>
+
+<script>
+// ============================================================
+// DASHBOARD — Moteur dynamique
+// ============================================================
+
+// Formatage
+const fmt = (n) => {
+  if (n === 0 || n === null || n === undefined) return '—';
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(n) + ' €';
+};
+const fmtShort = (n) => {
+  if (!n) return '—';
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' €';
+};
+const fmtInt = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n));
+const monthNames = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const monthNamesFull = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const fmtMonth = (mois) => {
+  const [m, y] = mois.split('-');
+  return monthNamesFull[parseInt(m)-1] + ' <span class="year">' + y + '</span>';
+};
+
+// ============================================================
+// CLIENT RULES — config locale pour détecter les clients dans le CSV
+// Chargée depuis localStorage, éditable par l'utilisateur
+// Pas de client en dur dans le code pour rester générique
+// Helpers console :
+//   addClientRule('MOT_CLE_DESCRIPTION', 'Nom à afficher')
+//   listClientRules()
+//   resetClientRules()
+// ============================================================
+const CLIENT_RULES_KEY = 'dashboard_client_rules_v1';
+function loadClientRules() {
+  try {
+    const raw = localStorage.getItem(CLIENT_RULES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+let CLIENT_RULES = loadClientRules();
+window.addClientRule = function(match, label) {
+  CLIENT_RULES.push({ match, label });
+  localStorage.setItem(CLIENT_RULES_KEY, JSON.stringify(CLIENT_RULES));
+  console.log('Règle ajoutée. Le dashboard va se rafraîchir.');
+  if (typeof render === 'function') render();
+};
+window.resetClientRules = function() {
+  CLIENT_RULES = [];
+  localStorage.removeItem(CLIENT_RULES_KEY);
+  if (typeof render === 'function') render();
+};
+window.listClientRules = function() {
+  console.table(CLIENT_RULES);
+};
+
+
+// ============================================================
+// STORAGE — localStorage pour persistance entre sessions
+// ============================================================
+const STORAGE_KEY = 'reecho_dataset_v1';
+const META_KEY = 'reecho_meta_v1';
+
+function loadDataset() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error('Load error', e);
+    return [];
+  }
+}
+function saveDataset(rows) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  localStorage.setItem(META_KEY, JSON.stringify({
+    lastImport: new Date().toISOString(),
+    count: rows.length
+  }));
+}
+function loadMeta() {
+  try {
+    const raw = localStorage.getItem(META_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+// ============================================================
+// CONFIRM MODAL — remplace confirm() natif (bloqué en iframe)
+// ============================================================
+function showConfirm({ title = 'Confirmation', message, okLabel = 'Confirmer', cancelLabel = 'Annuler', danger = true } = {}) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-message');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    const backdrop = modal.querySelector('.confirm-backdrop');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    okBtn.textContent = okLabel;
+    cancelBtn.textContent = cancelLabel;
+    okBtn.classList.toggle('danger', !!danger);
+
+    const cleanup = (value) => {
+      modal.classList.remove('visible');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      backdrop.onclick = null;
+      document.removeEventListener('keydown', keyHandler);
+      resolve(value);
+    };
+    const keyHandler = (e) => {
+      if (e.key === 'Escape') cleanup(false);
+      if (e.key === 'Enter') cleanup(true);
+    };
+
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+    backdrop.onclick = () => cleanup(false);
+    document.addEventListener('keydown', keyHandler);
+
+    modal.classList.add('visible');
+    // Focus sur bouton annuler par sécurité
+    setTimeout(() => cancelBtn.focus(), 50);
+  });
+}
+
+async function resetData() {
+  const confirmed = await showConfirm({
+    title: 'Réinitialiser le dashboard ?',
+    message: 'Toutes les données importées et les préférences seront supprimées :\n\n• Opérations importées (dataset)\n• Projections personnalisées\n• Nombre de parts fiscales\n• Préférence de thème\n\nCette action est irréversible.',
+    okLabel: 'Tout supprimer',
+    cancelLabel: 'Annuler',
+    danger: true
+  });
+  if (!confirmed) return;
+
+  // Toutes les clés localStorage utilisées par le dashboard
+  const allKeys = [
+    'reecho_dataset_v1',
+    'reecho_meta_v1',
+    'reecho_proj_overrides_v1',
+    'reecho_tax_parts_v1',
+    'reecho_theme_v1',
+    'dashboard_client_rules_v1'
+  ];
+  allKeys.forEach(k => localStorage.removeItem(k));
+
+  DATASET = [];
+
+  const partsInput = document.getElementById('tax-parts-input');
+  if (partsInput) {
+    partsInput.value = 1;
+    delete partsInput.dataset.bound;
+  }
+
+  const auditModal = document.getElementById('audit-modal');
+  if (auditModal) auditModal.style.display = 'none';
+  document.body.style.overflow = '';
+
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+
+  render();
+}
+
+// ============================================================
+// CSV PARSING
+// ============================================================
+function parseCSV(text) {
+  // Enlève BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const lines = [];
+  let current = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { current.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (field !== '' || current.length > 0) {
+          current.push(field);
+          lines.push(current);
+          current = [];
+          field = '';
+        }
+        if (c === '\r' && text[i+1] === '\n') i++;
+      }
+      else field += c;
+    }
+  }
+  if (field !== '' || current.length > 0) {
+    current.push(field);
+    lines.push(current);
+  }
+
+  if (lines.length === 0) return [];
+  const headers = lines[0].map(h => h.trim());
+
+  // Trouver les index des colonnes (avec ou sans arrow_drop_up/down)
+  const findCol = (patterns) => {
+    for (let p of patterns) {
+      const idx = headers.findIndex(h => h.toLowerCase().includes(p.toLowerCase()));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+  const colDate = findCol(['DATE arrow_drop', 'DATE ', 'Date']);
+  const colMois = findCol(['MOIS', 'Mois']);
+  const colRef = findCol(['RÉFÉRENCE', 'REFERENCE', 'Référence']);
+  const colDesc = findCol(['DESCRIPTION', 'Description']);
+  const colNature = findCol(['NATURE arrow_drop', 'NATURE', 'Nature']);
+  const colMontant = findCol(['MONTANT HT', 'MONTANT', 'Montant']);
+  const colStatut = findCol(['ENCAISSÉ', 'STATUT', 'Statut']);
+  const colDatePay = findCol(['DATE PAIEMENT arrow_drop', 'DATE PAIEMENT', 'date paiement', 'paiement']);
+
+  if (colRef === -1 || colNature === -1 || colMontant === -1) {
+    throw new Error('Colonnes manquantes dans le CSV. Vérifiez le format.');
+  }
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const L = lines[i];
+    if (L.length < 2) continue; // ligne vide
+    const row = {
+      date: (L[colDate] || '').trim(),
+      mois: (L[colMois] || '').trim(),
+      reference: (L[colRef] || '').trim(),
+      description: (L[colDesc] || '').trim(),
+      nature: (L[colNature] || '').trim(),
+      montant: parseAmount(L[colMontant] || '0'),
+      statut: (L[colStatut] || '').trim(),
+      datePaiement: (L[colDatePay] || '').trim()
+    };
+    if (row.nature && row.mois) rows.push(row);
+  }
+  return rows;
+}
+
+function parseAmount(s) {
+  if (typeof s === 'number') return s;
+  return parseFloat(String(s).replace(/\s/g, '').replace(/\u00a0/g, '').replace(',', '.')) || 0;
+}
+
+// ============================================================
+// MERGE INTELLIGENT
+// ============================================================
+// Clé unique = reference + nature + description + montant
+// Permet de détecter les doublons et de mettre à jour le statut/date de paiement
+function rowKey(r) {
+  return [r.reference, r.nature, r.description, r.montant.toFixed(2)].join('||');
+}
+
+function mergeDatasets(existing, incoming) {
+  const map = new Map();
+  existing.forEach(r => map.set(rowKey(r), r));
+
+  let added = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  incoming.forEach(r => {
+    const k = rowKey(r);
+    if (map.has(k)) {
+      const prev = map.get(k);
+      // Mise à jour si statut ou date paiement différents
+      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement) {
+        map.set(k, r);
+        updated++;
+      } else {
+        unchanged++;
+      }
+    } else {
+      map.set(k, r);
+      added++;
+    }
+  });
+
+  return { rows: Array.from(map.values()), stats: { added, updated, unchanged } };
+}
+
+// ============================================================
+// IMPORT HANDLER
+// ============================================================
+document.getElementById('csv-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = parseCSV(text);
+    if (parsed.length === 0) throw new Error('Aucune ligne valide trouvée dans le CSV');
+
+    const merged = mergeDatasets(DATASET, parsed);
+    DATASET = merged.rows;
+    saveDataset(DATASET);
+
+    showToast({
+      title: 'Import réussi',
+      body: `${parsed.length} lignes traitées depuis ${file.name}`,
+      stats: merged.stats,
+      ok: true
+    });
+    render();
+  } catch (err) {
+    console.error(err);
+    showToast({
+      title: 'Erreur d\'import',
+      body: err.message,
+      ok: false
+    });
+  }
+  e.target.value = '';
+});
+
+function showToast({ title, body, stats, ok = true }) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent = body;
+  const s = document.getElementById('toast-stats');
+  if (stats) {
+    s.innerHTML = `
+      <span><span class="s-label">Ajoutées</span><span class="s-value ok">${stats.added}</span></span>
+      <span><span class="s-label">Mises à jour</span><span class="s-value warn">${stats.updated}</span></span>
+      <span><span class="s-label">Déjà à jour</span><span class="s-value">${stats.unchanged}</span></span>
+    `;
+    s.style.display = 'flex';
+  } else {
+    s.style.display = 'none';
+  }
+  t.classList.remove('error');
+  if (!ok) t.classList.add('error');
+  t.classList.add('visible');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('visible'), 5000);
+}
+
+// ============================================================
+// AGRÉGATIONS (toutes dérivées du DATASET)
+// ============================================================
+function aggregate() {
+  const byMois = {};
+  const clients = {};
+  const delaisCA = [];
+  const delaisPS = [];
+  let totals = {
+    ca: 0, ca_paye: 0, ca_non_paye: 0,
+    salaire_net: 0,
+    profit_share_total: 0, profit_share_paye: 0, profit_share_non_paye: 0,
+    provision_conges_total: 0, provision_conges_payee: 0,
+    cooptation_revenu_total: 0, cooptation_revenu_paye: 0,
+    cooptation_credit_paye: 0,
+    refacturation_paye: 0,
+    commission: 0, commission_paye: 0,
+    charges_salaire: 0, charges_salaire_paye: 0,
+    charges_ps: 0, charges_ps_paye: 0,
+    impot_france: 0,
+    charges_diverses_paye: 0,
+    notes_frais: 0,
+    tickets_resto: 0,
+    total_operations: 0
+  };
+
+  DATASET.forEach(r => {
+    totals.total_operations++;
+    const m = r.mois;
+    if (!byMois[m]) {
+      byMois[m] = {
+        mois: m,
+        facturation: 0, facturation_payee: false, facturation_date_paiement: '',
+        commission_portage: 0, charges_diverses: 0,
+        salaire_net: 0, charges_salaire: 0, provision_conges: 0, impot_france: 0,
+        notes_frais: 0, tickets_resto: 0,
+        charges_profit_share: 0,
+        profit_share_total: 0, profit_share_paye: 0, profit_share_non_paye: 0,
+        profit_share_paye_annee: {},
+        cooptation_credit: 0, cooptation_revenu: 0, cooptation_revenu_paye: 0,
+        details_profit_share: [],
+        jours_travailles: 0, tjm: 0
+      };
+    }
+    const d = byMois[m];
+    const isPaid = r.statut === 'Payé';
+    const yearOfPayment = r.datePaiement && r.datePaiement.includes('/') ? r.datePaiement.split('/')[2] : null;
+
+    switch (r.nature) {
+      case 'Crédit - Facturation': {
+        d.facturation += r.montant;
+        if (isPaid) { totals.ca_paye += r.montant; d.facturation_payee = true; d.facturation_date_paiement = r.datePaiement; }
+        else totals.ca_non_paye += r.montant;
+        totals.ca += r.montant;
+        const match = r.description.match(/\(([\d.]+)\s*\*\s*([\d.]+)\)/);
+        if (match) { d.tjm = parseFloat(match[1]); d.jours_travailles += parseFloat(match[2]); }
+        // Client
+        let clientName = 'Autre';
+        // Détection client depuis config localStorage (éditable par l'utilisateur)
+        for (const rule of CLIENT_RULES) {
+          if (r.description.toLowerCase().includes(rule.match.toLowerCase())) {
+            clientName = rule.label;
+            break;
+          }
+        }
+        if (!clients[clientName]) clients[clientName] = { ca: 0, jours: 0, mois: new Set() };
+        clients[clientName].ca += r.montant;
+        if (match) clients[clientName].jours += parseFloat(match[2]);
+        clients[clientName].mois.add(m);
+        // Délai paiement
+        if (isPaid && r.date && r.datePaiement) {
+          const delta = daysBetween(r.date, r.datePaiement);
+          if (delta !== null) delaisCA.push(delta);
+        }
+        break;
+      }
+      case 'Charges - Commission Portage': d.commission_portage += r.montant; totals.commission += r.montant; if (isPaid) totals.commission_paye += r.montant; break;
+      case 'Charges - Charges': d.charges_diverses += r.montant; if (isPaid) totals.charges_diverses_paye += r.montant; break;
+      case 'Revenu - Salaire NET (Après impot)': d.salaire_net += r.montant; totals.salaire_net += r.montant; break;
+      case 'Charges - Salaire': d.charges_salaire += r.montant; totals.charges_salaire += r.montant; if (isPaid) totals.charges_salaire_paye += r.montant; break;
+      case 'Revenu - Provision Congés':
+        d.provision_conges += r.montant;
+        totals.provision_conges_total += r.montant;
+        if (isPaid) totals.provision_conges_payee += r.montant;
+        break;
+      case 'Charges - Impot France': d.impot_france += r.montant; totals.impot_france += r.montant; break;
+      case 'Revenu - Note de frais':
+      case 'Revenu - Note de frais (Refacturation Client)':
+        d.notes_frais += r.montant; totals.notes_frais += r.montant;
+        break;
+      case 'Revenu - Ticket Restaurant': d.tickets_resto += r.montant; totals.tickets_resto += r.montant; break;
+      case 'Charges - Profit Share':
+        d.charges_profit_share += r.montant; totals.charges_ps += r.montant;
+        if (isPaid) totals.charges_ps_paye += r.montant;
+        break;
+      case 'Revenu - Profit Share': {
+        d.profit_share_total += r.montant;
+        totals.profit_share_total += r.montant;
+        d.details_profit_share.push({
+          montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut
+        });
+        if (isPaid) {
+          d.profit_share_paye += r.montant;
+          totals.profit_share_paye += r.montant;
+          if (yearOfPayment) {
+            d.profit_share_paye_annee[yearOfPayment] = (d.profit_share_paye_annee[yearOfPayment] || 0) + r.montant;
+          }
+          if (r.date && r.datePaiement) {
+            const delta = daysBetween(r.date, r.datePaiement);
+            if (delta !== null) delaisPS.push(delta);
+          }
+        } else {
+          d.profit_share_non_paye += r.montant;
+          totals.profit_share_non_paye += r.montant;
+        }
+        break;
+      }
+      case 'Crédit - Cooptation': d.cooptation_credit += r.montant; if (isPaid) totals.cooptation_credit_paye += r.montant; break;
+      case 'Revenu - Dividendes - Cooptation':
+        d.cooptation_revenu += r.montant;
+        totals.cooptation_revenu_total += r.montant;
+        if (isPaid) { d.cooptation_revenu_paye += r.montant; totals.cooptation_revenu_paye += r.montant; }
+        break;
+      case 'Crédit - Refacturation Client':
+        if (isPaid) totals.refacturation_paye += r.montant;
+        break;
+    }
+  });
+
+  // Tri des mois
+  const sortedMonths = Object.keys(byMois).sort((a, b) => {
+    const [ma, ya] = a.split('-'); const [mb, yb] = b.split('-');
+    return ya.localeCompare(yb) || ma.localeCompare(mb);
+  });
+
+  // Timeseries pour graphs
+  const timeseries = sortedMonths.map(m => {
+    const d = byMois[m];
+    return {
+      mois: m,
+      ca: d.facturation,
+      profit_share: d.profit_share_total,
+      salaire_net: d.salaire_net,
+      charges_salaire: d.charges_salaire,
+      jours: d.jours_travailles
+    };
+  });
+
+  // Années couvertes
+  const years = [...new Set(sortedMonths.map(m => m.split('-')[1]))].sort();
+
+  // Stats délais
+  const stats = (arr) => {
+    if (!arr.length) return { min: 0, max: 0, avg: 0, median: 0, count: 0 };
+    const sorted = [...arr].sort((a,b) => a-b);
+    return {
+      min: sorted[0], max: sorted[sorted.length-1],
+      avg: arr.reduce((a,b)=>a+b,0) / arr.length,
+      median: sorted[Math.floor(sorted.length/2)],
+      count: arr.length
+    };
+  };
+
+  // Clients array
+  const clientsArr = Object.entries(clients).map(([client, v]) => ({
+    client, ca: v.ca, jours: v.jours, nb_mois: v.mois.size
+  }));
+
+  return {
+    months: sortedMonths.map(m => byMois[m]),
+    monthsByKey: byMois,
+    timeseries, totals, clients: clientsArr,
+    delaisCA: stats(delaisCA), delaisPS: stats(delaisPS),
+    delaisPSList: delaisPS,
+    years
+  };
+}
+
+function daysBetween(d1Str, d2Str) {
+  try {
+    const parts1 = d1Str.split('/'); const parts2 = d2Str.split('/');
+    if (parts1.length !== 3 || parts2.length !== 3) return null;
+    const d1 = new Date(+parts1[2], +parts1[1]-1, +parts1[0]);
+    const d2 = new Date(+parts2[2], +parts2[1]-1, +parts2[0]);
+    return Math.round((d2 - d1) / 86400000);
+  } catch (e) { return null; }
+}
+
+// ============================================================
+// AUDIT — Vérification automatique des calculs portage
+// ============================================================
+
+const AUDIT_RULES = {
+  COMMISSION_PCT_EXPECTED: 0.06,    // La société de portage facture exactement 6% de commission
+  COMMISSION_TOLERANCE: 0.01,        // Tolérance 0,01 € sur arrondis
+  TR_MIN: 10.5,                      // TR minimum (en dessous = anormal, ex: 8€/j)
+  TR_MAX: 15,                        // TR maximum 15 €/jour
+  PS_DSO_WARN: 100,                  // Au-delà, attention
+  PS_DSO_CRITICAL: 130,              // Au-delà, fort risque d'oubli
+  SALAIRE_NET_MIN: 1400,             // Seuil bas normal
+  SALAIRE_NET_MAX: 2100,             // Seuil haut normal (hors bonus/13e mois)
+  CHARGES_PS_PCT_MIN: 0.02,          // Charges sur PS ~3-10% typiquement
+  CHARGES_PS_PCT_MAX: 0.11,          // Légèrement tolérant
+  PROVISION_CONGES: 283,             // Montant standard
+};
+
+function parseDate(str) {
+  if (!str) return null;
+  const p = str.split('/');
+  if (p.length !== 3) return null;
+  return new Date(+p[2], +p[1]-1, +p[0]);
+}
+
+function todayDate() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function runAudit() {
+  if (!AGG || DATASET.length === 0) {
+    showToast({ title: 'Pas de données', body: 'Importe un CSV avant de lancer la vérification.', ok: false });
+    return;
+  }
+
+  const issues = [];
+  const addIssue = (severity, category, title, desc, detail) => {
+    issues.push({ severity, category, title, desc, detail: detail || '' });
+  };
+
+  // === 1. COMMISSION PORTAGE : doit être exactement 6% du CA ===
+  // On regroupe par référence pour matcher facturation et commission
+  const byRef = {};
+  DATASET.forEach(r => {
+    if (!byRef[r.reference]) byRef[r.reference] = { facturations: [], commissions: [] };
+    if (r.nature === 'Crédit - Facturation') byRef[r.reference].facturations.push(r);
+    if (r.nature === 'Charges - Commission Portage') byRef[r.reference].commissions.push(r);
+  });
+
+  // Mais les commissions peuvent concerner plusieurs références (ex: ";" séparateur)
+  // On regarde plutôt par MOIS agrégé
+  const byMoisCommission = {};
+  DATASET.forEach(r => {
+    const m = r.mois;
+    if (!byMoisCommission[m]) byMoisCommission[m] = { ca: 0, commission: 0 };
+    if (r.nature === 'Crédit - Facturation') byMoisCommission[m].ca += r.montant;
+    if (r.nature === 'Charges - Commission Portage') byMoisCommission[m].commission += r.montant;
+  });
+  Object.entries(byMoisCommission).forEach(([mois, v]) => {
+    if (v.ca === 0) return;
+    const expected = v.ca * AUDIT_RULES.COMMISSION_PCT_EXPECTED;
+    const delta = Math.abs(v.commission - expected);
+    if (delta > AUDIT_RULES.COMMISSION_TOLERANCE) {
+      const actualPct = (v.commission / v.ca * 100).toFixed(2);
+      addIssue('danger', 'commission', `Commission ${mois} hors norme`,
+        `La commission portage devrait être exactement 6 % du CA facturé. Écart de ${fmt(delta)} détecté.`,
+        `CA ${fmt(v.ca)} · commission ${fmt(v.commission)} (${actualPct}%) · attendu ${fmt(expected)}`);
+    }
+  });
+
+  // === 2. PROFIT SHARE EN RETARD ===
+  const now = todayDate();
+  DATASET.forEach(r => {
+    if (r.nature !== 'Revenu - Profit Share' || r.statut === 'Payé') return;
+    const emitDate = parseDate(r.date);
+    if (!emitDate) return;
+    const daysSince = Math.round((now - emitDate) / 86400000);
+    if (daysSince >= AUDIT_RULES.PS_DSO_CRITICAL) {
+      addIssue('danger', 'delai', `Profit share oublié ?`,
+        `Un profit share émis il y a ${daysSince} jours n'est toujours pas payé. Au-delà de 130 jours, c'est anormal.`,
+        `Mois ${r.mois} · émis ${r.date} · montant ${fmt(r.montant)} · référence ${r.reference}`);
+    } else if (daysSince >= AUDIT_RULES.PS_DSO_WARN) {
+      addIssue('warn', 'delai', `Profit share en attente prolongée`,
+        `${daysSince} jours écoulés depuis l'émission. À relancer si ça dépasse 130 jours.`,
+        `Mois ${r.mois} · émis ${r.date} · montant ${fmt(r.montant)}`);
+    }
+  });
+
+  // === 3. DATES DE PAIEMENT INCOHÉRENTES (uniquement pour les revenus reçus) ===
+  // On ne vérifie que pour les flux entrants (facturation payée, profit share payé, cooptation reçue)
+  // Les charges ont souvent une date de paiement avant émission (prélèvement auto, clôture comptable)
+  const naturesRevenu = [
+    'Crédit - Facturation',
+    'Revenu - Profit Share',
+    'Revenu - Dividendes - Cooptation',
+    'Crédit - Cooptation',
+    'Crédit - Refacturation Client'
+  ];
+  DATASET.forEach(r => {
+    if (r.statut !== 'Payé' || !r.date || !r.datePaiement) return;
+    if (!naturesRevenu.includes(r.nature)) return;
+    const emit = parseDate(r.date);
+    const pay = parseDate(r.datePaiement);
+    if (!emit || !pay) return;
+    if (pay < emit) {
+      addIssue('warn', 'date', `Date de paiement antérieure à l'émission`,
+        `Incohérence temporelle sur un revenu : le paiement est enregistré avant la date d'émission.`,
+        `${r.nature} · ${r.description} · émis ${r.date} → payé ${r.datePaiement}`);
+    }
+  });
+
+  // === 4. TICKETS RESTAURANT hors range ===
+  // Note : certains mois cumulent plusieurs clients (jours > 23). Les TR restent calculés sur les jours
+  // de présence réelle. On plafonne donc les jours à 23 pour ce calcul.
+  const byMoisTR = {};
+  DATASET.forEach(r => {
+    if (r.nature !== 'Revenu - Ticket Restaurant') return;
+    const m = r.mois;
+    if (!byMoisTR[m]) byMoisTR[m] = { total: 0 };
+    byMoisTR[m].total += r.montant;
+  });
+  Object.entries(byMoisTR).forEach(([mois, v]) => {
+    const moisData = AGG.monthsByKey[mois];
+    if (!moisData || !moisData.jours_travailles) return;
+    const joursEffectifs = Math.min(moisData.jours_travailles, 23);
+    const trPerJour = v.total / joursEffectifs;
+    if (trPerJour < AUDIT_RULES.TR_MIN) {
+      addIssue('warn', 'tr', `Tickets resto bas ${mois}`,
+        `Le ratio par jour de présence (${trPerJour.toFixed(2)} €) est inférieur au seuil bas habituel (${AUDIT_RULES.TR_MIN} €).`,
+        `Total TR ${fmt(v.total)} · base ${joursEffectifs} jours${moisData.jours_travailles > 23 ? ' (plafonné, ' + moisData.jours_travailles + ' facturés)' : ''}`);
+    } else if (trPerJour > AUDIT_RULES.TR_MAX) {
+      addIssue('info', 'tr', `Tickets resto élevés ${mois}`,
+        `Le ratio par jour de présence (${trPerJour.toFixed(2)} €) dépasse le seuil haut habituel (${AUDIT_RULES.TR_MAX} €).`,
+        `Total TR ${fmt(v.total)} · base ${joursEffectifs} jours`);
+    }
+  });
+
+  // === DÉTECTION PRIME MACRON (PPV) ===
+  // Si un salaire net dépasse largement la médiane (~1500€+), c'est probablement une prime exceptionnelle
+  const salairesByMoisArr = [];
+  const salairesMap = {};
+  DATASET.forEach(r => {
+    if (r.nature !== 'Revenu - Salaire NET (Après impot)') return;
+    salairesMap[r.mois] = (salairesMap[r.mois] || 0) + r.montant;
+  });
+  Object.entries(salairesMap).forEach(([m, v]) => salairesByMoisArr.push({mois: m, montant: v}));
+  const salairesSorted = salairesByMoisArr.map(x => x.montant).sort((a,b) => a-b);
+  const medianSalaire = salairesSorted.length > 0
+    ? (salairesSorted.length % 2 === 1
+        ? salairesSorted[Math.floor(salairesSorted.length/2)]
+        : (salairesSorted[salairesSorted.length/2 - 1] + salairesSorted[salairesSorted.length/2]) / 2)
+    : 0;
+  const seuilPrime = medianSalaire + 1500;
+  const moisAvecPrime = new Set();
+  salairesByMoisArr.forEach(x => {
+    if (x.montant > seuilPrime) moisAvecPrime.add(x.mois);
+  });
+  // Log info de la prime détectée
+  moisAvecPrime.forEach(mois => {
+    const total = salairesMap[mois];
+    const prime = total - medianSalaire;
+    addIssue('info', 'prime', `Prime exceptionnelle détectée ${mois}`,
+      `Un salaire net atypique a été versé ce mois-ci, probablement une prime (PPV / prime Macron). Les alertes sur les ratios de ce mois ont été ajustées en conséquence.`,
+      `Salaire net ${fmt(total)} · hors prime ${fmt(medianSalaire)} · prime estimée ${fmt(prime)}`);
+  });
+
+  // === 5. SALAIRE NET hors range (en tenant compte des primes) ===
+  Object.entries(salairesMap).forEach(([mois, total]) => {
+    if (moisAvecPrime.has(mois)) return; // déjà signalé en prime
+    if (total < AUDIT_RULES.SALAIRE_NET_MIN) {
+      addIssue('warn', 'salaire', `Salaire net faible ${mois}`,
+        `Le salaire net de ce mois (${fmt(total)}) est sous le seuil bas normal (${fmt(AUDIT_RULES.SALAIRE_NET_MIN)}).`,
+        `Vérifie s'il y a eu une absence, congés non payés, ou un problème de calcul.`);
+    } else if (total > AUDIT_RULES.SALAIRE_NET_MAX) {
+      addIssue('info', 'salaire', `Salaire net élevé ${mois}`,
+        `Le salaire net de ce mois (${fmt(total)}) dépasse le seuil haut normal (${fmt(AUDIT_RULES.SALAIRE_NET_MAX)}).`,
+        `Possible bonus, 13e mois, rattrapage ou exceptionnel. À vérifier sur ta fiche de paie.`);
+    }
+  });
+
+  // === 6. CHARGES SUR PROFIT SHARE : ratio anormal (neutralisé pour mois avec prime) ===
+  const psByMois = {};
+  DATASET.forEach(r => {
+    const m = r.mois;
+    if (!psByMois[m]) psByMois[m] = { ps: 0, charges_ps: 0 };
+    if (r.nature === 'Revenu - Profit Share') psByMois[m].ps += r.montant;
+    if (r.nature === 'Charges - Profit Share') psByMois[m].charges_ps += r.montant;
+  });
+  Object.entries(psByMois).forEach(([mois, v]) => {
+    if (v.ps === 0) return;
+    if (moisAvecPrime.has(mois)) return; // ratio faussé par la prime, on skip
+    const ratio = v.charges_ps / v.ps;
+    if (ratio < AUDIT_RULES.CHARGES_PS_PCT_MIN || ratio > AUDIT_RULES.CHARGES_PS_PCT_MAX) {
+      addIssue('warn', 'charges_ps', `Charges sur PS ${mois} atypiques`,
+        `Le ratio charges/profit share (${(ratio*100).toFixed(1)}%) sort du range attendu (${(AUDIT_RULES.CHARGES_PS_PCT_MIN*100).toFixed(0)}-${(AUDIT_RULES.CHARGES_PS_PCT_MAX*100).toFixed(0)}%).`,
+        `PS ${fmt(v.ps)} · charges ${fmt(v.charges_ps)}`);
+    }
+  });
+
+  // === 7. FACTURATION SANS PROFIT SHARE CORRESPONDANT ===
+  const facturByMois = {};
+  const psByMoisCount = {};
+  DATASET.forEach(r => {
+    if (r.nature === 'Crédit - Facturation' && r.description.match(/\([\d.]+\s*\*\s*[\d.]+\)/)) {
+      facturByMois[r.mois] = (facturByMois[r.mois] || 0) + 1;
+    }
+    if (r.nature === 'Revenu - Profit Share') {
+      psByMoisCount[r.mois] = (psByMoisCount[r.mois] || 0) + 1;
+    }
+  });
+  Object.keys(facturByMois).forEach(mois => {
+    if (!psByMoisCount[mois]) {
+      // Exception : mois récents où le PS n'est pas encore émis (normal 16 du mois suivant)
+      const [m, y] = mois.split('-').map(Number);
+      const moisDate = new Date(y, m-1, 16);
+      const nextPSDate = new Date(y, m, 16); // émis ~le 16 du mois suivant
+      if (now < nextPSDate) return; // trop tôt pour s'alarmer
+      addIssue('danger', 'missing', `Profit share manquant ${mois}`,
+        `Une facturation existe pour ce mois mais aucun profit share n'a été émis.`,
+        `Vérifie si ta société a oublié d'émettre ton profit share. Normalement émis le 16 du mois suivant.`);
+    }
+  });
+
+  // === 8. PROVISION CONGÉS PAYÉS — jamais versée ===
+  let provisionsTotal = 0;
+  let provisionsPaid = 0;
+  let provisionsCount = 0;
+  DATASET.forEach(r => {
+    if (r.nature !== 'Revenu - Provision Congés') return;
+    provisionsTotal += r.montant;
+    provisionsCount++;
+    if (r.statut === 'Payé') provisionsPaid += r.montant;
+  });
+  const provisionsImpayees = provisionsTotal - provisionsPaid;
+  if (provisionsImpayees > 0) {
+    addIssue('info', 'provision', `Provision congés payés non versée`,
+      `La société accumule une provision pour congés payés mais ne la verse pas spontanément. À réclamer à la rupture conventionnelle.`,
+      `${provisionsCount} mois × ~${fmt(AUDIT_RULES.PROVISION_CONGES)} = ${fmt(provisionsImpayees)} dus`);
+  }
+
+  // === 9. PAS (impôt retenu à la source) manquant ===
+  const moisAvecSalaire = new Set();
+  const moisAvecPAS = new Set();
+  DATASET.forEach(r => {
+    if (r.nature === 'Revenu - Salaire NET (Après impot)') moisAvecSalaire.add(r.mois);
+    if (r.nature === 'Charges - Impot France') moisAvecPAS.add(r.mois);
+  });
+  // Note : le PAS peut être à 0 € si tu n'étais pas soumis, donc absence != anomalie
+  // On informe juste si > 3 mois consécutifs sans PAS (taux nul signalé par la DGFiP à vérifier)
+  const moisSansPAS = [...moisAvecSalaire].filter(m => !moisAvecPAS.has(m)).sort();
+  if (moisSansPAS.length >= 3) {
+    addIssue('info', 'pas', `Taux PAS à 0 sur ${moisSansPAS.length} mois`,
+      `Plusieurs mois sans prélèvement à la source. Normal si ton taux est à 0, mais à vérifier sur impots.gouv.fr.`,
+      `Mois concernés : ${moisSansPAS.slice(0, 6).join(', ')}${moisSansPAS.length > 6 ? '…' : ''}`);
+  }
+
+  // === 10. DOUBLONS EXACTS ===
+  const seen = {};
+  DATASET.forEach(r => {
+    const k = `${r.reference}|${r.nature}|${r.description}|${r.montant.toFixed(2)}`;
+    seen[k] = (seen[k] || 0) + 1;
+  });
+  const duplicates = Object.entries(seen).filter(([k, v]) => v > 1);
+  duplicates.forEach(([k, v]) => {
+    const parts = k.split('|');
+    addIssue('danger', 'duplicate', `Ligne en double`,
+      `Une ligne apparaît ${v} fois avec exactement les mêmes caractéristiques.`,
+      `${parts[1]} · ${parts[2]} · ${parts[3]} € · réf ${parts[0]}`);
+  });
+
+  // === 11. COOPTATION : crédit ≠ revenu correspondant ===
+  const coopByRef = {};
+  DATASET.forEach(r => {
+    if (r.nature === 'Crédit - Cooptation') {
+      if (!coopByRef[r.reference]) coopByRef[r.reference] = {};
+      coopByRef[r.reference].credit = r.montant;
+    }
+    if (r.nature === 'Revenu - Dividendes - Cooptation') {
+      if (!coopByRef[r.reference]) coopByRef[r.reference] = {};
+      coopByRef[r.reference].revenu = r.montant;
+    }
+  });
+  Object.entries(coopByRef).forEach(([ref, v]) => {
+    if (v.credit !== undefined && v.revenu !== undefined && Math.abs(v.credit - v.revenu) > 0.01) {
+      addIssue('warn', 'coop', `Cooptation ${ref} : écart`,
+        `Le crédit reçu et le revenu reversé ne correspondent pas. Normalement c'est à l'identique.`,
+        `Crédit ${fmt(v.credit)} vs Revenu ${fmt(v.revenu)} · écart ${fmt(Math.abs(v.credit - v.revenu))}`);
+    }
+  });
+
+  // === 12. ÉQUATION DE CLÔTURE MENSUELLE ===
+  // CA = salaire_net + charges_salaire + commission + charges_ps + tr + PS
+  //    + PAS + provision_congés + notes_de_frais + charges_diverses
+  // (Les NDF sont des sommes avancées par toi, remboursées depuis ton CA)
+  AGG.months.forEach(m => {
+    if (m.facturation === 0) return;
+    if (moisAvecPrime.has(m.mois)) return;
+    const somme = m.salaire_net + m.charges_salaire + m.commission_portage
+                + m.charges_profit_share + m.tickets_resto + m.profit_share_total
+                + m.impot_france + m.provision_conges
+                + (m.notes_frais || 0) + (m.charges_diverses || 0);
+    const delta = m.facturation - somme;
+    const absDelta = Math.abs(delta);
+    if (absDelta > 20 && absDelta < m.facturation * 0.02) {
+      addIssue('info', 'equation', `Écart de clôture ${m.mois}`,
+        `Les sorties ne totalisent pas exactement le CA. Probablement lié aux arrondis cumulés.`,
+        `CA ${fmt(m.facturation)} · somme sorties ${fmt(somme)} · delta ${fmt(delta)}`);
+    } else if (absDelta >= m.facturation * 0.02) {
+      addIssue('warn', 'equation', `Écart de clôture important ${m.mois}`,
+        `L'équation de clôture ne balance pas. Il y a probablement une ligne manquante ou une erreur.`,
+        `CA ${fmt(m.facturation)} · somme sorties ${fmt(somme)} · delta ${fmt(delta)} (${(delta/m.facturation*100).toFixed(1)}%)`);
+    }
+  });
+
+  // === 13. MOIS MULTI-CLIENTS (info) ===
+  const clientsByMois = {};
+  DATASET.forEach(r => {
+    if (r.nature !== 'Crédit - Facturation') return;
+    if (!clientsByMois[r.mois]) clientsByMois[r.mois] = new Set();
+    // Détection client via description
+    let clientLabel = 'Autre';
+    if (r.description.includes('CLIENT_A')) clientLabel = 'CLIENT_A';
+    else if (r.description.includes('Client B')) clientLabel = 'Client B';
+    else {
+      // Extraction générique : premier mot capitalisé après "Facturation"
+      const m = r.description.match(/Facturation\s+([A-Z][A-Za-z\s]+?)\s*\(/);
+      if (m) clientLabel = m[1].trim();
+    }
+    clientsByMois[r.mois].add(clientLabel);
+  });
+  Object.entries(clientsByMois).forEach(([mois, clientsSet]) => {
+    if (clientsSet.size >= 2) {
+      const clients = [...clientsSet].join(' + ');
+      addIssue('info', 'multi_clients', `Mois multi-clients ${mois}`,
+        `Deux missions facturées en parallèle ce mois-ci. Les ratios (TR/jour, charges) peuvent sembler atypiques car les jours facturés cumulés dépassent le nombre de jours ouvrés.`,
+        `Clients : ${clients}`);
+    }
+  });
+
+  // === 14. JOURS FACTURÉS EXCESSIFS (> 23/mois, physiquement improbable) ===
+  Object.entries(clientsByMois).forEach(([mois, clientsSet]) => {
+    const moisData = AGG.monthsByKey[mois];
+    if (!moisData) return;
+    const jours = moisData.jours_travailles;
+    if (jours > 23) {
+      const severity = clientsSet.size >= 2 ? 'info' : 'warn';
+      const contextMsg = clientsSet.size >= 2
+        ? `Lié à la facturation multi-clients de ce mois. Chaque client facturé séparément = jours cumulés. À confirmer.`
+        : `Ce volume dépasse le maximum physique d'un mois (23 jours ouvrés max). Probable facturation rétroactive ou erreur.`;
+      addIssue(severity, 'volume', `${jours} jours facturés ${mois}`,
+        contextMsg,
+        `Max théorique : 23 jours ouvrés/mois`);
+    }
+  });
+
+  // === RÉSUMÉ ===
+  const stats = { danger: 0, warn: 0, info: 0, ok: 0 };
+  issues.forEach(i => stats[i.severity]++);
+  if (issues.length === 0) {
+    issues.push({
+      severity: 'ok',
+      category: 'clean',
+      title: 'Tout est cohérent',
+      desc: 'Aucune anomalie détectée sur ton historique. Les calculs sont conformes aux règles attendues.',
+      detail: ''
+    });
+    stats.ok++;
+  }
+
+  displayAuditResults(issues, stats);
+}
+
+function displayAuditResults(issues, stats) {
+  const modal = document.getElementById('audit-modal');
+  const listEl = document.getElementById('audit-list');
+  const summaryEl = document.getElementById('audit-summary');
+  const subEl = document.getElementById('audit-sub');
+
+  const total = stats.danger + stats.warn + stats.info;
+  subEl.textContent = total === 0
+    ? `Aucune anomalie sur ${DATASET.length} opérations analysées`
+    : `${total} point${total>1?'s':''} d'attention sur ${DATASET.length} opérations analysées`;
+
+  summaryEl.innerHTML = `
+    <div class="audit-summary-card danger">
+      <div class="n">${stats.danger}</div>
+      <div class="l">Critique</div>
+    </div>
+    <div class="audit-summary-card warn">
+      <div class="n">${stats.warn}</div>
+      <div class="l">Attention</div>
+    </div>
+    <div class="audit-summary-card info">
+      <div class="n">${stats.info}</div>
+      <div class="l">Info</div>
+    </div>
+    <div class="audit-summary-card ok">
+      <div class="n">${stats.ok > 0 ? '✓' : (DATASET.length - total)}</div>
+      <div class="l">${stats.ok > 0 ? 'Tout OK' : 'OK'}</div>
+    </div>
+  `;
+
+  // Tri : danger > warn > info > ok
+  const order = { danger: 0, warn: 1, info: 2, ok: 3 };
+  issues.sort((a, b) => order[a.severity] - order[b.severity]);
+
+  // Groupement par sévérité
+  const grouped = { danger: [], warn: [], info: [], ok: [] };
+  issues.forEach(i => grouped[i.severity].push(i));
+
+  const labels = {
+    danger: 'Anomalies critiques',
+    warn: 'Points d\'attention',
+    info: 'Informations utiles',
+    ok: 'Conformité'
+  };
+
+  let html = '';
+  ['danger', 'warn', 'info', 'ok'].forEach(sev => {
+    if (grouped[sev].length === 0) return;
+    html += `<div class="audit-section-title">${labels[sev]} (${grouped[sev].length})</div>`;
+    grouped[sev].forEach(i => {
+      html += `
+        <div class="audit-item ${i.severity}">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="title">${i.title}</div>
+            <div class="desc">${i.desc}</div>
+            ${i.detail ? `<div class="detail">${i.detail}</div>` : ''}
+          </div>
+          <div class="right">${i.category}</div>
+        </div>
+      `;
+    });
+  });
+
+  listEl.innerHTML = html;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Mettre à jour le badge du bouton
+  updateAuditBadge(stats);
+}
+
+function updateAuditBadge(stats) {
+  const badge = document.getElementById('audit-badge');
+  if (!badge) return;
+  const n = stats.danger + stats.warn;
+  if (n === 0) {
+    badge.style.display = 'none';
+  } else {
+    badge.textContent = n;
+    badge.className = stats.danger > 0 ? 'audit-badge' : 'audit-badge warn';
+    badge.style.display = 'inline-flex';
+  }
+}
+
+function closeAudit() {
+  document.getElementById('audit-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Expose globalement
+window.runAudit = runAudit;
+window.closeAudit = closeAudit;
+window.resetData = resetData;
+
+// Binding explicite du bouton reset (plus fiable que onclick inline pour certains contextes)
+const resetBtnEl = document.getElementById('reset-btn');
+if (resetBtnEl) {
+  resetBtnEl.addEventListener('click', resetData);
+}
+
+// ============================================================
+// MAIN RENDER
+// ============================================================
+let DATASET = loadDataset();
+let AGG = null;
+
+function render() {
+  const meta = loadMeta();
+  const hasData = DATASET.length > 0;
+
+  document.getElementById('empty-state').style.display = hasData ? 'none' : 'block';
+  document.getElementById('main-content').style.display = hasData ? 'block' : 'none';
+  document.getElementById('reset-btn').style.display = hasData ? 'inline-flex' : 'none';
+  const auditBtn = document.getElementById('audit-btn');
+  if (auditBtn) auditBtn.style.display = hasData ? 'inline-flex' : 'none';
+
+  // Info dernier import
+  if (meta) {
+    const d = new Date(meta.lastImport);
+    const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('last-import-info').innerHTML = `Dernier import · <span class="val">${dateStr}</span> · ${meta.count} lignes`;
+    document.getElementById('footer-text').textContent = `${meta.count} opérations analysées · dernière synchronisation ${dateStr}`;
+  } else {
+    document.getElementById('last-import-info').textContent = '';
+    document.getElementById('footer-text').textContent = 'Aucune donnée — importe un CSV pour démarrer';
+  }
+
+  if (!hasData) {
+    // Vider tout le contenu dynamique pour ne rien laisser en mémoire DOM
+    AGG = null;
+    const containersToEmpty = [
+      'kpi-overview', 'months-2025', 'months-2026',
+      'client-bar', 'client-list',
+      'fiscal-grid-declaration', 'fiscal-grid-tax', 'fiscal-grid-scenarios',
+      'tax-breakdown',
+      'projection-tbody', 'projection-tfoot', 'projection-summary',
+      'projection-total', 'last-import-info',
+      'ratio-chart', 'ratio-donut', 'ratio-donut-legend',
+      'evolution-chart', 'days-chart', 'dso-histogram',
+      'dso-ca', 'dso-ps',
+      'audit-list', 'audit-summary'
+    ];
+    containersToEmpty.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+
+    // Vider les zones internes du widget balance
+    document.querySelectorAll('.balance-lines, .ledger-content').forEach(el => el.innerHTML = '');
+    document.querySelectorAll('.balance-subtotal, .balance-total .amount, .official-value, .ledger-value').forEach(el => el.innerHTML = '');
+
+    // Vider pending zone
+    const pendingList = document.querySelector('.pending-zone .pending-list');
+    if (pendingList) pendingList.innerHTML = '';
+
+    // Reset TJM header
+    const headerTjmEl = document.getElementById('header-tjm');
+    if (headerTjmEl) headerTjmEl.textContent = '—';
+
+    // Reset badge audit
+    const badge = document.getElementById('audit-badge');
+    if (badge) badge.style.display = 'none';
+
+    // Année tag
+    const activityMonths = document.getElementById('activity-months');
+    if (activityMonths) activityMonths.textContent = '';
+
+    return;
+  }
+
+  AGG = aggregate();
+
+  // TJM dynamique dans le header : dernier TJM connu depuis le CSV
+  const headerTjmEl = document.getElementById('header-tjm');
+  if (headerTjmEl) {
+    let currentTjm = 0;
+    for (let i = AGG.months.length - 1; i >= 0; i--) {
+      if (AGG.months[i].tjm > 0) { currentTjm = AGG.months[i].tjm; break; }
+    }
+    headerTjmEl.textContent = currentTjm > 0 ? `TJM ${fmtInt(currentTjm)} €` : '';
+  }
+
+  renderKPIs();
+  renderBalanceWidget();
+  renderEvolutionChart();
+  renderRatioChart();
+  renderDonut();
+  renderDsoCards();
+  renderDsoHistogram();
+  renderClients();
+  renderDaysChart();
+  renderFiscal();
+  renderProjection();
+  renderMonthsLists();
+}
+
+// ============================================================
+// KPI
+// ============================================================
+function renderKPIs() {
+  const t = AGG.totals;
+  const moisCount = AGG.months.length;
+  const salAvg = moisCount ? t.salaire_net / moisCount : 0;
+  const psAvg = moisCount ? t.profit_share_total / moisCount : 0;
+
+  // Détection 2025 vs 2026 pour sections séparées
+  const t25 = subTotalsForYear('2025');
+  const t26 = subTotalsForYear('2026');
+
+  // KPI global overview
+  const overviewGrid = document.getElementById('kpi-overview');
+  if (overviewGrid) {
+    overviewGrid.innerHTML = `
+      <div class="kpi">
+        <div class="label">CA facturé total</div>
+        <div class="value">${fmtInt(t.ca)}<span class="unit">€</span></div>
+        <div class="hint">${fmtInt(AGG.timeseries.reduce((a,b)=>a+b.jours,0))} jours</div>
+      </div>
+      <div class="kpi ok">
+        <div class="label">Salaire net cumulé</div>
+        <div class="value">${fmtInt(t.salaire_net)}<span class="unit">€</span></div>
+        <div class="hint">${fmtInt(salAvg)} €/mois en moy.</div>
+      </div>
+      <div class="kpi warn">
+        <div class="label">Profit share attribué</div>
+        <div class="value">${fmtInt(t.profit_share_total)}<span class="unit">€</span></div>
+        <div class="hint">${fmtInt(psAvg)} €/mois en moy.</div>
+      </div>
+      <div class="kpi danger">
+        <div class="label">Profit share en attente</div>
+        <div class="value">${fmtInt(t.profit_share_non_paye)}<span class="unit">€</span></div>
+        <div class="hint">Pipeline à recevoir</div>
+      </div>
+    `;
+  }
+}
+
+function subTotalsForYear(year) {
+  const t = { ca: 0, salaire_net: 0, profit_share_total: 0, profit_share_paye_year: 0, profit_share_paye_autre: 0, profit_share_non_paye: 0, jours: 0, nb_mois: 0 };
+  AGG.months.forEach(m => {
+    if (!m.mois.endsWith('-' + year)) return;
+    t.nb_mois++;
+    t.ca += m.facturation;
+    t.salaire_net += m.salaire_net;
+    t.profit_share_total += m.profit_share_total;
+    t.profit_share_non_paye += m.profit_share_non_paye;
+    t.jours += m.jours_travailles;
+    Object.entries(m.profit_share_paye_annee).forEach(([y, v]) => {
+      if (y === year) t.profit_share_paye_year += v;
+      else t.profit_share_paye_autre += v;
+    });
+  });
+  return t;
+}
+
+// ============================================================
+// BALANCE WIDGET
+// ============================================================
+function renderBalanceWidget() {
+  const t = AGG.totals;
+
+  // Solde sur facturé = tout ce que la société me doit encore
+  const soldeFacture = t.profit_share_non_paye
+    + (t.provision_conges_total - t.provision_conges_payee)
+    + (t.cooptation_revenu_total - t.cooptation_revenu_paye);
+
+  // Solde sur encaissé = ce qui est effectivement sur le compte associé
+  const creditsEncaisses = t.ca_paye + t.cooptation_credit_paye + t.refacturation_paye;
+  const chargesPayees = t.commission_paye + t.charges_diverses_paye + t.impot_france + t.charges_ps_paye + t.charges_salaire_paye;
+  const versementsRecus = t.salaire_net + t.notes_frais + t.tickets_resto + t.profit_share_paye + t.cooptation_revenu_paye;
+  const soldeEncaisse = creditsEncaisses - chargesPayees - versementsRecus;
+
+  // Mises à jour widget
+  const totalEl = document.querySelector('.balance-total .amount');
+  if (totalEl) totalEl.innerHTML = `${fmtInt(soldeFacture)}<span class="unit">€</span>`;
+
+  const officialValues = document.querySelectorAll('.official-value');
+  if (officialValues.length >= 2) {
+    officialValues[0].innerHTML = `${fmt(soldeEncaisse).replace(' €','')}<span class="u"> €</span>`;
+    officialValues[1].innerHTML = `${fmt(soldeFacture).replace(' €','')}<span class="u"> €</span>`;
+  }
+
+  // Section "Ils te paieront plus tard" — PS non payés
+  const psNonPayes = [];
+  AGG.months.forEach(m => {
+    m.details_profit_share.forEach(ps => {
+      if (ps.statut !== 'Payé') {
+        psNonPayes.push({ mois: m.mois, ...ps });
+      }
+    });
+  });
+  // Tri chronologique
+  psNonPayes.sort((a,b) => {
+    const [ma, ya] = a.mois.split('-'); const [mb, yb] = b.mois.split('-');
+    return ya.localeCompare(yb) || ma.localeCompare(mb);
+  });
+
+  const receivableEl = document.querySelector('.balance-section.receivable');
+  if (receivableEl) {
+    const subtotal = psNonPayes.reduce((a,p) => a + p.montant, 0);
+    receivableEl.querySelector('.balance-subtotal').innerHTML = `${fmtInt(subtotal)}<span class="unit">€</span>`;
+    const linesEl = receivableEl.querySelector('.balance-lines');
+    linesEl.innerHTML = psNonPayes.map(ps => {
+      const [m, y] = ps.mois.split('-');
+      return `
+        <div class="balance-line">
+          <div class="line-left">
+            <span class="line-name">Profit share ${monthNamesFull[parseInt(m)-1].toLowerCase()} ${y}</span>
+            <span class="line-hint">Émis ${ps.date_emission} · en attente</span>
+          </div>
+          <span class="line-value">${fmt(ps.montant)}</span>
+        </div>
+      `;
+    }).join('') || '<div class="balance-line"><div class="line-left"><span class="line-name">Aucun profit share en attente</span></div></div>';
+  }
+
+  // Section "Provisions & autres créances"
+  const provCongesRestante = t.provision_conges_total - t.provision_conges_payee;
+  const provCongesMois = AGG.months.filter(m => m.provision_conges > 0).length;
+  const coopNonPayeDetails = [];
+  AGG.months.forEach(m => {
+    // Cherche cooptations non payées ligne par ligne (approximation : delta total - paye)
+    const delta = m.cooptation_revenu - m.cooptation_revenu_paye;
+    if (delta > 0.01) coopNonPayeDetails.push({ mois: m.mois, montant: delta });
+  });
+
+  const advanceEl = document.querySelector('.balance-section.advance');
+  if (advanceEl) {
+    const coopRestant = t.cooptation_revenu_total - t.cooptation_revenu_paye;
+    const subtotal = provCongesRestante + coopRestant;
+    advanceEl.querySelector('.balance-subtotal').innerHTML = `${fmtInt(subtotal)}<span class="unit">€</span>`;
+    const linesEl = advanceEl.querySelector('.balance-lines');
+    let html = '';
+    if (provCongesRestante > 0) {
+      html += `
+        <div class="balance-line">
+          <div class="line-left">
+            <span class="line-name">Provision congés payés</span>
+            <span class="line-hint">${provCongesMois} mois × 283 € · jamais versés</span>
+          </div>
+          <span class="line-value">${fmt(provCongesRestante)}</span>
+        </div>
+      `;
+    }
+    coopNonPayeDetails.forEach(c => {
+      const [m, y] = c.mois.split('-');
+      html += `
+        <div class="balance-line">
+          <div class="line-left">
+            <span class="line-name">Cooptation</span>
+            <span class="line-hint">${monthNamesFull[parseInt(m)-1]} ${y} · en attente</span>
+          </div>
+          <span class="line-value">${fmt(c.montant)}</span>
+        </div>
+      `;
+    });
+    linesEl.innerHTML = html || '<div class="balance-line"><div class="line-left"><span class="line-name">Aucune créance en attente</span></div></div>';
+  }
+
+  // Ledger détail
+  const ledgerContent = document.querySelector('.ledger-content');
+  if (ledgerContent) {
+    ledgerContent.innerHTML = `
+      <div class="ledger-col">
+        <div class="ledger-col-title positive">Entrées — encaissements sur compte</div>
+        <div class="ledger-row"><span>Facturation client payée</span><span class="v">+${fmt(t.ca_paye)}</span></div>
+        <div class="ledger-row"><span>Cooptation encaissée</span><span class="v">+${fmt(t.cooptation_credit_paye)}</span></div>
+        <div class="ledger-row"><span>Refacturation client</span><span class="v">+${fmt(t.refacturation_paye)}</span></div>
+        <div class="ledger-row total"><span>Sous-total encaissements</span><span class="v">+${fmt(creditsEncaisses)}</span></div>
+      </div>
+      <div class="ledger-col">
+        <div class="ledger-col-title negative">Sorties — charges payées par le portage</div>
+        <div class="ledger-row"><span>Commission portage</span><span class="v">−${fmt(t.commission_paye)}</span></div>
+        <div class="ledger-row"><span>Charges sociales salaire</span><span class="v">−${fmt(t.charges_salaire_paye)}</span></div>
+        <div class="ledger-row"><span>Charges sur profit share</span><span class="v">−${fmt(t.charges_ps_paye)}</span></div>
+        <div class="ledger-row"><span>Impôts France (PAS)</span><span class="v">−${fmt(t.impot_france)}</span></div>
+        <div class="ledger-row"><span>Charges diverses</span><span class="v">−${fmt(t.charges_diverses_paye)}</span></div>
+        <div class="ledger-row total"><span>Sous-total charges</span><span class="v">−${fmt(chargesPayees)}</span></div>
+      </div>
+      <div class="ledger-col">
+        <div class="ledger-col-title negative">Sorties — versements vers toi</div>
+        <div class="ledger-row"><span>Salaires nets versés</span><span class="v">−${fmt(t.salaire_net)}</span></div>
+        <div class="ledger-row"><span>Profit shares versés</span><span class="v">−${fmt(t.profit_share_paye)}</span></div>
+        <div class="ledger-row"><span>Notes de frais remboursées</span><span class="v">−${fmt(t.notes_frais)}</span></div>
+        <div class="ledger-row"><span>Tickets restaurant</span><span class="v">−${fmt(t.tickets_resto)}</span></div>
+        <div class="ledger-row"><span>Cooptations reversées</span><span class="v">−${fmt(t.cooptation_revenu_paye)}</span></div>
+        <div class="ledger-row total"><span>Sous-total versements</span><span class="v">−${fmt(versementsRecus)}</span></div>
+      </div>
+      <div class="ledger-final">
+        <span>SOLDE SUR ENCAISSÉ</span>
+        <span class="v">${soldeEncaisse >= 0 ? '+' : ''}${fmt(soldeEncaisse)}</span>
+      </div>
+    `;
+  }
+
+  // Valeur à droite du toggle
+  const ledgerValue = document.querySelector('.ledger-value');
+  if (ledgerValue) ledgerValue.textContent = fmt(soldeEncaisse);
+}
+
+// ============================================================
+// EVOLUTION CHART
+// ============================================================
+function renderEvolutionChart() {
+  const svg = document.getElementById('evolution-chart');
+  if (!svg) return;
+  const W = 800, H = 360;
+  const pad = { l: 70, r: 30, t: 30, b: 60 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const series = AGG.timeseries;
+  if (series.length === 0) { svg.innerHTML = ''; return; }
+  const rawMax = Math.max(...series.map(d => Math.max(d.ca, d.profit_share, d.salaire_net)));
+  const maxVal = Math.max(5000, Math.ceil((rawMax * 1.15) / 5000) * 5000);
+
+  const xScale = (i) => series.length === 1 ? pad.l + cw/2 : pad.l + (i / (series.length - 1)) * cw;
+  const yScale = (v) => pad.t + ch - (v / maxVal) * ch;
+
+  let grid = '';
+  const steps = maxVal / 5000;
+  for (let i = 0; i <= steps; i++) {
+    const y = pad.t + ch - (i / steps) * ch;
+    const v = 5000 * i;
+    grid += `<line class="grid-line" x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}"/>`;
+    grid += `<text class="axis-label" x="${pad.l - 12}" y="${y + 5}" text-anchor="end">${v/1000}k €</text>`;
+  }
+
+  let xLabels = '';
+  series.forEach((d, i) => {
+    if (i % 2 === 0 || i === series.length - 1) {
+      const [m, y] = d.mois.split('-');
+      xLabels += `<text class="axis-label" x="${xScale(i)}" y="${H - pad.b + 22}" text-anchor="middle">${monthNames[parseInt(m)-1]} ${y.slice(2)}</text>`;
+    }
+  });
+
+  function buildPath(valueKey, color, areaColor) {
+    const points = series.map((d, i) => [xScale(i), yScale(d[valueKey])]);
+    if (points.length === 0) return '';
+    const linePath = 'M ' + points.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L ');
+    const areaPath = linePath + ` L ${xScale(series.length - 1)},${yScale(0)} L ${xScale(0)},${yScale(0)} Z`;
+    return `
+      <path class="area" d="${areaPath}" fill="${areaColor}"/>
+      <path class="line" d="${linePath}" stroke="${color}"/>
+      ${points.map(p => `<circle class="point" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="${color}"></circle>`).join('')}
+    `;
+  }
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.height = H + 'px';
+  svg.innerHTML = grid + xLabels
+    + buildPath('ca', 'var(--accent)', 'var(--accent)')
+    + buildPath('profit_share', 'var(--warn)', 'var(--warn)')
+    + buildPath('salaire_net', 'var(--info)', 'var(--info)');
+}
+
+// ============================================================
+// RATIO CHART + DONUT
+// ============================================================
+function renderRatioChart() {
+  const container = document.getElementById('ratio-chart');
+  if (!container) return;
+  let html = '';
+  AGG.timeseries.forEach(d => {
+    const total = d.salaire_net + d.profit_share;
+    if (total === 0) return;
+    const salPct = (d.salaire_net / total) * 100;
+    const psPct = 100 - salPct;
+    const [m, y] = d.mois.split('-');
+    html += `
+      <div class="ratio-row">
+        <div class="rmois">${monthNames[parseInt(m)-1]} ${y.slice(2)}</div>
+        <div class="ratio-bar-container">
+          <div class="ratio-seg-sal" style="width: ${salPct}%"></div>
+          <div class="ratio-seg-ps" style="width: ${psPct}%"></div>
+        </div>
+        <div class="ratio-values">
+          <span class="sal">${salPct.toFixed(0)}%</span> / <span class="ps">${psPct.toFixed(0)}%</span>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function renderDonut() {
+  const el = document.getElementById('ratio-donut');
+  if (!el) return;
+  const t = AGG.totals;
+  const total = t.salaire_net + t.profit_share_total;
+  if (total === 0) { el.innerHTML = ''; return; }
+  const salPct = t.salaire_net / total;
+  const r = 70, cx = 100, cy = 100;
+  const circ = 2 * Math.PI * r;
+  const salLen = circ * salPct;
+
+  el.innerHTML = `
+    <svg viewBox="0 0 200 200" width="200" height="200">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--warn)" stroke-width="24"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--info)" stroke-width="24"
+        stroke-dasharray="${salLen} ${circ}" stroke-dashoffset="0"
+        transform="rotate(-90 ${cx} ${cy})"/>
+      <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="var(--text)"
+        style="font-family: Fraunces; font-size: 42px; font-weight: 400;">${Math.round(salPct*100)}%</text>
+      <text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="var(--text-dim)"
+        style="font-family: JetBrains Mono; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">salaire</text>
+    </svg>
+  `;
+
+  // Legend en dessous
+  const legend = document.getElementById('ratio-donut-legend');
+  if (legend) {
+    const psPct = Math.round((1-salPct)*100);
+    legend.innerHTML = `
+      <div class="li"><div class="dot" style="background: var(--info)"></div>Salaire ${Math.round(salPct*100)}%</div>
+      <div class="li"><div class="dot" style="background: var(--warn)"></div>PS ${psPct}%</div>
+    `;
+  }
+}
+
+// ============================================================
+// DSO
+// ============================================================
+function renderDsoCards() {
+  const ca = AGG.delaisCA;
+  const ps = AGG.delaisPS;
+  const caCard = document.getElementById('dso-ca');
+  const psCard = document.getElementById('dso-ps');
+  if (caCard) {
+    caCard.innerHTML = `
+      <div class="dso-title">Délai paiement CA client → portage</div>
+      <div class="dso-big">${ca.median}<span class="dso-unit"> jours · médian</span></div>
+      <div style="color: var(--text-dim); font-size: 13px; margin-top: 10px;">Le client paie le portage en ~${ca.median} jours en moyenne.</div>
+      <div class="dso-detail">
+        <div><div class="ddl">Min</div><div class="ddv">${ca.min}j</div></div>
+        <div><div class="ddl">Moyenne</div><div class="ddv">${Math.round(ca.avg)}j</div></div>
+        <div><div class="ddl">Max</div><div class="ddv">${ca.max}j</div></div>
+      </div>
+    `;
+  }
+  if (psCard) {
+    psCard.innerHTML = `
+      <div class="dso-title">Délai Profit Share émission → encaissement</div>
+      <div class="dso-big" style="color: var(--warn)">${ps.median}<span class="dso-unit"> jours · médian</span></div>
+      <div style="color: var(--text-dim); font-size: 13px; margin-top: 10px;">Tu attends ~${Math.round(ps.median/30)} mois entre émission et versement.</div>
+      <div class="dso-detail">
+        <div><div class="ddl">Min</div><div class="ddv">${ps.min}j</div></div>
+        <div><div class="ddl">Moyenne</div><div class="ddv">${Math.round(ps.avg)}j</div></div>
+        <div><div class="ddl">Max</div><div class="ddv" style="color: var(--danger)">${ps.max}j</div></div>
+      </div>
+    `;
+  }
+}
+
+function renderDsoHistogram() {
+  const svg = document.getElementById('dso-histogram');
+  if (!svg) return;
+  const W = 800, H = 240;
+  const pad = { l: 50, r: 20, t: 20, b: 40 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const delais = AGG.delaisPSList;
+  if (delais.length === 0) { svg.innerHTML = ''; return; }
+  const binSize = 15;
+  const bins = {};
+  delais.forEach(d => {
+    const bin = Math.floor(d / binSize) * binSize;
+    bins[bin] = (bins[bin] || 0) + 1;
+  });
+  const sortedBins = Object.entries(bins).sort((a, b) => +a[0] - +b[0]);
+  const maxCount = Math.max(...Object.values(bins));
+  const barW = cw / sortedBins.length * 0.8;
+
+  let bars = ''; let labels = ''; let yAxis = '';
+  for (let i = 0; i <= maxCount; i++) {
+    const y = pad.t + ch - (i / maxCount) * ch;
+    yAxis += `<line class="grid-line" x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}"/>`;
+    yAxis += `<text class="axis-label" x="${pad.l - 10}" y="${y + 4}" text-anchor="end">${i}</text>`;
+  }
+  sortedBins.forEach(([bin, count], i) => {
+    const x = pad.l + (i / sortedBins.length) * cw + (cw / sortedBins.length - barW) / 2;
+    const h = (count / maxCount) * ch;
+    const y = pad.t + ch - h;
+    const color = +bin < 90 ? 'var(--ok)' : +bin < 120 ? 'var(--warn)' : 'var(--danger)';
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${color}" rx="2"/>`;
+    bars += `<text x="${x + barW/2}" y="${y - 6}" text-anchor="middle" fill="var(--text)" style="font-family: JetBrains Mono; font-size: 13px; font-weight: 600;">${count}</text>`;
+    labels += `<text class="axis-label" x="${x + barW/2}" y="${H - pad.b + 16}" text-anchor="middle">${bin}-${+bin + binSize -1}j</text>`;
+  });
+  svg.innerHTML = yAxis + bars + labels;
+}
+
+// ============================================================
+// CLIENTS
+// ============================================================
+function renderClients() {
+  const bar = document.getElementById('client-bar');
+  const list = document.getElementById('client-list');
+  if (!bar || !list) return;
+  const totalCA = AGG.clients.reduce((a,c) => a + c.ca, 0);
+  if (totalCA === 0) { bar.innerHTML = ''; list.innerHTML = ''; return; }
+
+  bar.innerHTML = AGG.clients.map(c => {
+    const pct = (c.ca / totalCA) * 100;
+    const cls = c.client.includes('CLIENT_A') || c.client.includes('CLIENT_A') ? 'seg-primary' : 'seg-secondary';
+    return `<div class="${cls}" style="width: ${pct}%"></div>`;
+  }).join('');
+
+  list.innerHTML = AGG.clients.map(c => {
+    const pct = ((c.ca / totalCA) * 100).toFixed(1);
+    const cls = c.client.includes('CLIENT_A') || c.client.includes('CLIENT_A') ? 'primary' : 'secondary';
+    return `
+      <div class="client-card ${cls}">
+        <div class="name">${c.client}</div>
+        <div class="sub">${c.nb_mois} mois · ${fmtInt(c.jours)} jours travaillés</div>
+        <div class="metrics">
+          <div class="metric"><div class="l">CA généré</div><div class="v">${fmtInt(c.ca)} €</div></div>
+          <div class="metric"><div class="l">Jours</div><div class="v">${fmtInt(c.jours)} j</div></div>
+          <div class="metric"><div class="l">Part du CA</div><div class="v">${pct} %</div></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// DAYS CHART
+// ============================================================
+function renderDaysChart() {
+  const svg = document.getElementById('days-chart');
+  if (!svg) return;
+  const W = 800, H = 240;
+  const pad = { l: 50, r: 20, t: 20, b: 40 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const series = AGG.timeseries.filter(d => d.jours > 0);
+  if (series.length === 0) { svg.innerHTML = ''; return; }
+
+  // Échelle dynamique : plafond = max entre 23 (théorique) et réalité arrondie aux 5j supérieurs
+  const realMax = Math.max(...series.map(d => d.jours));
+  const maxDays = Math.max(23, Math.ceil(realMax / 5) * 5);
+
+  // Nombre de graduations pour que les tick soient "ronds" (5, 10, 15, ...)
+  const step = maxDays <= 25 ? 5 : (maxDays <= 35 ? 5 : 10);
+  const nTicks = Math.ceil(maxDays / step);
+
+  const barW = cw / series.length * 0.7;
+
+  let bars = ''; let labels = ''; let yAxis = '';
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * step;
+    const y = pad.t + ch - (v / maxDays) * ch;
+    yAxis += `<line class="grid-line" x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}"/>`;
+    yAxis += `<text class="axis-label" x="${pad.l - 10}" y="${y + 4}" text-anchor="end">${v}j</text>`;
+  }
+
+  // Ligne de repère pointillée à 22j (plafond théorique)
+  const refY = pad.t + ch - (22 / maxDays) * ch;
+  yAxis += `<line x1="${pad.l}" y1="${refY}" x2="${W - pad.r}" y2="${refY}" stroke="var(--warn)" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>`;
+  yAxis += `<text x="${W - pad.r - 4}" y="${refY - 4}" text-anchor="end" fill="var(--warn)" style="font-family: JetBrains Mono; font-size: 10px; font-weight: 600; opacity: 0.8;">Plafond théorique 22j</text>`;
+
+  series.forEach((d, i) => {
+    const x = pad.l + (i / series.length) * cw + (cw / series.length - barW) / 2;
+    const h = (d.jours / maxDays) * ch;
+    const y = pad.t + ch - h;
+    // Couleurs : > 23j en info (probable multi-clients), < 15j en warn (sous-activité), sinon accent
+    let color = 'var(--accent)';
+    if (d.jours > 23) color = 'var(--info)';
+    else if (d.jours < 15) color = 'var(--warn)';
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${color}" rx="2"/>`;
+    bars += `<text x="${x + barW/2}" y="${y - 4}" text-anchor="middle" fill="var(--text)" style="font-family: JetBrains Mono; font-size: 12px; font-weight: 600;">${d.jours}</text>`;
+    const [m, y2] = d.mois.split('-');
+    if (i % 2 === 0 || i === series.length - 1) {
+      labels += `<text class="axis-label" x="${x + barW/2}" y="${H - pad.b + 16}" text-anchor="middle">${monthNames[parseInt(m)-1]} ${y2.slice(2)}</text>`;
+    }
+  });
+  svg.innerHTML = yAxis + bars + labels;
+}
+
+// ============================================================
+// FISCAL
+// ============================================================
+
+// Barème IR 2025 (tranches pour 1 part)
+const BAREME_IR_2025 = [
+  { up_to: 11497,   rate: 0 },
+  { up_to: 29315,   rate: 0.11 },
+  { up_to: 83823,   rate: 0.30 },
+  { up_to: 180294,  rate: 0.41 },
+  { up_to: Infinity, rate: 0.45 }
+];
+
+const TAX_PARTS_KEY = 'reecho_tax_parts_v1';
+function getTaxParts() {
+  const v = parseFloat(localStorage.getItem(TAX_PARTS_KEY));
+  return (isNaN(v) || v < 1) ? 1 : v;
+}
+function saveTaxParts(n) {
+  localStorage.setItem(TAX_PARTS_KEY, String(n));
+}
+
+// Calcul de l'IR avec quotient familial
+function calculIR(revenuImposable, parts) {
+  const quotient = revenuImposable / parts;
+  let tranches = [];
+  let ir_par_part = 0;
+  let previous = 0;
+
+  for (const t of BAREME_IR_2025) {
+    if (quotient <= previous) {
+      tranches.push({ from: previous, to: t.up_to, rate: t.rate, base: 0, tax: 0, active: false });
+    } else {
+      const upperBound = Math.min(quotient, t.up_to);
+      const base = upperBound - previous;
+      const tax = base * t.rate;
+      ir_par_part += tax;
+      tranches.push({ from: previous, to: t.up_to, rate: t.rate, base, tax, active: true });
+    }
+    previous = t.up_to;
+    if (t.up_to === Infinity || quotient <= t.up_to) break;
+  }
+
+  const ir_total = ir_par_part * parts;
+  const tmi = BAREME_IR_2025.find(t => quotient <= t.up_to).rate;
+
+  return { ir_total, ir_par_part, quotient, tmi, tranches, parts };
+}
+
+function renderFiscal() {
+  const t25 = subTotalsForYear('2025');
+
+  // Données de base
+  const profitSharePaye2025 = t25.profit_share_paye_year; // encaissé en 2025
+  const salaireBrutAnnuel = t25.salaire_net * 1 / 0.80; // estimation grossière (salaire net -> brut) non utilisée
+  const salaireNet = t25.salaire_net;
+  // Le salaire imposable est approximé comme salaire net × 1.02 (CSG non déductible rajoutée, très proche en portage)
+  // On va plutôt utiliser le salaire net + PAS déjà prélevé comme base imposable approximative
+  // Plus simple : les fiches de paie donnent le "salaire imposable". Ici on estime à salaire net + impôt retenu à la source
+  // Approximation raisonnable
+  const impotPAS = AGG.totals.impot_france;
+  const salaireImposable = salaireNet + impotPAS; // ordre de grandeur correct
+
+  // === SECTION 1 : Éléments à déclarer ===
+  const gridDecl = document.getElementById('fiscal-grid-declaration');
+  if (gridDecl) {
+    gridDecl.innerHTML = `
+      <div class="fiscal-row">
+        <div class="label">Salaire imposable 2025</div>
+        <div class="big info">${fmtInt(salaireImposable)} €</div>
+        <div class="detail"><span class="case-ref">1AJ</span>Pré-rempli par l'employeur<br>Salaire net ${fmtInt(salaireNet)} € + PAS ${fmtInt(impotPAS)} €</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Profit share LLP encaissé</div>
+        <div class="big warn">${fmtInt(profitSharePaye2025)} €</div>
+        <div class="detail"><span class="case-ref">5XJ</span>À déclarer en BNC<br>Régime déclaration contrôlée</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Crédit d'impôt FR-UK</div>
+        <div class="big ok">${fmtInt(profitSharePaye2025)} €</div>
+        <div class="detail"><span class="case-ref">8TK</span>Report depuis annexe 2047<br>Élimine la double imposition</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">PAS déjà prélevé</div>
+        <div class="big">${fmtInt(impotPAS)} €</div>
+        <div class="detail">Prélèvement à la source<br>sur salaire 2025</div>
+      </div>
+    `;
+  }
+
+  // === SECTION 2 : Calcul d'impôt dynamique ===
+  const parts = getTaxParts();
+  // Revenu imposable total : salaire (après abattement 10% ou frais réels) + BNC
+  // Abattement 10% forfaitaire sur salaire (plafonné à 14 426 € en 2025)
+  const abattement10 = Math.min(salaireImposable * 0.10, 14426);
+  const salaireApresAbattement = salaireImposable - abattement10;
+  const revenuImposableTotal = salaireApresAbattement + profitSharePaye2025;
+
+  // Sans crédit d'impôt
+  const calcSans = calculIR(revenuImposableTotal, parts);
+  // Avec crédit d'impôt Cabinet fiscaliste : on enlève la part IR correspondant au BNC
+  const calcSalaireSeul = calculIR(salaireApresAbattement, parts);
+  const irImputableBNC = calcSans.ir_total - calcSalaireSeul.ir_total; // IR correspondant au BNC
+  const creditImpot = irImputableBNC; // = montant reporté en 8TK pour éliminer double imposition
+  const irNetAvecCredit = calcSans.ir_total - creditImpot;
+  const resteApayer = irNetAvecCredit - impotPAS;
+
+  const gridTax = document.getElementById('fiscal-grid-tax');
+  if (gridTax) {
+    gridTax.innerHTML = `
+      <div class="fiscal-row">
+        <div class="label">Revenu imposable total</div>
+        <div class="big">${fmtInt(revenuImposableTotal)} €</div>
+        <div class="detail">Salaire après abattement 10%<br>+ profit share BNC</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">IR brut (avant crédit)</div>
+        <div class="big warn">${fmtInt(calcSans.ir_total)} €</div>
+        <div class="detail">TMI ${(calcSans.tmi * 100).toFixed(0)}%<br>Quotient ${fmtInt(calcSans.quotient)} € / part</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Crédit d'impôt BNC</div>
+        <div class="big ok">− ${fmtInt(creditImpot)} €</div>
+        <div class="detail">Part d'IR correspondant<br>au profit share LLP</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">IR net à payer</div>
+        <div class="big ${irNetAvecCredit > 0 ? 'warn' : 'ok'}">${fmtInt(irNetAvecCredit)} €</div>
+        <div class="detail">Après crédit d'impôt<br>= IR sur le salaire uniquement</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Solde après PAS</div>
+        <div class="big ${resteApayer > 0 ? 'warn' : 'ok'}">${resteApayer >= 0 ? '' : '+'}${fmtInt(Math.abs(resteApayer))} €</div>
+        <div class="detail">${resteApayer >= 0 ? 'Reste à payer en sept. 2026' : 'Remboursement attendu'}<br>Après prélèvements à la source</div>
+      </div>
+    `;
+  }
+
+  // === Breakdown barème par tranches ===
+  const breakdown = document.getElementById('tax-breakdown');
+  if (breakdown) {
+    const tranches = calcSans.tranches;
+    const fmtRange = (t) => {
+      if (t.to === Infinity) return `> ${fmtInt(t.from)} €`;
+      if (t.from === 0) return `≤ ${fmtInt(t.to)} €`;
+      return `${fmtInt(t.from)} → ${fmtInt(t.to)} €`;
+    };
+    breakdown.innerHTML = `
+      <div class="tax-breakdown-title">Décomposition par tranches (quotient ${fmtInt(calcSans.quotient)} € × ${parts} part${parts > 1 ? 's' : ''})</div>
+      <div class="tax-tranches">
+        ${tranches.map(t => `
+          <div class="tax-tranche ${t.active ? 'active' : ''}">
+            <span class="tb-range">${fmtRange(t)}</span>
+            <span class="tb-rate">${(t.rate * 100).toFixed(0)} %</span>
+            <span class="tb-base">${t.base > 0 ? fmtInt(t.base) + ' €' : '—'}</span>
+            <span class="tb-tax">${t.tax > 0 ? fmtInt(t.tax * parts) + ' €' : '—'}</span>
+          </div>
+        `).join('')}
+        <div class="tax-tranche total">
+          <span class="tb-range">Total IR brut</span>
+          <span class="tb-rate">TMI ${(calcSans.tmi * 100).toFixed(0)} %</span>
+          <span class="tb-base"></span>
+          <span class="tb-tax">${fmtInt(calcSans.ir_total)} €</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // === SECTION 3 : Scénarios LLP ===
+  const gridScen = document.getElementById('fiscal-grid-scenarios');
+  if (gridScen) {
+    // Scénario favorable = méthode appliquée
+    // Scénario requalification = pas de crédit d'impôt + PS 17,2% + pénalités 10%
+    const psEstime = Math.round(profitSharePaye2025 * 0.172);
+    const totalReq = Math.round(irImputableBNC) + psEstime;
+    const penalites = Math.round(totalReq * 0.10);
+    const totalAvecPen = totalReq + penalites;
+    const provision = Math.ceil(totalAvecPen / 5000) * 5000;
+
+    gridScen.innerHTML = `
+      <div class="fiscal-row">
+        <div class="label">Méthode cabinet fiscaliste</div>
+        <div class="big ok">0 €</div>
+        <div class="detail">Crédit d'impôt case 8TK<br>neutralise l'IR sur le BNC</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Si requalification (IR)</div>
+        <div class="big warn">${fmtInt(irImputableBNC)} €</div>
+        <div class="detail">IR au barème progressif<br>sans crédit d'impôt</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">+ Prélèvements sociaux 17,2%</div>
+        <div class="big warn">${fmtInt(psEstime)} €</div>
+        <div class="detail">CSG-CRDS + PS<br>sur base ${fmtInt(profitSharePaye2025)} €</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Risque total (avec pénalités)</div>
+        <div class="big danger">~${fmtInt(totalAvecPen)} €</div>
+        <div class="detail">IR ${fmtInt(irImputableBNC/1000)}k + PS ${fmtInt(psEstime/1000)}k<br>+ pénalités 10% (bonne foi)</div>
+      </div>
+      <div class="fiscal-row">
+        <div class="label">Provision recommandée</div>
+        <div class="big info">${fmtInt(provision)} €</div>
+        <div class="detail">Couverture risque<br>de redressement fiscal</div>
+      </div>
+    `;
+  }
+
+  // Input parts listener
+  const partsInput = document.getElementById('tax-parts-input');
+  if (partsInput && !partsInput.dataset.bound) {
+    partsInput.dataset.bound = '1';
+    partsInput.value = parts;
+    partsInput.addEventListener('input', () => {
+      let v = parseFloat(partsInput.value);
+      if (isNaN(v) || v < 1) v = 1;
+      if (v > 10) v = 10;
+      saveTaxParts(v);
+      renderFiscal();
+    });
+    document.querySelectorAll('.days-stepper[data-tax-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('tax-parts-input');
+        let current = parseFloat(input.value) || 1;
+        const step = 0.25;
+        let next = btn.dataset.taxAction === 'up' ? current + step : current - step;
+        if (next < 1) next = 1;
+        if (next > 10) next = 10;
+        input.value = next;
+        saveTaxParts(next);
+        renderFiscal();
+      });
+    });
+  } else if (partsInput) {
+    // Re-render maintien de la value sans re-bind
+    partsInput.value = parts;
+  }
+}
+
+// ============================================================
+// MONTHS LISTS
+// ============================================================
+function renderMonth(m) {
+  let psItems = '';
+  if (m.details_profit_share.length > 0) {
+    m.details_profit_share.forEach(ps => {
+      const pill = ps.statut === 'Payé' ?
+        `<span class="status-pill ok">✓ Payé · ${ps.date_paiement}</span>` :
+        `<span class="status-pill warn">⧖ En attente</span>`;
+      psItems += `
+        <div class="ps-item">
+          <div class="left">${pill}<span class="date">Émis ${ps.date_emission}</span></div>
+          <span class="amount">${fmt(ps.montant)}</span>
+        </div>
+      `;
+    });
+  }
+
+  const facturation_pill = m.facturation_payee ?
+    `<span class="status-pill ok">✓ Payée · ${m.facturation_date_paiement}</span>` :
+    `<span class="status-pill warn">⧖ En attente</span>`;
+
+  let psHeader = '';
+  if (m.profit_share_total > 0) {
+    const cls = m.profit_share_non_paye > 0 ? 'pending' : 'paid';
+    psHeader = `<div class="month-value ${cls}"><span class="label">Profit share</span><span class="amount">${fmtShort(m.profit_share_total)}</span></div>`;
+  } else {
+    psHeader = `<div class="month-value"><span class="label">Profit share</span><span class="amount" style="color: var(--text-muted)">—</span></div>`;
+  }
+
+  const totalEncaisse = m.salaire_net + m.notes_frais + m.tickets_resto + m.profit_share_paye + m.cooptation_revenu_paye;
+
+  return `
+    <div class="month-row" data-mois="${m.mois}">
+      <div class="month-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="month-label">${fmtMonth(m.mois)}</div>
+        <div class="month-days">${m.jours_travailles ? `<span class="num">${m.jours_travailles}</span> jours · TJM ${m.tjm}` : ''}</div>
+        <div class="month-value"><span class="label">CA facturé</span><span class="amount">${fmtShort(m.facturation)}</span></div>
+        <div class="month-value paid"><span class="label">Salaire net</span><span class="amount">${fmtShort(m.salaire_net)}</span></div>
+        ${psHeader}
+        <div class="month-value total"><span class="label">Total encaissé</span><span class="amount">${fmtShort(totalEncaisse)}</span></div>
+        <div class="chevron">›</div>
+      </div>
+      <div class="month-detail">
+        <div class="detail-grid">
+          <div class="detail-section">
+            <h4>Facturation & charges</h4>
+            <div class="detail-line"><span class="desc">CA facturé ${facturation_pill}</span><span class="val">${fmt(m.facturation)}</span></div>
+            <div class="detail-line negative"><span class="desc">Commission portage</span><span class="val">− ${fmt(m.commission_portage)}</span></div>
+            ${m.charges_diverses > 0 ? `<div class="detail-line negative"><span class="desc">Charges diverses</span><span class="val">− ${fmt(m.charges_diverses)}</span></div>` : ''}
+            <div class="detail-line negative"><span class="desc">Charges sociales salaire</span><span class="val">− ${fmt(m.charges_salaire)}</span></div>
+            ${m.impot_france > 0 ? `<div class="detail-line negative"><span class="desc">Impôt FR (PAS)</span><span class="val">− ${fmt(m.impot_france)}</span></div>` : ''}
+            ${m.charges_profit_share > 0 ? `<div class="detail-line negative"><span class="desc">Charges sur profit share</span><span class="val">− ${fmt(m.charges_profit_share)}</span></div>` : ''}
+          </div>
+          <div class="detail-section">
+            <h4>Revenus perçus par toi</h4>
+            <div class="detail-line positive"><span class="desc">Salaire net (après PAS)</span><span class="val">${fmt(m.salaire_net)}</span></div>
+            ${m.notes_frais > 0 ? `<div class="detail-line positive"><span class="desc">Notes de frais</span><span class="val">${fmt(m.notes_frais)}</span></div>` : ''}
+            ${m.tickets_resto > 0 ? `<div class="detail-line positive"><span class="desc">Tickets restaurant</span><span class="val">${fmt(m.tickets_resto)}</span></div>` : ''}
+            ${m.cooptation_revenu > 0 ? `<div class="detail-line positive"><span class="desc">Cooptation</span><span class="val">${fmt(m.cooptation_revenu)}</span></div>` : ''}
+            ${m.profit_share_total > 0 ? `
+              <div class="detail-line ${m.profit_share_non_paye > 0 ? '' : 'positive'}">
+                <span class="desc">Profit share <span style="color: var(--text-muted)">(${m.details_profit_share.length} versement${m.details_profit_share.length>1?'s':''})</span></span>
+                <span class="val">${fmt(m.profit_share_total)}</span>
+              </div>
+              <div class="ps-items">${psItems}</div>
+            ` : ''}
+            <div class="detail-line total">
+              <span class="desc">Total encaissé ce mois</span>
+              <span class="val">${fmt(m.salaire_net + m.notes_frais + m.tickets_resto + m.profit_share_paye + m.cooptation_revenu_paye)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMonthsLists() {
+  AGG.years.forEach(year => {
+    const target = document.getElementById('months-' + year);
+    if (!target) return;
+    const months = AGG.months.filter(m => m.mois.endsWith('-' + year)).reverse();
+    target.innerHTML = months.map(renderMonth).join('');
+  });
+
+  // Mise à jour du header des sections années (affichage conditionnel)
+  const tabDetail = document.getElementById('tab-detail');
+  if (tabDetail) {
+    // Cacher les années qui n'ont pas de data
+    ['2025', '2026'].forEach(year => {
+      const container = document.getElementById('months-' + year);
+      if (container) {
+        const sectionEl = container.closest('.section');
+        if (sectionEl) sectionEl.style.display = AGG.years.includes(year) ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Pending zone 2026 dynamique
+  const pendingList = document.querySelector('.pending-zone .pending-list');
+  if (pendingList) {
+    const pendingPS = [];
+    AGG.months.forEach(m => {
+      if (!m.mois.endsWith('-2026')) return;
+      m.details_profit_share.forEach(ps => {
+        if (ps.statut !== 'Payé') pendingPS.push({ mois: m.mois, ...ps });
+      });
+    });
+    if (pendingPS.length > 0) {
+      pendingList.innerHTML = pendingPS.map(ps => {
+        const [m, y] = ps.mois.split('-');
+        return `
+          <div class="pending-card">
+            <div class="month">${monthNamesFull[parseInt(m)-1]} ${y}</div>
+            <div class="row"><span class="l">Profit share</span><span class="v">${fmt(ps.montant)}</span></div>
+            <div class="row"><span class="l">Émis le</span><span class="v">${ps.date_emission}</span></div>
+            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
+            <div class="total"><span>À recevoir</span><span class="v">${fmt(ps.montant)}</span></div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      pendingList.innerHTML = '<div class="pending-card"><div class="month">Aucun profit share en attente</div></div>';
+    }
+  }
+}
+
+// ============================================================
+// PROJECTION JUSQU'À FIN D'ANNÉE
+// ============================================================
+
+// Stockage overrides jours par mois (pour que l'utilisateur puisse modifier)
+const PROJ_OVERRIDES_KEY = 'reecho_proj_overrides_v1';
+function loadProjOverrides() {
+  try { return JSON.parse(localStorage.getItem(PROJ_OVERRIDES_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveProjOverrides(o) {
+  localStorage.setItem(PROJ_OVERRIDES_KEY, JSON.stringify(o));
+}
+
+// Calcul de Pâques (Butcher)
+function easter(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19*a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2*e + 2*i - h - k) % 7;
+  const m_ = Math.floor((a + 11*h + 22*l) / 451);
+  const month = Math.floor((h + l - 7*m_ + 114) / 31);
+  const day = ((h + l - 7*m_ + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function feriesFR(year) {
+  const e = easter(year);
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  return [
+    new Date(year, 0, 1),    // Jour de l'an
+    addDays(e, 1),           // Lundi de Pâques
+    new Date(year, 4, 1),    // Fête du Travail
+    new Date(year, 4, 8),    // Victoire 1945
+    addDays(e, 39),          // Ascension
+    addDays(e, 50),          // Lundi de Pentecôte
+    new Date(year, 6, 14),   // Fête nationale
+    new Date(year, 7, 15),   // Assomption
+    new Date(year, 10, 1),   // Toussaint
+    new Date(year, 10, 11),  // Armistice
+    new Date(year, 11, 25)   // Noël
+  ].map(d => d.toDateString());
+}
+
+function joursOuvres(year, month) {
+  const feries = feriesFR(year);
+  let count = 0;
+  const d = new Date(year, month - 1, 1);
+  while (d.getMonth() === month - 1) {
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !feries.includes(d.toDateString())) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+// Coefficients empiriques basés sur les mois récents à TJM constant
+// Ces valeurs sont dérivées du dataset (mois 01-2026 à 03-2026)
+const PROJ_COEFFS = {
+  // Fixes par mois (indépendants des jours)
+  salaire_net_fixe: 1964.42,
+  charges_salaire_fixe: 1405.67,
+  // Variables selon jours
+  tr_per_jour: 13.25,
+  // Commission = 6% du CA
+  commission_pct: 0.06,
+  // Charges PS = approximativement 3% du CA
+  charges_ps_pct: 0.03
+};
+
+function projectMonth(year, month, jours, tjm) {
+  const ca = jours * tjm;
+  const commission = ca * PROJ_COEFFS.commission_pct;
+  const charges_ps = ca * PROJ_COEFFS.charges_ps_pct;
+  const salaire_net = jours > 0 ? PROJ_COEFFS.salaire_net_fixe : 0;
+  const charges_salaire = jours > 0 ? PROJ_COEFFS.charges_salaire_fixe : 0;
+  const salaire_brut = salaire_net + charges_salaire;
+  const tickets = jours * PROJ_COEFFS.tr_per_jour;
+  // Profit share = ce qui reste après toutes les sorties
+  const profit_share = ca - commission - salaire_brut - charges_ps - tickets;
+  return {
+    year, month, jours, tjm,
+    ca, commission, salaire_net, charges_salaire, charges_ps,
+    tickets, profit_share,
+    total_percu: salaire_net + profit_share + tickets
+  };
+}
+
+function renderProjection() {
+  const widget = document.getElementById('projection-widget');
+  if (!widget) return;
+
+  // Détermine TJM actuel (TJM du dernier mois connu avec CA)
+  let tjm = 0;
+  for (let i = AGG.months.length - 1; i >= 0; i--) {
+    if (AGG.months[i].tjm > 0) { tjm = AGG.months[i].tjm; break; }
+  }
+  if (tjm === 0) return;
+
+  // Détermine mois actuel et dernière année des données
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+
+  // Dernier mois avec donnée réelle
+  const lastKnownMois = AGG.months[AGG.months.length - 1]?.mois;
+  if (!lastKnownMois) return;
+  const [lkM, lkY] = lastKnownMois.split('-').map(Number);
+
+  // Projection : du mois qui suit le dernier connu jusqu'à décembre de l'année en cours
+  // Si dernier connu est en 2026, projection de 04-2026 à 12-2026
+  // On inclut aussi les 2-3 mois passés les plus récents pour contexte
+  const projYear = lkY;
+  const startMonth = lkM; // on inclut le dernier mois connu comme référence
+  const endMonth = 12;
+
+  const overrides = loadProjOverrides();
+
+  // Construction lignes : mois connus (référence) + mois futurs (projetés)
+  const rows = [];
+  for (let mo = startMonth; mo <= endMonth; mo++) {
+    const moisKey = String(mo).padStart(2,'0') + '-' + projYear;
+    const isKnown = AGG.monthsByKey[moisKey] !== undefined;
+    const jOuvres = joursOuvres(projYear, mo);
+
+    let jours;
+    if (isKnown) {
+      jours = AGG.monthsByKey[moisKey].jours_travailles;
+    } else if (overrides[moisKey] !== undefined) {
+      jours = overrides[moisKey];
+    } else {
+      jours = jOuvres; // défaut = max jours ouvrés
+    }
+
+    const proj = projectMonth(projYear, mo, jours, tjm);
+    rows.push({
+      ...proj,
+      moisKey,
+      isKnown,
+      joursOuvres: jOuvres,
+      realData: isKnown ? AGG.monthsByKey[moisKey] : null
+    });
+  }
+
+  // Rendu du tableau
+  const tbody = document.getElementById('projection-tbody');
+  tbody.innerHTML = rows.map((r, idx) => {
+    const cls = r.isKnown ? 'known' : 'future';
+    const monthName = monthNamesFull[r.month - 1];
+    const tag = r.isKnown
+      ? '<span class="proj-tag done">Réalisé</span>'
+      : '<span class="proj-tag future">À venir</span>';
+
+    // Pour mois connu : on affiche les valeurs réelles
+    // Pour mois futur : on affiche les valeurs projetées modifiables
+    const ca = r.isKnown ? r.realData.facturation : r.ca;
+    const sn = r.isKnown ? r.realData.salaire_net : r.salaire_net;
+    const ps = r.isKnown ? r.realData.profit_share_total : r.profit_share;
+    const tr = r.isKnown ? r.realData.tickets_resto : r.tickets;
+    const total = sn + ps + tr;
+    const joursAff = r.isKnown ? r.realData.jours_travailles : r.jours;
+
+    const joursCell = r.isKnown
+      ? `<span>${joursAff}</span>`
+      : `<div class="days-input-wrap">
+           <input type="number" class="days-input" min="0" max="${r.joursOuvres}" step="0.5" value="${joursAff}" data-mois="${r.moisKey}" />
+           <div class="days-steppers">
+             <button type="button" class="days-stepper" data-action="up" data-mois="${r.moisKey}" aria-label="Augmenter">
+               <svg viewBox="0 0 8 8"><path d="M4 1 L7 6 L1 6 Z"/></svg>
+             </button>
+             <button type="button" class="days-stepper" data-action="down" data-mois="${r.moisKey}" aria-label="Diminuer">
+               <svg viewBox="0 0 8 8"><path d="M4 7 L1 2 L7 2 Z"/></svg>
+             </button>
+           </div>
+         </div>`;
+
+    return `
+      <tr class="${cls}">
+        <td class="left">
+          <span class="mo-label">${monthName}</span><span class="mo-year">${r.year}</span>
+          ${tag}
+        </td>
+        <td>${r.joursOuvres}</td>
+        <td class="editable">${joursCell}</td>
+        <td>${fmtShort(ca)}</td>
+        <td>${fmtShort(sn)}</td>
+        <td>${fmtShort(ps)}</td>
+        <td>${fmtShort(tr)}</td>
+        <td><strong>${fmtShort(total)}</strong></td>
+      </tr>
+    `;
+  }).join('');
+
+  // Totaux
+  const totals = rows.reduce((acc, r) => {
+    const ca = r.isKnown ? r.realData.facturation : r.ca;
+    const sn = r.isKnown ? r.realData.salaire_net : r.salaire_net;
+    const ps = r.isKnown ? r.realData.profit_share_total : r.profit_share;
+    const tr = r.isKnown ? r.realData.tickets_resto : r.tickets;
+    const jours = r.isKnown ? r.realData.jours_travailles : r.jours;
+    acc.jours += jours;
+    acc.joursOuvres += r.joursOuvres;
+    acc.ca += ca;
+    acc.sn += sn;
+    acc.ps += ps;
+    acc.tr += tr;
+    return acc;
+  }, { jours: 0, joursOuvres: 0, ca: 0, sn: 0, ps: 0, tr: 0 });
+  totals.total = totals.sn + totals.ps + totals.tr;
+
+  document.getElementById('projection-tfoot').innerHTML = `
+    <tr>
+      <td class="left">Total ${projYear}</td>
+      <td>${totals.joursOuvres}</td>
+      <td>${totals.jours}</td>
+      <td>${fmtShort(totals.ca)}</td>
+      <td>${fmtShort(totals.sn)}</td>
+      <td>${fmtShort(totals.ps)}</td>
+      <td>${fmtShort(totals.tr)}</td>
+      <td class="sum-highlight">${fmtShort(totals.total)}</td>
+    </tr>
+  `;
+
+  // Summary cards
+  const futurRows = rows.filter(r => !r.isKnown);
+  const futurTotals = futurRows.reduce((acc, r) => {
+    acc.ca += r.ca;
+    acc.sn += r.salaire_net;
+    acc.ps += r.profit_share;
+    acc.tr += r.tickets;
+    acc.jours += r.jours;
+    return acc;
+  }, { ca: 0, sn: 0, ps: 0, tr: 0, jours: 0 });
+
+  document.getElementById('projection-summary').innerHTML = `
+    <div class="proj-summary-card">
+      <div class="l">À venir · ${futurRows.length} mois</div>
+      <div class="v info">${fmtInt(futurTotals.sn + futurTotals.ps + futurTotals.tr)} <span style="font-size: 14px;">€</span></div>
+      <div class="sub">Total perçu projeté</div>
+    </div>
+    <div class="proj-summary-card">
+      <div class="l">Salaire net à venir</div>
+      <div class="v">${fmtInt(futurTotals.sn)} <span style="font-size: 14px;">€</span></div>
+      <div class="sub">${futurRows.length} × 1 964 € env.</div>
+    </div>
+    <div class="proj-summary-card">
+      <div class="l">Profit share à venir</div>
+      <div class="v warn">${fmtInt(futurTotals.ps)} <span style="font-size: 14px;">€</span></div>
+      <div class="sub">${fmtInt(futurTotals.jours)} jours × ${tjm} €</div>
+    </div>
+    <div class="proj-summary-card">
+      <div class="l">CA à facturer</div>
+      <div class="v accent">${fmtInt(futurTotals.ca)} <span style="font-size: 14px;">€</span></div>
+      <div class="sub">Total brut ${projYear}</div>
+    </div>
+  `;
+
+  // Mise à jour du header du widget (total visible quand collapsed)
+  document.getElementById('projection-total').innerHTML = `
+    <span class="lbl">Total projeté à venir</span>
+    <span class="big">${fmtInt(futurTotals.sn + futurTotals.ps + futurTotals.tr)} €</span>
+  `;
+
+  // Listener sur les inputs jours
+  tbody.querySelectorAll('input.days-input').forEach(input => {
+    input.addEventListener('input', (e) => {
+      const moisKey = e.target.dataset.mois;
+      let v = parseFloat(e.target.value);
+      if (isNaN(v) || v < 0) v = 0;
+      const max = parseFloat(e.target.max);
+      if (v > max) v = max;
+      const ov = loadProjOverrides();
+      ov[moisKey] = v;
+      saveProjOverrides(ov);
+      renderProjection();
+    });
+  });
+
+  // Listener sur les boutons stepper (+ / -)
+  tbody.querySelectorAll('.days-stepper').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const moisKey = btn.dataset.mois;
+      const action = btn.dataset.action;
+      const input = tbody.querySelector(`input.days-input[data-mois="${moisKey}"]`);
+      if (!input) return;
+      const current = parseFloat(input.value) || 0;
+      const max = parseFloat(input.max);
+      const step = 0.5;
+      let next = action === 'up' ? current + step : current - step;
+      if (next < 0) next = 0;
+      if (next > max) next = max;
+      const ov = loadProjOverrides();
+      ov[moisKey] = next;
+      saveProjOverrides(ov);
+      renderProjection();
+    });
+  });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+const THEME_KEY = 'reecho_theme_v1';
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+// Charger thème sauvegardé ou fallback sur préférence système
+(function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'light' || saved === 'dark') {
+    applyTheme(saved);
+  } else {
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    applyTheme(prefersLight ? 'light' : 'dark');
+  }
+})();
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
