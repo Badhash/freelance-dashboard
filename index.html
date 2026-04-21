@@ -2856,6 +2856,7 @@
                   <th class="left">Mois</th>
                   <th>Jours ouvrés</th>
                   <th>Jours facturés</th>
+                  <th>Congés</th>
                   <th>CA facturé</th>
                   <th>Salaire net</th>
                   <th>Profit share</th>
@@ -5040,6 +5041,7 @@ function renderProjection() {
     const tr = r.isKnown ? r.realData.tickets_resto : r.tickets;
     const total = sn + ps + tr;
     const joursAff = r.isKnown ? r.realData.jours_travailles : r.jours;
+    const congesAff = Math.max(0, r.joursOuvres - joursAff);
 
     const joursCell = r.isKnown
       ? `<span>${joursAff}</span>`
@@ -5063,6 +5065,7 @@ function renderProjection() {
         </td>
         <td>${r.joursOuvres}</td>
         <td class="editable">${joursCell}</td>
+        <td>${congesAff}</td>
         <td>${fmtShort(ca)}</td>
         <td>${fmtShort(sn)}</td>
         <td>${fmtShort(ps)}</td>
@@ -5081,12 +5084,13 @@ function renderProjection() {
     const jours = r.isKnown ? r.realData.jours_travailles : r.jours;
     acc.jours += jours;
     acc.joursOuvres += r.joursOuvres;
+    acc.conges += Math.max(0, r.joursOuvres - jours);
     acc.ca += ca;
     acc.sn += sn;
     acc.ps += ps;
     acc.tr += tr;
     return acc;
-  }, { jours: 0, joursOuvres: 0, ca: 0, sn: 0, ps: 0, tr: 0 });
+  }, { jours: 0, joursOuvres: 0, conges: 0, ca: 0, sn: 0, ps: 0, tr: 0 });
   totals.total = totals.sn + totals.ps + totals.tr;
 
   document.getElementById('projection-tfoot').innerHTML = `
@@ -5094,6 +5098,7 @@ function renderProjection() {
       <td class="left">Total ${projYear}</td>
       <td>${totals.joursOuvres}</td>
       <td>${totals.jours}</td>
+      <td>${totals.conges}</td>
       <td>${fmtShort(totals.ca)}</td>
       <td>${fmtShort(totals.sn)}</td>
       <td>${fmtShort(totals.ps)}</td>
