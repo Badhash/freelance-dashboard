@@ -1372,30 +1372,35 @@ function renderProjection() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1; // 1-12
 
-  // Dernier mois avec donnée réelle
-  const lastKnownMois = AGG.months[AGG.months.length - 1]?.mois;
-  if (!lastKnownMois) return;
-  const [lkM, lkY] = lastKnownMois.split('-').map(Number);
+  // Dernier mois "réalisé" = dernier mois ayant une facturation > 0.
+  // Les mois sans CA (ex : avril 2026 avec uniquement de la cooptation) restent projetables.
+  let lastBilledIdx = -1;
+  for (let i = AGG.months.length - 1; i >= 0; i--) {
+    if (AGG.months[i].facturation > 0) { lastBilledIdx = i; break; }
+  }
+  const lastBilledMois = lastBilledIdx >= 0 ? AGG.months[lastBilledIdx].mois : AGG.months[AGG.months.length - 1]?.mois;
+  if (!lastBilledMois) return;
+  const [lkM, lkY] = lastBilledMois.split('-').map(Number);
 
-  // Projection : du mois qui suit le dernier connu jusqu'à décembre de l'année en cours
-  // Si dernier connu est en 2026, projection de 04-2026 à 12-2026
-  // On inclut aussi les 2-3 mois passés les plus récents pour contexte
+  // Projection : du dernier mois facturé jusqu'à décembre de l'année en cours.
   const projYear = lkY;
-  const startMonth = lkM; // on inclut le dernier mois connu comme référence
+  const startMonth = lkM;
   const endMonth = 12;
 
   const overrides = loadProjOverrides();
 
-  // Construction lignes : mois connus (référence) + mois futurs (projetés)
+  // Construction lignes : mois facturés (figés) + mois projetables (avec ou sans data partielle)
   const rows = [];
   for (let mo = startMonth; mo <= endMonth; mo++) {
     const moisKey = String(mo).padStart(2,'0') + '-' + projYear;
-    const isKnown = AGG.monthsByKey[moisKey] !== undefined;
+    const realMonth = AGG.monthsByKey[moisKey];
+    // "Réalisé" = mois avec CA facturé. Cooptation seule ou frais seuls n'empêchent pas la projection.
+    const isKnown = realMonth !== undefined && realMonth.facturation > 0;
     const jOuvres = joursOuvres(projYear, mo);
 
     let jours;
     if (isKnown) {
-      jours = AGG.monthsByKey[moisKey].jours_travailles;
+      jours = realMonth.jours_travailles;
     } else if (overrides[moisKey] !== undefined) {
       jours = overrides[moisKey];
     } else {
@@ -1408,7 +1413,7 @@ function renderProjection() {
       moisKey,
       isKnown,
       joursOuvres: jOuvres,
-      realData: isKnown ? AGG.monthsByKey[moisKey] : null
+      realData: realMonth || null
     });
   }
 
