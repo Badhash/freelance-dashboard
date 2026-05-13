@@ -414,6 +414,300 @@
   .risk-gauge .label.c { left: 50%; transform: translate(-50%, -50%); }
   .risk-gauge .label.r { right: 12px; }
 
+  /* DEADLINE PILL (header) */
+  .deadline-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .deadline-pill:hover { transform: translateY(-1px); border-color: var(--text-muted); }
+  .deadline-pill .dp-jours {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .deadline-pill[data-niveau="green"] { border-color: rgba(46,160,67,0.45); }
+  .deadline-pill[data-niveau="green"] .dp-jours { color: var(--ok); }
+  .deadline-pill[data-niveau="amber"] { border-color: rgba(217,151,76,0.55); background: rgba(217,151,76,0.08); }
+  .deadline-pill[data-niveau="amber"] .dp-jours { color: var(--warn); }
+  .deadline-pill[data-niveau="red"] { border-color: rgba(207,86,76,0.6); background: rgba(207,86,76,0.10); }
+  .deadline-pill[data-niveau="red"] .dp-jours { color: var(--danger); }
+
+  /* CONFIG FISCALE */
+  .fiscal-config .fiscal-config-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.4fr) repeat(4, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .fiscal-config .fc-scenarios {
+    grid-row: span 1;
+  }
+  .fc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .fc-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .fc-mini-btn {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 2px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+  .fc-mini-btn:hover { border-color: var(--accent); }
+  .fc-select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fc-select:hover { border-color: var(--text-muted); }
+  .fc-input { width: 80px !important; }
+  .fc-scenario-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fc-scenario {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .fc-scenario:hover { border-color: var(--text-muted); }
+  .fc-scenario input[type="radio"] { grid-row: span 2; align-self: center; accent-color: var(--accent); }
+  .fc-scenario .fc-sc-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .fc-scenario .fc-sc-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    grid-column: 2;
+    line-height: 1.4;
+  }
+  .fc-scenario.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* SCENARIO CARDS */
+  .scenario-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .scenario-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+  }
+  .scenario-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .sc-head { display: flex; justify-content: space-between; align-items: center; }
+  .sc-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .sc-pin {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+  .sc-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .sc-big {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    margin-top: 4px;
+  }
+  .sc-big.ok { color: var(--ok); }
+  .sc-big.warn { color: var(--warn); }
+  .sc-big.danger { color: var(--danger); }
+  .sc-big.info { color: var(--info); }
+  .sc-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .sc-lines {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sc-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sc-line .v { color: var(--text); font-weight: 600; text-align: right; }
+  .sc-activate {
+    margin-top: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 2px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sc-activate:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FORECAST TABLE */
+  .forecast-table-wrapper { overflow-x: auto; }
+  .forecast-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .forecast-table th {
+    text-align: right;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+  .forecast-table th.left { text-align: left; }
+  .forecast-table td {
+    text-align: right;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .forecast-table td.left {
+    text-align: left;
+    color: var(--text-dim);
+  }
+  .forecast-table tbody tr:hover td { background: var(--bg-elev-2); }
+  .forecast-notes {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .forecast-notes ul { list-style: none; padding: 0; margin: 0; }
+  .forecast-notes li {
+    padding: 4px 0 4px 14px;
+    position: relative;
+  }
+  .forecast-notes li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  /* AE CONFIG */
+  .ae-config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 18px;
+    margin-bottom: 8px;
+  }
+
+  /* CHECKLIST */
+  .checklist-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .checklist-row:hover { background: var(--bg-elev-2); }
+  .checklist-row input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+  .checklist-row .cl-label {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .checklist-row.done .cl-label {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
   /* MONTH LIST (même que v1) */
   .month-list {
     background: var(--bg-elev);
@@ -1819,6 +2113,14 @@
     .title-block .subtitle { font-size: 13px; }
     .meta { text-align: left; font-size: 11px; }
     .meta .tjm { font-size: 16px; }
+    .deadline-pill { margin-top: 6px; padding: 5px 10px; }
+    .deadline-pill .dp-jours { font-size: 12px; }
+
+    /* Config fiscale : 1 colonne sur mobile */
+    .fiscal-config .fiscal-config-grid { grid-template-columns: 1fr; gap: 14px; }
+    .scenario-cards { grid-template-columns: 1fr; }
+    .forecast-table { font-size: 11px; }
+    .forecast-table th, .forecast-table td { padding: 8px 8px; }
 
     /* Import bar en bas fixé pour garder accessible */
     .import-zone {
