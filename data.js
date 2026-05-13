@@ -4,6 +4,32 @@
 // Chargé en premier — aucune dépendance au DOM.
 // ============================================================
 
+// ============================================================
+// MIGRATION STORAGE KEYS — bascule de l'ancien préfixe vers `dashboard_`.
+// S'exécute une fois au chargement du script, avant toute lecture
+// des clés depuis loadDataset / loadFiscalConfig / etc.
+// ============================================================
+(function migrateStorageKeys() {
+  const map = {
+    'reecho_dataset_v1':            'dashboard_dataset_v1',
+    'reecho_meta_v1':                'dashboard_meta_v1',
+    'reecho_tax_parts_v1':           'dashboard_tax_parts_v1',
+    'reecho_proj_overrides_v1':      'dashboard_proj_overrides_v1',
+    'reecho_theme_v1':               'dashboard_theme_v1',
+    'reecho_fiscal_config_v1':       'dashboard_fiscal_config_v1',
+    'reecho_fiscal_checklist_v1':    'dashboard_fiscal_checklist_v1',
+    'reecho_ae_config_v1':           'dashboard_ae_config_v1'
+  };
+  try {
+    Object.entries(map).forEach(([oldK, newK]) => {
+      const v = localStorage.getItem(oldK);
+      if (v === null) return;
+      if (localStorage.getItem(newK) === null) localStorage.setItem(newK, v);
+      localStorage.removeItem(oldK);
+    });
+  } catch (e) { /* localStorage indispo : on ignore, l'app retombera sur les défauts */ }
+})();
+
 // État global partagé avec render.js et main.js (script scope).
 // DATASET est initialisé en bas du fichier après que loadDataset soit défini.
 let DATASET;
@@ -63,8 +89,8 @@ window.listClientRules = function() {
 // ============================================================
 // STORAGE — localStorage pour persistance entre sessions
 // ============================================================
-const STORAGE_KEY = 'reecho_dataset_v1';
-const META_KEY = 'reecho_meta_v1';
+const STORAGE_KEY = 'dashboard_dataset_v1';
+const META_KEY = 'dashboard_meta_v1';
 
 function loadDataset() {
   try {
@@ -446,14 +472,9 @@ const BAREME_IR_2025 = [
   { up_to: Infinity, rate: 0.45 }
 ];
 
-const TAX_PARTS_KEY = 'reecho_tax_parts_v1';
-function getTaxParts() {
-  const v = parseFloat(localStorage.getItem(TAX_PARTS_KEY));
-  return (isNaN(v) || v < 1) ? 1 : v;
-}
-function saveTaxParts(n) {
-  localStorage.setItem(TAX_PARTS_KEY, String(n));
-}
+// Clé historique du nombre de parts. Conservée uniquement pour pouvoir migrer
+// une ancienne installation qui n'avait pas encore loadFiscalConfig.
+const TAX_PARTS_KEY = 'dashboard_tax_parts_v1';
 
 // ============================================================
 // CONFIG FISCALE — scénario actif, parts, situation familiale, année de déclaration
@@ -461,7 +482,7 @@ function saveTaxParts(n) {
 // court d'avril N à mars N+1. Une part encaissée à partir de mai relève donc
 // de l'exercice N et se déclare au titre des revenus N+1 (déclaration N+2).
 // ============================================================
-const FISCAL_CONFIG_KEY = 'reecho_fiscal_config_v1';
+const FISCAL_CONFIG_KEY = 'dashboard_fiscal_config_v1';
 const DEFAULT_FISCAL_CONFIG = {
   scenarioActif: 'A',          // 'A' position portage · 'B' méthode 8TK · 'C' requalification
   parts: 1,
@@ -480,8 +501,6 @@ function loadFiscalConfig() {
 }
 function saveFiscalConfig(cfg) {
   localStorage.setItem(FISCAL_CONFIG_KEY, JSON.stringify(cfg));
-  // Maintient la clé historique en miroir pour la rétrocompatibilité
-  if (typeof cfg.parts === 'number') saveTaxParts(cfg.parts);
 }
 
 // Calcul des parts à partir du statut familial + nombre d'enfants
@@ -610,7 +629,7 @@ function forecastAE(year, tjm = AE_DEFAULTS.tjm, jours = AE_DEFAULTS.jours) {
 }
 
 // Stockage des paramètres simulation 2027 (TJM / jours / option fiscale)
-const AE_CONFIG_KEY = 'reecho_ae_config_v1';
+const AE_CONFIG_KEY = 'dashboard_ae_config_v1';
 function loadAEConfig() {
   try {
     const raw = localStorage.getItem(AE_CONFIG_KEY);
@@ -650,7 +669,7 @@ function deadlineInfo(now = new Date()) {
 // ============================================================
 // CHECKLIST ACTIONS FISCALES — persistante en localStorage
 // ============================================================
-const CHECKLIST_KEY = 'reecho_fiscal_checklist_v1';
+const CHECKLIST_KEY = 'dashboard_fiscal_checklist_v1';
 // Items par défaut. La présence d'une action dépend du scénario actif.
 function defaultChecklist() {
   return [
@@ -707,7 +726,7 @@ function calculIR(revenuImposable, parts) {
 // ============================================================
 
 // Stockage overrides jours par mois (pour que l'utilisateur puisse modifier)
-const PROJ_OVERRIDES_KEY = 'reecho_proj_overrides_v1';
+const PROJ_OVERRIDES_KEY = 'dashboard_proj_overrides_v1';
 function loadProjOverrides() {
   try { return JSON.parse(localStorage.getItem(PROJ_OVERRIDES_KEY) || '{}'); }
   catch { return {}; }
@@ -765,19 +784,51 @@ function joursOuvres(year, month) {
   return count;
 }
 
-// Coefficients empiriques basés sur les mois récents à TJM constant
-// Ces valeurs sont dérivées du dataset (mois 01-2026 à 03-2026)
-const PROJ_COEFFS = {
-  // Fixes par mois (indépendants des jours)
-  salaire_net_fixe: 1964.42,
-  charges_salaire_fixe: 1405.67,
-  // Variables selon jours
-  tr_per_jour: 13.25,
-  // Commission = 6% du CA
-  commission_pct: 0.06,
-  // Charges PS = approximativement 3% du CA
+// Coefficients de projection : dérivés automatiquement des N derniers mois
+// du dataset avec CA > 0. Fallback sur des valeurs neutres si pas de données.
+const PROJ_COEFFS_DEFAULTS = {
+  salaire_net_fixe: 0,        // 0 = sera dérivé du dataset
+  charges_salaire_fixe: 0,
+  tr_per_jour: 0,
+  commission_pct: 0.06,        // taux portage standard (6 %) — pré-rempli
   charges_ps_pct: 0.03
 };
+const PROJ_COEFFS_RECENT_MONTHS = 6;
+let PROJ_COEFFS = { ...PROJ_COEFFS_DEFAULTS };
+
+function computeProjCoeffs() {
+  if (!AGG) return { ...PROJ_COEFFS_DEFAULTS };
+  const recent = AGG.months
+    .filter(m => m.facturation > 0 && m.jours_travailles > 0)
+    .slice(-PROJ_COEFFS_RECENT_MONTHS);
+  if (recent.length === 0) return { ...PROJ_COEFFS_DEFAULTS };
+
+  let nbSal = 0, totSal = 0, totCharges = 0;
+  let totTR = 0, totJours = 0;
+  let totComm = 0, totCA = 0, totChPS = 0;
+  recent.forEach(m => {
+    if (m.salaire_net > 0) { totSal += m.salaire_net; nbSal++; }
+    if (m.charges_salaire > 0) totCharges += m.charges_salaire;
+    totTR += m.tickets_resto;
+    totJours += m.jours_travailles;
+    totComm += m.commission_portage;
+    totCA += m.facturation;
+    totChPS += m.charges_profit_share;
+  });
+
+  const d = PROJ_COEFFS_DEFAULTS;
+  return {
+    salaire_net_fixe:     nbSal ? totSal / nbSal : d.salaire_net_fixe,
+    charges_salaire_fixe: nbSal ? totCharges / nbSal : d.charges_salaire_fixe,
+    tr_per_jour:          totJours ? totTR / totJours : d.tr_per_jour,
+    commission_pct:       totCA ? totComm / totCA : d.commission_pct,
+    charges_ps_pct:       totCA ? totChPS / totCA : d.charges_ps_pct
+  };
+}
+
+function refreshProjCoeffs() {
+  PROJ_COEFFS = computeProjCoeffs();
+}
 
 function projectMonth(year, month, jours, tjm) {
   const ca = jours * tjm;

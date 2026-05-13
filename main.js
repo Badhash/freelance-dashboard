@@ -165,7 +165,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ============================================================
 // THEME TOGGLE
 // ============================================================
-const THEME_KEY = 'reecho_theme_v1';
+const THEME_KEY = 'dashboard_theme_v1';
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);

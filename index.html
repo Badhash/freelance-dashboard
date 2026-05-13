@@ -107,16 +107,16 @@
   <!-- MAIN CONTENT (affiché si données présentes) -->
   <div id="main-content">
 
-  <!-- BALANCE WIDGET -->
+  <!-- BALANCE WIDGET (chiffres remplis par renderBalanceWidget après import) -->
   <div class="balance-widget" id="balance-widget">
     <div class="balance-header" onclick="document.getElementById('balance-widget').classList.toggle('expanded')">
       <div class="balance-title">
         <h2>Solde du compte de portage</h2>
-        <div class="sub">Argent qui te reste sur ton compte au 16 avril 2026 · clique pour voir le détail</div>
+        <div class="sub">Argent qui te reste sur ton compte · clique pour voir le détail</div>
       </div>
       <div class="balance-total">
         <div class="label">Total à récupérer</div>
-        <div class="amount">26 716<span class="unit">€</span></div>
+        <div class="amount">—<span class="unit">€</span></div>
       </div>
       <div class="collapse-arrow">›</div>
     </div>
@@ -126,13 +126,13 @@
       <div class="balance-official">
         <div class="official-item">
           <div class="official-label">Solde sur encaissé</div>
-          <div class="official-value">4 060,66<span class="u"> €</span></div>
+          <div class="official-value">—<span class="u"> €</span></div>
           <div class="official-hint">Trésorerie disponible sur ton compte · argent déjà reçu par ta société de portage mais pas encore reversé</div>
         </div>
         <div class="official-separator"></div>
         <div class="official-item">
           <div class="official-label">Solde sur facturé</div>
-          <div class="official-value warn">26 715,60<span class="u"> €</span></div>
+          <div class="official-value warn">—<span class="u"> €</span></div>
           <div class="official-hint">Total acquis · ce que ton portage te doit en additionnant les prestations facturées non encore payées</div>
         </div>
       </div>
@@ -143,54 +143,17 @@
             <span class="dot-icon"></span>
             Ils te paieront plus tard
           </div>
-          <div class="balance-subtotal">22 512<span class="unit">€</span></div>
-          <div class="balance-lines">
-            <div class="balance-line">
-              <div class="line-left">
-                <span class="line-name">Profit share janvier 2026</span>
-                <span class="line-hint">Émis 16/02/2026 · en attente</span>
-              </div>
-              <span class="line-value">7 729,85 €</span>
-            </div>
-            <div class="balance-line">
-              <div class="line-left">
-                <span class="line-name">Profit share février 2026</span>
-                <span class="line-hint">Émis 16/03/2026 · en attente</span>
-              </div>
-              <span class="line-value">7 187,57 €</span>
-            </div>
-            <div class="balance-line">
-              <div class="line-left">
-                <span class="line-name">Profit share mars 2026</span>
-                <span class="line-hint">Émis 16/04/2026 · en attente</span>
-              </div>
-              <span class="line-value">7 594,37 €</span>
-            </div>
-          </div>
-          <div class="balance-note">Délai médian constaté : 91 jours entre émission et encaissement.</div>
+          <div class="balance-subtotal">—<span class="unit">€</span></div>
+          <div class="balance-lines"></div>
+          <div class="balance-note">Délai médian constaté entre émission et encaissement.</div>
         </div>
         <div class="balance-section advance">
           <div class="section-label">
             <span class="dot-icon"></span>
             Provisions & autres créances
           </div>
-          <div class="balance-subtotal">4 204<span class="unit">€</span></div>
-          <div class="balance-lines">
-            <div class="balance-line">
-              <div class="line-left">
-                <span class="line-name">Provision congés payés</span>
-                <span class="line-hint">13 mois × 283 € · jamais versés</span>
-              </div>
-              <span class="line-value">3 679,00 €</span>
-            </div>
-            <div class="balance-line">
-              <div class="line-left">
-                <span class="line-name">Cooptation Sofiane AZIRI</span>
-                <span class="line-hint">Mars 2026 · en attente</span>
-              </div>
-              <span class="line-value">524,80 €</span>
-            </div>
-          </div>
+          <div class="balance-subtotal">—<span class="unit">€</span></div>
+          <div class="balance-lines"></div>
           <div class="balance-note">La provision congés s'accumule à chaque mois de salaire. À récupérer à la sortie ou lors d'une prise de congés.</div>
         </div>
       </div>
@@ -202,87 +165,9 @@
             <span class="ledger-arrow">›</span>
             Détail du calcul du solde sur encaissé
           </span>
-          <span class="ledger-value">4 060,66 €</span>
+          <span class="ledger-value">—</span>
         </div>
-        <div class="ledger-content">
-          <div class="ledger-col">
-            <div class="ledger-col-title positive">Entrées — encaissements sur compte</div>
-            <div class="ledger-row">
-              <span>Facturation client payée</span>
-              <span class="v">+146 070,00 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Cooptation encaissée</span>
-              <span class="v">+2 412,80 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Refacturation client</span>
-              <span class="v">+206,89 €</span>
-            </div>
-            <div class="ledger-row total">
-              <span>Sous-total encaissements</span>
-              <span class="v">+148 689,69 €</span>
-            </div>
-          </div>
-          <div class="ledger-col">
-            <div class="ledger-col-title negative">Sorties — charges payées par le portage</div>
-            <div class="ledger-row">
-              <span>Commission portage (6%)</span>
-              <span class="v">−8 764,20 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Charges sociales salaire</span>
-              <span class="v">−20 835,43 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Charges sur profit share</span>
-              <span class="v">−5 214,30 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Impôts France (PAS)</span>
-              <span class="v">−762,84 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Charges diverses</span>
-              <span class="v">−312,00 €</span>
-            </div>
-            <div class="ledger-row total">
-              <span>Sous-total charges</span>
-              <span class="v">−35 888,77 €</span>
-            </div>
-          </div>
-          <div class="ledger-col">
-            <div class="ledger-col-title negative">Sorties — versements vers toi</div>
-            <div class="ledger-row">
-              <span>Salaires nets versés</span>
-              <span class="v">−30 859,01 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Profit shares versés</span>
-              <span class="v">−65 895,80 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Notes de frais remboursées</span>
-              <span class="v">−6 110,65 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Tickets restaurant</span>
-              <span class="v">−3 718,00 €</span>
-            </div>
-            <div class="ledger-row">
-              <span>Cooptations reversées</span>
-              <span class="v">−2 156,80 €</span>
-            </div>
-            <div class="ledger-row total">
-              <span>Sous-total versements</span>
-              <span class="v">−108 740,26 €</span>
-            </div>
-          </div>
-          <div class="ledger-final">
-            <span>SOLDE SUR ENCAISSÉ</span>
-            <span class="v">+4 060,66 €</span>
-          </div>
-        </div>
+        <div class="ledger-content"></div>
       </div>
     </div>
   </div>
@@ -470,35 +355,13 @@
 
     <div class="section">
       <div class="section-header">
-        <div class="section-title">2026 <span class="year-tag">3 mois — Q1</span></div>
+        <div class="section-title">2026 <span class="year-tag" data-year-tag="2026"></span></div>
       </div>
 
       <div class="pending-zone">
         <h3>Profit share en attente</h3>
         <div class="sub">Prestations réalisées, facturées au client, non encore payées.</div>
-        <div class="pending-list">
-          <div class="pending-card">
-            <div class="month">Janvier 2026</div>
-            <div class="row"><span class="l">Profit share</span><span class="v">7 729,85 €</span></div>
-            <div class="row"><span class="l">Émis le</span><span class="v">16/02/2026</span></div>
-            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
-            <div class="total"><span>À recevoir</span><span class="v">7 729,85 €</span></div>
-          </div>
-          <div class="pending-card">
-            <div class="month">Février 2026</div>
-            <div class="row"><span class="l">Profit share</span><span class="v">7 187,57 €</span></div>
-            <div class="row"><span class="l">Émis le</span><span class="v">16/03/2026</span></div>
-            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
-            <div class="total"><span>À recevoir</span><span class="v">7 187,57 €</span></div>
-          </div>
-          <div class="pending-card">
-            <div class="month">Mars 2026</div>
-            <div class="row"><span class="l">Profit share</span><span class="v">7 594,37 €</span></div>
-            <div class="row"><span class="l">Émis le</span><span class="v">16/04/2026</span></div>
-            <div class="row"><span class="l">Statut</span><span class="v" style="color: var(--warn)">En attente</span></div>
-            <div class="total"><span>À recevoir</span><span class="v">7 594,37 €</span></div>
-          </div>
-        </div>
+        <div class="pending-list"></div>
       </div>
 
       <!-- PROJECTION -->
@@ -555,7 +418,7 @@
 
     <div class="section">
       <div class="section-header">
-        <div class="section-title">2025 <span class="year-tag">12 mois clôturés</span></div>
+        <div class="section-title">2025 <span class="year-tag" data-year-tag="2025"></span></div>
         <div class="section-sub">Clique sur un mois pour voir le détail complet</div>
       </div>
       <div class="month-list" id="months-2025"></div>
@@ -622,6 +485,10 @@
 </div>
 
 <script src="data.js"></script>
+<script src="render-balance.js"></script>
+<script src="render-fiscal.js"></script>
+<script src="render-months.js"></script>
+<script src="render-projection.js"></script>
 <script src="render.js"></script>
 <script src="main.js"></script>
 </body>
