@@ -220,33 +220,46 @@ function renderFiscalTax(cfg, inputs, scen) {
     `;
   }
 
-  // Breakdown des tranches (sur le calcul retenu)
+  // Breakdown des tranches — uniquement pour A/B (C n'a pas de calc IR direct,
+  // c'est une projection de pénalités au-dessus du barème).
   if (breakdown) {
-    const tranches = calc.tranches;
-    const fmtRange = (t) => {
-      if (t.to === Infinity) return `> ${fmtInt(t.from)} €`;
-      if (t.from === 0) return `≤ ${fmtInt(t.to)} €`;
-      return `${fmtInt(t.from)} → ${fmtInt(t.to)} €`;
-    };
-    breakdown.innerHTML = `
-      <div class="tax-breakdown-title">Décomposition par tranches — quotient ${fmtInt(calc.quotient)} € × ${cfg.parts} part${cfg.parts > 1 ? 's' : ''}</div>
-      <div class="tax-tranches">
-        ${tranches.map(t => `
-          <div class="tax-tranche ${t.active ? 'active' : ''}">
-            <span class="tb-range">${fmtRange(t)}</span>
-            <span class="tb-rate">${(t.rate * 100).toFixed(0)} %</span>
-            <span class="tb-base">${t.base > 0 ? fmtInt(t.base) + ' €' : '—'}</span>
-            <span class="tb-tax">${t.tax > 0 ? fmtInt(t.tax * cfg.parts) + ' €' : '—'}</span>
-          </div>
-        `).join('')}
-        <div class="tax-tranche total">
-          <span class="tb-range">Total IR brut</span>
-          <span class="tb-rate">TMI ${(calc.tmi * 100).toFixed(0)} %</span>
-          <span class="tb-base"></span>
-          <span class="tb-tax">${fmtInt(sa.irBrut)} €</span>
+    if (!calc) {
+      breakdown.innerHTML = `
+        <div class="tax-breakdown-title">Décomposition — scénario C (requalification)</div>
+        <div class="tax-tranches">
+          <div class="tax-tranche"><span class="tb-range">IR différentiel avec BNC</span><span class="tb-rate"></span><span class="tb-base"></span><span class="tb-tax">${fmtInt(scen.C.irSupp)} €</span></div>
+          <div class="tax-tranche"><span class="tb-range">+ Prélèvements sociaux 17,2 %</span><span class="tb-rate"></span><span class="tb-base"></span><span class="tb-tax">${fmtInt(scen.C.psSociaux)} €</span></div>
+          <div class="tax-tranche"><span class="tb-range">Sous-total avant pénalités</span><span class="tb-rate"></span><span class="tb-base"></span><span class="tb-tax">${fmtInt(scen.C.sousTotal)} €</span></div>
+          <div class="tax-tranche total"><span class="tb-range">Total worst case (avec 80 % pénalités)</span><span class="tb-rate"></span><span class="tb-base"></span><span class="tb-tax">${fmtInt(scen.C.totalMax)} €</span></div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      const tranches = calc.tranches;
+      const fmtRange = (t) => {
+        if (t.to === Infinity) return `> ${fmtInt(t.from)} €`;
+        if (t.from === 0) return `≤ ${fmtInt(t.to)} €`;
+        return `${fmtInt(t.from)} → ${fmtInt(t.to)} €`;
+      };
+      breakdown.innerHTML = `
+        <div class="tax-breakdown-title">Décomposition par tranches — quotient ${fmtInt(calc.quotient)} € × ${cfg.parts} part${cfg.parts > 1 ? 's' : ''}</div>
+        <div class="tax-tranches">
+          ${tranches.map(t => `
+            <div class="tax-tranche ${t.active ? 'active' : ''}">
+              <span class="tb-range">${fmtRange(t)}</span>
+              <span class="tb-rate">${(t.rate * 100).toFixed(0)} %</span>
+              <span class="tb-base">${t.base > 0 ? fmtInt(t.base) + ' €' : '—'}</span>
+              <span class="tb-tax">${t.tax > 0 ? fmtInt(t.tax * cfg.parts) + ' €' : '—'}</span>
+            </div>
+          `).join('')}
+          <div class="tax-tranche total">
+            <span class="tb-range">Total IR brut</span>
+            <span class="tb-rate">TMI ${(calc.tmi * 100).toFixed(0)} %</span>
+            <span class="tb-base"></span>
+            <span class="tb-tax">${fmtInt(sa.irBrut)} €</span>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 
