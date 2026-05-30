@@ -1574,164 +1574,6 @@
     text-transform: none;
   }
 
-  @media (max-width: 768px) {
-    .container {
-      padding: 20px 14px calc(120px + env(safe-area-inset-bottom)) 14px;
-    }
-    header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 28px;
-      padding-bottom: 16px;
-    }
-    .title-block h1 { font-size: 32px; }
-    .title-block .subtitle { font-size: 13px; }
-    .meta { text-align: left; font-size: 11px; }
-    .meta .tjm { font-size: 16px; }
-
-    /* Import bar en bas fixé pour garder accessible */
-    .import-zone {
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-start;
-      margin-bottom: 20px;
-    }
-    .last-import { font-size: 10px; width: 100%; }
-    .import-btn { font-size: 11px; padding: 10px 14px; }
-
-    /* Section titles plus compacts */
-    .section { margin-bottom: 36px; }
-    .section-title { font-size: 22px; }
-    .section-title .year-tag {
-      display: block;
-      margin-left: 0;
-      margin-top: 4px;
-      font-size: 10px;
-    }
-
-    /* Balance widget */
-    .balance-widget { margin-bottom: 28px; }
-    .balance-header {
-      padding: 18px 20px 14px;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .balance-title h2 { font-size: 22px; }
-    .balance-title .sub { font-size: 12px; }
-    .balance-total { width: 100%; text-align: left; }
-    .balance-total .amount { font-size: 36px; }
-    .balance-total .amount .unit { font-size: 16px; }
-    .collapse-arrow {
-      position: absolute;
-      top: 18px;
-      right: 20px;
-    }
-    .balance-header { position: relative; }
-    .balance-official {
-      grid-template-columns: 1fr;
-      padding: 18px 20px;
-      gap: 14px;
-    }
-    .official-separator { display: none; }
-    .official-value { font-size: 32px; }
-    .balance-body { grid-template-columns: 1fr; }
-    .balance-section { padding: 20px; }
-    .balance-section + .balance-section {
-      border-left: none;
-      border-top: 1px solid var(--border);
-    }
-    .balance-subtotal { font-size: 30px; }
-    .balance-line { padding: 12px 14px; font-size: 13px; }
-    .balance-line .line-value { font-size: 14px; }
-    .ledger-toggle { padding: 14px 20px; }
-    .ledger-label { font-size: 10px; }
-    .ledger-content { padding: 18px 20px 20px; grid-template-columns: 1fr; gap: 14px; }
-    .ledger-col { padding: 14px; }
-    .ledger-row { font-size: 12px; }
-    .ledger-final { padding: 16px 20px; font-size: 11px; }
-    .ledger-final .v { font-size: 24px; }
-
-    /* Evolution chart */
-    .chart-card { padding: 18px 16px; }
-    .chart-card .chart-title { font-size: 18px; }
-    .chart-card .chart-sub { font-size: 12px; margin-bottom: 18px; }
-
-    /* Pending */
-    .pending-zone { padding: 20px 18px; }
-    .pending-zone h3 { font-size: 22px; }
-    .pending-list { grid-template-columns: 1fr; gap: 10px; }
-
-    /* Projection */
-    .projection-header { padding: 16px 18px; gap: 10px; flex-wrap: wrap; }
-    .ph-title { font-size: 18px; }
-    .ph-sub { font-size: 11px; }
-    .ph-right { width: 100%; justify-content: space-between; }
-    .ph-total .big { font-size: 22px; }
-    .projection-body { padding: 0 18px 20px; padding-top: 18px; }
-    .projection-legend { font-size: 11px; gap: 14px; }
-    .projection-table-wrapper { margin: 0 -18px; padding: 0 18px; }
-    .projection-table-wrapper::-webkit-scrollbar { height: 4px; }
-    .projection-table-wrapper::-webkit-scrollbar-thumb {
-      background: var(--border-strong); border-radius: 2px;
-    }
-    .projection-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .proj-summary-card { padding: 12px; }
-    .proj-summary-card .v { font-size: 18px; }
-
-    /* Month list : layout 2 lignes */
-    .month-header {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto auto;
-      gap: 8px 12px;
-      padding: 14px 16px;
-    }
-    .month-header > *:nth-child(1) { grid-column: 1 / -1; }
-    .month-header > *:nth-child(2) { grid-column: 1 / -1; margin-bottom: 4px; }
-    .month-label { font-size: 20px; }
-    .month-days { font-size: 11px; }
-    .month-value .label { font-size: 9px; }
-    .month-value .amount { font-size: 13px; }
-    .month-value.total .amount { font-size: 16px; }
-    .chevron { display: none; }
-    .month-detail { padding: 18px 16px; }
-    .detail-grid { grid-template-columns: 1fr; gap: 20px; }
-    .detail-line { font-size: 13px; padding: 8px 0; }
-    .ps-item { flex-wrap: wrap; gap: 4px; font-size: 11px; }
-    .status-pill { font-size: 10px; padding: 3px 7px; }
-
-    /* Floating buttons adaptés aux safe areas iOS */
-    #theme-toggle {
-      bottom: calc(20px + env(safe-area-inset-bottom));
-      left: calc(16px + env(safe-area-inset-left));
-      width: 46px;
-      height: 46px;
-    }
-    #theme-toggle svg { width: 18px; height: 18px; }
-
-    /* Callouts */
-    .callout { padding: 14px 16px; font-size: 12px; }
-
-    /* Empty state */
-    .empty-state { padding: 50px 20px; }
-    .empty-state h2 { font-size: 24px; }
-    .empty-state p { font-size: 13px; }
-
-    /* Toast */
-    .toast {
-      right: calc(16px + env(safe-area-inset-right));
-      bottom: calc(20px + env(safe-area-inset-bottom));
-      left: calc(16px + env(safe-area-inset-left));
-      max-width: none;
-    }
-  }
-
-  /* Smartphones petits / portrait stricte */
-  @media (max-width: 380px) {
-    .projection-summary { grid-template-columns: 1fr; }
-    .title-block h1 { font-size: 28px; }
-    .balance-total .amount { font-size: 32px; }
-  }
 
   /* iPhone en paysage : respecter safe-areas gauche/droite (encoche) */
   @media (max-width: 932px) and (orientation: landscape) {
@@ -1938,4 +1780,551 @@
   @media (max-width: 768px) {
     .auth-box { padding: 22px; }
     .auth-view h3 { font-size: 20px; }
+  }
+
+  /* ============================================================
+     ===== iOS MOBILE THEME =====
+     Thème mobile natif iOS — actif uniquement ≤768px.
+     RIEN ici ne touche le desktop (≥769px) : tout est gated par la
+     media query. On redéfinit les design tokens dans la query (les
+     composants suivent automatiquement), puis on surcharge les
+     patterns structurels (cartes, listes groupées, bottom sheets).
+     On assume la perte de l'ADN or/serif au profit d'un look iOS pur.
+     ============================================================ */
+  @media (max-width: 768px) {
+
+    /* ---- Tokens iOS — DARK (défaut) ---- */
+    :root, [data-theme="dark"] {
+      --bg: #000000;
+      --bg-elev: #1C1C1E;            /* secondarySystemGroupedBackground */
+      --bg-elev-2: #2C2C2E;          /* tertiarySystemGroupedBackground */
+      --border: rgba(84,84,88,0.36); /* iOS separator */
+      --border-strong: rgba(84,84,88,0.65);
+      --text: #FFFFFF;                     /* label */
+      --text-dim: rgba(235,235,245,0.60);  /* secondaryLabel */
+      --text-muted: rgba(235,235,245,0.30);/* tertiaryLabel */
+      --accent: #0A84FF;             /* systemBlue (dark) = tint */
+      --accent-soft: rgba(10,132,255,0.18);
+      --accent-dim: rgba(235,235,245,0.60);
+      --ok: #30D158;
+      --warn: #FFD60A;
+      --danger: #FF453A;
+      --info: #64D2FF;
+      --purple: #BF5AF2;
+      --ambient-1: transparent;
+      --ambient-2: transparent;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.45);
+      /* Helpers iOS */
+      --ios-grouped: #000000;
+      --ios-card: #1C1C1E;
+      --ios-card-2: #2C2C2E;
+      --ios-sep: rgba(84,84,88,0.40);
+      --ios-tint: #0A84FF;
+      --ios-fill: rgba(120,120,128,0.36);
+      --ios-bar: rgba(28,28,30,0.72);
+    }
+
+    /* ---- Tokens iOS — LIGHT ---- */
+    [data-theme="light"] {
+      --bg: #F2F2F7;                 /* systemGroupedBackground */
+      --bg-elev: #FFFFFF;            /* secondarySystemGroupedBackground */
+      --bg-elev-2: #F2F2F7;
+      --border: rgba(60,60,67,0.18);
+      --border-strong: rgba(60,60,67,0.29);
+      --text: #000000;
+      --text-dim: rgba(60,60,67,0.60);
+      --text-muted: rgba(60,60,67,0.30);
+      --accent: #007AFF;             /* systemBlue (light) = tint */
+      --accent-soft: rgba(0,122,255,0.12);
+      --accent-dim: rgba(60,60,67,0.60);
+      --ok: #34C759;
+      --warn: #FF9500;
+      --danger: #FF3B30;
+      --info: #32ADE6;
+      --purple: #AF52DE;
+      --ambient-1: transparent;
+      --ambient-2: transparent;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
+      --ios-grouped: #F2F2F7;
+      --ios-card: #FFFFFF;
+      --ios-card-2: #F2F2F7;
+      --ios-sep: rgba(60,60,67,0.29);
+      --ios-tint: #007AFF;
+      --ios-fill: rgba(120,120,128,0.20);
+      --ios-bar: rgba(249,249,249,0.80);
+    }
+
+    /* ---- Base : police système partout, fond groupé, zéro scroll X ---- */
+    body, body * {
+      font-family: -apple-system, system-ui, "SF Pro Text", "SF Pro Display", sans-serif !important;
+    }
+    html, body {
+      font-size: 16px;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+    body { background: var(--ios-grouped); background-image: none; }
+    .container {
+      max-width: 100%;
+      margin: 0;
+      padding: 0 0 calc(74px + env(safe-area-inset-bottom));
+    }
+
+    /* ---- Header : grande nav bar sticky translucide ---- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      margin: 0;
+      padding: calc(env(safe-area-inset-top) + 10px) 16px 12px;
+      background: var(--ios-bar);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 0.5px solid var(--ios-sep);
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .title-block h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.36px;
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+    .title-block h1 em { color: var(--ios-tint); font-style: normal; font-weight: 700; }
+    .title-block .subtitle { font-size: 13px; color: var(--text-dim); letter-spacing: 0; }
+    .meta {
+      text-align: left;
+      font-size: 11px;
+      line-height: 1.5;
+      letter-spacing: 0.02em;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .meta .tjm { display: inline; font-size: 13px; color: var(--ios-tint); margin: 0 0 0 6px; }
+
+    /* ---- Toggle thème : bouton de nav bar (haut-droite) ---- */
+    #theme-toggle {
+      top: calc(env(safe-area-inset-top) + 12px);
+      right: 16px;
+      bottom: auto;
+      left: auto;
+      width: 34px;
+      height: 34px;
+      z-index: 60;
+      background: var(--ios-fill);
+      border: none;
+      color: var(--ios-tint);
+      box-shadow: none;
+    }
+    #theme-toggle:hover { transform: none; box-shadow: none; border: none; }
+    #theme-toggle:active { transform: scale(0.92); }
+    #theme-toggle svg { width: 18px; height: 18px; }
+
+    /* ---- Barre d'actions : toolbar iOS ancrée en bas ---- */
+    .import-zone {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-around;
+      align-items: stretch;
+      gap: 2px;
+      margin: 0;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      background: var(--ios-bar);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-top: 0.5px solid var(--ios-sep);
+    }
+    .import-zone .last-import { display: none; }
+    .import-zone .import-btn {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+      min-height: 50px;
+      padding: 6px 2px;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      color: var(--ios-tint);
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      text-align: center;
+    }
+    .import-zone .import-btn:hover { background: transparent; color: var(--ios-tint); border: none; }
+    .import-zone .import-btn:active { background: var(--ios-fill); }
+    .import-zone .import-btn .icon { font-size: 21px; }
+    .import-zone .import-btn.danger { color: var(--danger); border: none; }
+    .import-zone .import-btn.danger:hover { color: var(--danger); }
+    .import-zone .import-btn.cloud { color: var(--info); border: none; }
+    .import-zone .import-btn.cloud:hover { color: var(--info); }
+    .import-zone .import-btn.cloud.connected { color: var(--ok); }
+    .import-zone .import-btn.cloud.mfa { color: var(--warn); }
+    .import-zone .audit-badge { position: absolute; top: 3px; right: 22%; }
+
+    /* ---- Empty state : carte iOS + bouton plein ---- */
+    .empty-state {
+      margin: 16px;
+      padding: 48px 24px;
+      border: none;
+      border-radius: 16px;
+      background: var(--ios-card);
+      box-shadow: var(--shadow-card);
+    }
+    .empty-state h2 { font-size: 24px; font-weight: 700; }
+    .empty-state p { font-size: 14px; }
+    .empty-state .import-btn {
+      background: var(--ios-tint);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .empty-state .import-btn:hover { background: var(--ios-tint); color: #fff; filter: brightness(1.05); }
+    .empty-state .import-btn .icon { color: #fff; }
+
+    /* ---- Sections & titres ---- */
+    #main-content { padding-top: 16px; }
+    .section { margin-bottom: 26px; }
+    .section-header {
+      padding: 0 16px;
+      margin-bottom: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: 0.35px; }
+    .section-title .year-tag { display: inline; margin-left: 8px; margin-top: 0; font-size: 11px; }
+    .section-sub { font-size: 13px; }
+
+    /* ---- Widget Solde : carte iOS groupée avec divulgation ---- */
+    .balance-widget {
+      margin: 16px;
+      border: none;
+      border-radius: 16px;
+      background: var(--ios-card);
+      box-shadow: var(--shadow-card);
+    }
+    .balance-widget::before { display: none; }
+    .balance-header {
+      padding: 16px;
+      gap: 12px;
+      flex-wrap: nowrap;
+      align-items: center;
+      min-height: 44px;
+    }
+    .balance-header:hover { background: transparent; }
+    .balance-widget.expanded .balance-header { border-bottom: 0.5px solid var(--ios-sep); }
+    .balance-title { flex: 1; min-width: 0; }
+    .balance-title h2 { font-size: 17px; font-weight: 600; }
+    .balance-title .sub { font-size: 13px; color: var(--text-dim); }
+    .balance-total { width: auto; text-align: right; }
+    .balance-total .label { font-size: 10px; }
+    .balance-total .amount { font-size: 24px; font-weight: 700; color: var(--text); }
+    .balance-total .amount .unit { font-size: 15px; }
+    .balance-header .collapse-arrow {
+      position: static;
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .balance-official {
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 14px 16px;
+      background: transparent;
+      border-bottom: 0.5px solid var(--ios-sep);
+    }
+    .official-separator { display: none; }
+    .official-value { font-size: 28px; }
+    .official-value .u { font-size: 15px; }
+    .balance-body { grid-template-columns: 1fr; }
+    .balance-section { padding: 16px; }
+    .balance-section + .balance-section { border-left: none; border-top: 0.5px solid var(--ios-sep); }
+    .balance-subtotal { font-size: 26px; }
+    .balance-lines { background: var(--ios-sep); border: none; border-radius: 10px; }
+    .balance-line { background: var(--ios-card); padding: 12px 14px; font-size: 14px; }
+    .balance-line .line-value { font-size: 15px; }
+    .ledger-toggle { padding: 14px 16px; }
+    .ledger-toggle:hover { background: transparent; }
+    .ledger-label { font-size: 11px; }
+    .ledger-content { grid-template-columns: 1fr; gap: 12px; padding: 14px 16px; background: var(--ios-grouped); }
+    .ledger-col { background: var(--ios-card); border: none; border-radius: 12px; box-shadow: var(--shadow-card); }
+    .ledger-row { font-size: 13px; }
+    .ledger-final { padding: 16px; font-size: 11px; }
+    .ledger-final .v { font-size: 24px; }
+
+    /* ---- Pending : liste groupée empilée ---- */
+    .pending-zone {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      margin: 0 0 24px;
+    }
+    .pending-zone h3 { padding: 0 16px; font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+    .pending-zone .sub { padding: 0 16px; margin-bottom: 10px; font-size: 13px; }
+    .pending-list {
+      display: block;
+      margin: 0 16px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--ios-card);
+      box-shadow: var(--shadow-card);
+    }
+    .pending-card {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      border-bottom: 0.5px solid var(--ios-sep);
+      padding: 14px 16px;
+    }
+    .pending-card:last-child { border-bottom: none; }
+    .pending-card .month { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+
+    /* ---- Projection : carte + tableau converti en cartes empilées ---- */
+    .projection-widget {
+      background: var(--ios-card);
+      border: none;
+      border-radius: 16px;
+      margin: 0 16px 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .projection-header { padding: 16px; gap: 12px; flex-wrap: nowrap; align-items: center; }
+    .projection-header:hover { background: transparent; }
+    .ph-left { gap: 12px; min-width: 0; }
+    .ph-title { font-size: 16px; font-weight: 600; }
+    .ph-sub { font-size: 12px; }
+    .ph-right { gap: 10px; width: auto; }
+    .ph-total .big { font-size: 18px; }
+    .ph-arrow { font-size: 18px; color: var(--text-muted); }
+    .projection-body { padding: 0 16px 16px; padding-top: 14px; }
+    .projection-legend { font-size: 12px; gap: 12px; }
+    .projection-table-wrapper { overflow: visible; margin: 0; padding: 0; }
+    .projection-table { display: block; width: 100%; min-width: 0; }
+    .projection-table thead { display: none; }
+    .projection-table tbody, .projection-table tfoot { display: block; }
+    .projection-table tbody tr, .projection-table tfoot tr {
+      display: block;
+      background: var(--ios-card-2);
+      border: 0.5px solid var(--ios-sep);
+      border-radius: 12px;
+      padding: 4px 14px;
+      margin-bottom: 10px;
+      opacity: 1;
+    }
+    .projection-table td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      text-align: right;
+      padding: 9px 0;
+      border-bottom: 0.5px solid var(--ios-sep);
+      font-size: 14px;
+    }
+    .projection-table td:last-child { border-bottom: none; }
+    .projection-table td::before {
+      content: attr(data-label);
+      color: var(--text-dim);
+      font-weight: 400;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .projection-table td.left {
+      justify-content: flex-start;
+      padding: 12px 0 10px;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 0.5px solid var(--ios-sep);
+    }
+    .projection-table td.left::before { content: none; }
+    .projection-table td.sum-highlight { font-weight: 700; }
+    /* Couleurs de cellule lisibles en carte (override des règles known/future) */
+    .projection-table tbody tr.known td,
+    .projection-table tbody tr.current-mo td,
+    .projection-table tbody tr.future td { color: var(--text); }
+    .projection-table tfoot tr { background: var(--accent-soft); border-color: var(--accent); }
+    .projection-table tfoot td { border-top: none; border-bottom: 0.5px solid var(--ios-sep); padding: 9px 0; font-size: 14px; }
+    .projection-table tfoot td:last-child { border-bottom: none; }
+    .projection-table tfoot td.sum-highlight { color: var(--accent); }
+    /* Stepper jours : contrôle iOS */
+    .days-input-wrap { background: var(--ios-fill); border: none; border-radius: 8px; }
+    .days-input-wrap:hover, .days-input-wrap:focus-within { border: none; }
+    input.days-input { color: var(--ios-tint); font-size: 16px; width: 52px; font-weight: 600; }
+    .days-steppers { border-left: 0.5px solid var(--ios-sep); }
+    .days-stepper { width: 30px; color: var(--ios-tint); }
+    .days-stepper:hover { background: transparent; color: var(--ios-tint); }
+    .days-stepper:active { background: var(--ios-fill); }
+    .days-stepper svg { width: 10px; height: 10px; }
+    .projection-summary { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .proj-summary-card { background: var(--ios-card-2); border: none; border-radius: 12px; padding: 12px 14px; }
+    .proj-summary-card .v { font-size: 20px; font-weight: 700; }
+
+    /* ---- Listes de mois : liste groupée iOS avec chevron ---- */
+    .month-list {
+      background: var(--ios-card);
+      border: none;
+      border-radius: 14px;
+      margin: 0 16px;
+      box-shadow: var(--shadow-card);
+    }
+    .month-row { border-bottom: 0.5px solid var(--ios-sep); }
+    .month-row:last-child { border-bottom: none; }
+    .month-header {
+      display: grid;
+      grid-template-columns: 1fr auto 16px;
+      grid-template-rows: auto auto;
+      gap: 1px 12px;
+      padding: 11px 16px;
+      align-items: center;
+      min-height: 44px;
+    }
+    .month-header:hover { background: transparent; }
+    .month-header .month-label { grid-column: 1; grid-row: 1; font-size: 16px; font-weight: 400; }
+    .month-header .month-days { grid-column: 1; grid-row: 2; font-size: 12px; }
+    .month-header .month-value { display: none; }
+    .month-header .month-value.total {
+      display: block;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      text-align: right;
+    }
+    .month-header .month-value.total .label { display: none; }
+    .month-header .month-value.total .amount { font-size: 16px; font-weight: 600; color: var(--text); }
+    .month-header .chevron {
+      display: block;
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 17px;
+    }
+    .month-detail {
+      background: var(--ios-grouped);
+      border-top: 0.5px solid var(--ios-sep);
+      padding: 8px 14px 14px;
+    }
+    .detail-grid { grid-template-columns: 1fr; gap: 12px; }
+    .detail-section { background: var(--ios-card); border-radius: 12px; padding: 6px 14px 10px; }
+    .detail-line { font-size: 14px; padding: 9px 0; border-bottom: 0.5px solid var(--ios-sep); }
+    .detail-line:last-child { border-bottom: none; }
+    .detail-line.total { border-top: 0.5px solid var(--border-strong); border-bottom: none; }
+    .ps-items { border-left: 2px solid var(--ios-sep); }
+    .ps-item { flex-wrap: wrap; gap: 4px; font-size: 12px; }
+    .status-pill { font-size: 10px; padding: 3px 7px; }
+
+    /* ---- Modales → bottom sheets iOS (audit, diff, confirm, auth) ---- */
+    .audit-modal, .confirm-modal, .auth-modal { align-items: flex-end; padding: 0; }
+    .audit-modal-content, .confirm-box, .auth-box {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      max-height: 92vh;
+      border: none;
+      border-radius: 16px 16px 0 0;
+      background: var(--ios-card);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
+      animation: ios-sheet-up 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    /* grabber */
+    .audit-modal-content::before, .confirm-box::before, .auth-box::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 5px;
+      border-radius: 3px;
+      background: var(--ios-fill);
+      z-index: 5;
+    }
+    .audit-header { padding-top: 24px; }
+    .audit-header h2 { font-size: 22px; }
+    .confirm-box { padding: 28px 22px 22px; }
+    .confirm-box h3 { font-size: 20px; }
+    .confirm-actions { flex-direction: column-reverse; gap: 8px; }
+    .confirm-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: var(--ios-fill);
+      color: var(--ios-tint);
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .confirm-btn:hover { border: none; }
+    .confirm-btn.danger { background: transparent; border: none; color: var(--danger); }
+    .confirm-btn.danger:hover { background: transparent; color: var(--danger); }
+    .auth-box { padding: 28px 22px; }
+    .auth-view h3 { font-size: 20px; }
+    .auth-input { font-size: 16px; }
+
+    /* ---- Toast → bannière iOS en haut ---- */
+    .toast {
+      top: calc(env(safe-area-inset-top) + 8px);
+      left: 12px;
+      right: 12px;
+      bottom: auto;
+      min-width: 0;
+      max-width: none;
+      border: 0.5px solid var(--ios-sep);
+      border-left: 0.5px solid var(--ios-sep);
+      border-radius: 14px;
+      background: var(--ios-bar);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      transform: translateY(calc(-100% - 24px));
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .toast.visible { transform: translateY(0); }
+    .toast .t-title { font-size: 16px; font-weight: 600; }
+
+    /* ---- Footer ---- */
+    footer { margin: 24px 16px 0; padding-top: 16px; font-size: 11px; }
+
+    /* ---- Callouts ---- */
+    .callout { padding: 14px 16px; font-size: 13px; border-radius: 12px; }
+  }
+
+  @keyframes ios-sheet-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  /* Renforts de zones tactiles (≥44px Apple) — uniquement écrans tactiles ≤768px */
+  @media (max-width: 768px) and (hover: none) and (pointer: coarse) {
+    .ledger-toggle,
+    .projection-header,
+    .balance-header,
+    .month-header { min-height: 48px; }
+    .import-zone .import-btn { min-height: 52px; }
+    .days-stepper { min-height: 24px; }
+    .audit-close { width: 36px; height: 36px; }
+  }
+
+  /* Très petits écrans : résumé projection en 1 colonne */
+  @media (max-width: 380px) {
+    .projection-summary { grid-template-columns: 1fr; }
+    .title-block h1 { font-size: 25px; }
   }

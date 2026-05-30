@@ -97,14 +97,14 @@ function renderProjection() {
           <span class="mo-label">${monthName}</span><span class="mo-year">${r.year}</span>
           ${tag}
         </td>
-        <td>${r.joursOuvres}</td>
-        <td class="editable">${joursCell}</td>
-        <td>${congesAff}</td>
-        <td>${fmtShort(ca)}</td>
-        <td>${fmtShort(sn)}</td>
-        <td>${fmtShort(ps)}</td>
-        <td>${fmtShort(tr)}</td>
-        <td><strong>${fmtShort(total)}</strong></td>
+        <td data-label="Jours ouvrés">${r.joursOuvres}</td>
+        <td class="editable" data-label="Jours facturés">${joursCell}</td>
+        <td data-label="Congés">${congesAff}</td>
+        <td data-label="CA facturé">${fmtShort(ca)}</td>
+        <td data-label="Salaire net">${fmtShort(sn)}</td>
+        <td data-label="Profit share">${fmtShort(ps)}</td>
+        <td data-label="Tickets resto">${fmtShort(tr)}</td>
+        <td data-label="Total perçu"><strong>${fmtShort(total)}</strong></td>
       </tr>
     `;
   }).join('');
@@ -130,14 +130,14 @@ function renderProjection() {
   document.getElementById('projection-tfoot').innerHTML = `
     <tr>
       <td class="left">Total ${projYear}</td>
-      <td>${totals.joursOuvres}</td>
-      <td>${totals.jours}</td>
-      <td>${totals.conges}</td>
-      <td>${fmtShort(totals.ca)}</td>
-      <td>${fmtShort(totals.sn)}</td>
-      <td>${fmtShort(totals.ps)}</td>
-      <td>${fmtShort(totals.tr)}</td>
-      <td class="sum-highlight">${fmtShort(totals.total)}</td>
+      <td data-label="Jours ouvrés">${totals.joursOuvres}</td>
+      <td data-label="Jours facturés">${totals.jours}</td>
+      <td data-label="Congés">${totals.conges}</td>
+      <td data-label="CA facturé">${fmtShort(totals.ca)}</td>
+      <td data-label="Salaire net">${fmtShort(totals.sn)}</td>
+      <td data-label="Profit share">${fmtShort(totals.ps)}</td>
+      <td data-label="Tickets resto">${fmtShort(totals.tr)}</td>
+      <td class="sum-highlight" data-label="Total perçu">${fmtShort(totals.total)}</td>
     </tr>
   `;
 
