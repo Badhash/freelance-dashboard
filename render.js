@@ -49,7 +49,7 @@ function showConfirm({ title = 'Confirmation', message, okLabel = 'Confirmer', c
 async function resetData() {
   const confirmed = await showConfirm({
     title: 'Réinitialiser le dashboard ?',
-    message: 'Toutes les données importées et les préférences seront supprimées :\n\n• Opérations importées (dataset)\n• Projections personnalisées\n• Nombre de parts fiscales\n• Préférence de thème\n\nCette action est irréversible.',
+    message: 'Toutes les données importées et les préférences seront supprimées :\n\n• Opérations importées (dataset)\n• Projections personnalisées\n• Préférence de thème\n\nCette action est irréversible.',
     okLabel: 'Tout supprimer',
     cancelLabel: 'Annuler',
     danger: true
@@ -61,22 +61,12 @@ async function resetData() {
     'dashboard_dataset_v1',
     'dashboard_meta_v1',
     'dashboard_proj_overrides_v1',
-    'dashboard_tax_parts_v1',
     'dashboard_theme_v1',
-    'dashboard_fiscal_config_v1',
-    'dashboard_fiscal_checklist_v1',
-    'dashboard_ae_config_v1',
     'dashboard_client_rules_v1'
   ];
   allKeys.forEach(k => localStorage.removeItem(k));
 
   DATASET = [];
-
-  const partsInput = document.getElementById('tax-parts-input');
-  if (partsInput) {
-    partsInput.value = 1;
-    delete partsInput.dataset.bound;
-  }
 
   const auditModal = document.getElementById('audit-modal');
   if (auditModal) auditModal.style.display = 'none';
@@ -802,8 +792,6 @@ function render() {
     AGG = null;
     const containersToEmpty = [
       'months-2025', 'months-2026',
-      'fiscal-grid-declaration', 'fiscal-grid-tax', 'scenario-cards',
-      'tax-breakdown', 'forecast-tbody', 'forecast-notes', 'ae-grid', 'risk-grid',
       'projection-tbody', 'projection-tfoot', 'projection-summary',
       'projection-total', 'last-import-info',
       'audit-list', 'audit-summary'
@@ -821,11 +809,9 @@ function render() {
     const pendingList = document.querySelector('.pending-zone .pending-list');
     if (pendingList) pendingList.innerHTML = '';
 
-    // Reset TJM header + deadline
+    // Reset TJM header
     const headerTjmEl = document.getElementById('header-tjm');
     if (headerTjmEl) headerTjmEl.textContent = '—';
-    const deadlineEl = document.getElementById('header-deadline');
-    if (deadlineEl) deadlineEl.style.display = 'none';
 
     // Reset badge audit
     const badge = document.getElementById('audit-badge');
@@ -848,8 +834,6 @@ function render() {
   }
 
   renderBalanceWidget();
-  renderFiscal();
   renderProjection();
   renderMonthsLists();
-  renderDeadline();
 }

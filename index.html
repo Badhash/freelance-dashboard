@@ -27,7 +27,6 @@
       <div>Mission principale</div>
       <div>via plateforme</div>
       <span class="tjm" id="header-tjm">—</span>
-      <button class="deadline-pill" id="header-deadline" type="button" aria-label="Ouvrir checklist fiscale" style="display:none;"></button>
     </div>
   </header>
 
@@ -172,186 +171,8 @@
     </div>
   </div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="detail">Détail mensuel</button>
-    <button class="tab-btn" data-tab="fiscal">Fiscal & Forecast</button>
-  </div>
-
-  <!-- TAB FISCAL & FORECAST -->
-  <div class="tab-content" id="tab-fiscal">
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">Déclaration fiscale <span class="year-tag" id="fiscal-section-tag">Année 2025</span></div>
-      </div>
-
-      <!-- CONFIG FISCALE -->
-      <div class="fiscal-card fiscal-config">
-        <h3>Configuration de la déclaration</h3>
-        <div class="note">Choisis ton scénario de déclaration et ajuste ta situation familiale. Toutes les autres sections de cet onglet se recalculent en fonction.</div>
-        <div class="fiscal-config-grid">
-          <div class="fc-field fc-scenarios">
-            <span class="fc-label">Scénario actif</span>
-            <div class="fc-scenario-list" id="fc-scenario-list">
-              <label class="fc-scenario" data-sc="A">
-                <input type="radio" name="fc-scenario" value="A" />
-                <span class="fc-sc-title">A — Position portage</span>
-                <span class="fc-sc-hint">Profit share reporté à l'exercice comptable de la société versante · BNC déclaré = 0 €</span>
-              </label>
-              <label class="fc-scenario" data-sc="B">
-                <input type="radio" name="fc-scenario" value="B" />
-                <span class="fc-sc-title">B — Méthode cabinet fiscaliste</span>
-                <span class="fc-sc-hint">Déclaration 5XJ + annexe 2047 + crédit 8TK qui neutralise l'IR</span>
-              </label>
-              <label class="fc-scenario" data-sc="C">
-                <input type="radio" name="fc-scenario" value="C" />
-                <span class="fc-sc-title">C — Requalification (worst case)</span>
-                <span class="fc-sc-hint">Crédit 8TK rejeté · IR + PS 17,2 % + pénalités 10 à 80 %</span>
-              </label>
-            </div>
-          </div>
-          <div class="fc-field">
-            <label class="fc-label" for="fc-statut">Statut familial</label>
-            <select class="fc-select" id="fc-statut">
-              <option value="celibataire">Célibataire</option>
-              <option value="marie">Marié·e</option>
-              <option value="pacse">Pacsé·e</option>
-            </select>
-          </div>
-          <div class="fc-field">
-            <span class="fc-label">Enfants à charge</span>
-            <div class="days-input-wrap">
-              <input type="number" class="days-input fc-input" id="fc-enfants" min="0" max="10" step="1" value="0" />
-              <div class="days-steppers">
-                <button type="button" class="days-stepper" data-fc-action="up" data-fc-target="fc-enfants" aria-label="+ 1 enfant">
-                  <svg viewBox="0 0 8 8"><path d="M4 1 L7 6 L1 6 Z"/></svg>
-                </button>
-                <button type="button" class="days-stepper" data-fc-action="down" data-fc-target="fc-enfants" aria-label="− 1 enfant">
-                  <svg viewBox="0 0 8 8"><path d="M4 7 L1 2 L7 2 Z"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="fc-field">
-            <span class="fc-label">Nombre de parts</span>
-            <div class="days-input-wrap">
-              <input type="number" class="days-input fc-input tax-parts-input" id="tax-parts-input" min="1" max="10" step="0.25" value="1" />
-              <div class="days-steppers">
-                <button type="button" class="days-stepper" data-tax-action="up" aria-label="Augmenter">
-                  <svg viewBox="0 0 8 8"><path d="M4 1 L7 6 L1 6 Z"/></svg>
-                </button>
-                <button type="button" class="days-stepper" data-tax-action="down" aria-label="Diminuer">
-                  <svg viewBox="0 0 8 8"><path d="M4 7 L1 2 L7 2 Z"/></svg>
-                </button>
-              </div>
-            </div>
-            <span class="fc-hint" id="fc-parts-hint"></span>
-          </div>
-          <div class="fc-field">
-            <label class="fc-label" for="fc-annee">Année de déclaration</label>
-            <select class="fc-select" id="fc-annee">
-              <option value="2025">2025 (déclarée en 2026)</option>
-              <option value="2026">2026 (déclarée en 2027)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="fiscal-card" style="margin-top: 20px;">
-        <h3>Éléments à déclarer</h3>
-        <div class="note" id="fiscal-decla-note"></div>
-        <div class="fiscal-grid" id="fiscal-grid-declaration"></div>
-      </div>
-
-      <div class="fiscal-card" style="margin-top: 20px;">
-        <h3>Estimation d'impôt</h3>
-        <div class="note" id="fiscal-tax-note"></div>
-        <div class="fiscal-grid" id="fiscal-grid-tax" style="margin-top: 24px;"></div>
-        <div id="tax-breakdown" style="margin-top: 24px;"></div>
-      </div>
-
-      <div class="fiscal-card" style="margin-top: 20px;">
-        <h3>Comparaison des 3 scénarios</h3>
-        <div class="note">Position du portage : la quote-part encaissée à partir du début d'un exercice comptable étranger relève de cet exercice et ne se déclare qu'à la clôture côté France. Position défendable mais à valider par un fiscaliste indépendant.</div>
-        <div class="scenario-cards" id="scenario-cards"></div>
-      </div>
-    </div>
-
-    <!-- FORECAST PLURIANNUEL -->
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">Forecast 3 ans <span class="year-tag">2025 → 2027</span></div>
-        <div class="section-sub">Bascule auto-entrepreneur prévue le 02/01/2027 — paramètres ajustables ci-dessous</div>
-      </div>
-
-      <div class="fiscal-card">
-        <h3>Vue agrégée par année civile</h3>
-        <div class="note">Le BNC à déclarer et l'IR estimé suivent la règle d'encaissement et le scénario actif sélectionné plus haut. La colonne 2027 est une simulation auto-entrepreneur micro-BNC.</div>
-        <div class="forecast-table-wrapper">
-          <table class="forecast-table">
-            <thead>
-              <tr>
-                <th class="left">Indicateur</th>
-                <th>2025</th>
-                <th>2026</th>
-                <th>2027 (AE)</th>
-              </tr>
-            </thead>
-            <tbody id="forecast-tbody"></tbody>
-          </table>
-        </div>
-        <div class="forecast-notes" id="forecast-notes"></div>
-      </div>
-
-      <div class="fiscal-card" style="margin-top: 20px;">
-        <h3>Paramètres simulation auto-entrepreneur 2027</h3>
-        <div class="note">Régime micro-BNC : URSSAF 22,2 % du CA · CFE forfaitaire 500 € · choix entre versement libératoire (2,2 % du CA) ou barème progressif après abattement 34 %.</div>
-        <div class="ae-config-grid">
-          <div class="fc-field">
-            <span class="fc-label">TJM 2027</span>
-            <div class="days-input-wrap">
-              <input type="number" class="days-input fc-input" id="ae-tjm" min="0" max="2000" step="10" value="610" />
-            </div>
-          </div>
-          <div class="fc-field">
-            <span class="fc-label">Jours facturés / an</span>
-            <div class="days-input-wrap">
-              <input type="number" class="days-input fc-input" id="ae-jours" min="0" max="260" step="1" value="218" />
-            </div>
-          </div>
-          <div class="fc-field">
-            <label class="fc-label" for="ae-option">Option fiscale</label>
-            <select class="fc-select" id="ae-option">
-              <option value="vl">Versement libératoire 2,2 %</option>
-              <option value="progressif">Barème progressif (abat. 34 %)</option>
-            </select>
-          </div>
-        </div>
-        <div class="fiscal-grid" id="ae-grid" style="margin-top: 24px;"></div>
-      </div>
-    </div>
-
-    <!-- Risk gauge (préservée) -->
-    <div class="section">
-      <div class="chart-card">
-        <div class="chart-title">Jauge de risque fiscal</div>
-        <div class="chart-sub" id="risk-gauge-sub">Évaluation globale du risque de redressement compte tenu de la structure du montage et du scénario retenu.</div>
-        <div class="risk-gauge">
-          <div class="bar" style="width: 100%"></div>
-          <div class="marker" id="risk-marker" style="left: 55%"></div>
-          <div class="label l">SÉCURISÉ</div>
-          <div class="label c" style="color: rgba(0,0,0,0.6)">MODÉRÉ</div>
-          <div class="label r">CRITIQUE</div>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;" id="risk-grid"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- TAB DETAIL -->
-  <div class="tab-content active" id="tab-detail">
+  <!-- DÉTAIL MENSUEL -->
+  <div id="tab-detail">
 
     <div class="section">
       <div class="section-header">
@@ -441,29 +262,6 @@
   </svg>
 </button>
 
-<!-- CHECKLIST FISCALE MODAL -->
-<div class="audit-modal" id="checklist-modal" style="display:none;">
-  <div class="audit-modal-backdrop" onclick="closeChecklist()"></div>
-  <div class="audit-modal-content">
-    <div class="audit-header">
-      <div>
-        <h2>Checklist déclaration fiscale</h2>
-        <div class="audit-sub" id="checklist-sub">Actions à mener avant la deadline</div>
-      </div>
-      <button class="audit-close" onclick="closeChecklist()">×</button>
-    </div>
-    <div class="audit-summary" id="checklist-summary"></div>
-    <div class="audit-list" id="checklist-list"></div>
-    <div class="audit-footer">
-      <div class="audit-legend">
-        <span class="al-item"><span class="dot" style="background: var(--ok)"></span>Fait</span>
-        <span class="al-item"><span class="dot" style="background: var(--warn)"></span>À faire</span>
-        <span class="al-item"><span class="dot" style="background: var(--info)"></span>Optionnel</span>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Confirm modal (remplace confirm() natif bloqué en iframe) -->
 <div class="confirm-modal" id="confirm-modal">
   <div class="confirm-backdrop"></div>
@@ -486,7 +284,6 @@
 
 <script src="data.js"></script>
 <script src="render-balance.js"></script>
-<script src="render-fiscal.js"></script>
 <script src="render-months.js"></script>
 <script src="render-projection.js"></script>
 <script src="render.js"></script>
