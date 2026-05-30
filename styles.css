@@ -2294,7 +2294,9 @@
       background: var(--ios-bar);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       backdrop-filter: blur(20px) saturate(180%);
-      transform: translateY(calc(-100% - 24px));
+      /* Hors écran complet : doit dépasser le décalage `top` (safe-area) sinon
+         le bas du toast reste visible sous la barre de statut. */
+      transform: translateY(calc(-100% - env(safe-area-inset-top) - 24px));
       box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     }
     .toast.visible { transform: translateY(0); }
