@@ -1607,6 +1607,8 @@
   .import-btn.cloud.connected:hover { border-color: var(--ok); color: var(--ok); }
   .import-btn.cloud.mfa { border-color: rgba(245, 185, 66, 0.5); }
   .import-btn.cloud.mfa:hover { border-color: var(--warn); color: var(--warn); }
+  .import-btn.cloud.locked { border-color: rgba(245, 185, 66, 0.5); }
+  .import-btn.cloud.locked:hover { border-color: var(--warn); color: var(--warn); }
   .import-btn.busy { opacity: 0.6; pointer-events: none; }
 
   .auth-modal {

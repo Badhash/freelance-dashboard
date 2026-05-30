@@ -1,36 +1,35 @@
 -- ============================================================================
--- supabase_setup.sql
+-- supabase_setup.sql  —  SCHÉMA CHIFFRÉ (E2E)
 -- Dashboard freelance — schéma BDD + sécurité (RLS, MFA/aal2, grants opt-in)
 -- ----------------------------------------------------------------------------
 -- À COLLER dans Supabase → SQL Editor → New query → Run.
 -- Idempotent : ré-exécutable sans danger (CREATE IF NOT EXISTS / DROP POLICY IF EXISTS).
 --
+-- Schéma de référence (installation neuve, BDD vide).
+--
 -- Mono-utilisateur. Données financières sensibles. Page front publique :
--- la seule barrière est le login + MFA, doublée ici par le RLS côté BDD.
+-- la barrière est login + MFA + RLS, ET le CHIFFREMENT CÔTÉ NAVIGATEUR.
 --
 -- ----------------------------------------------------------------------------
--- MAPPING 1:1  —  ligne du dataset (en mémoire, produite par parseCSV) → colonne
+-- CHIFFREMENT END-TO-END (E2E)
 -- ----------------------------------------------------------------------------
---   row.date         (DD/MM/YYYY)  ->  transactions.date_emission   text
---   row.mois         (MM-YYYY)     ->  transactions.mois            text
---   row.reference                  ->  transactions.reference       text
---   row.description                ->  transactions.description     text
---   row.nature                     ->  transactions.nature          text   (déclenche l'agrégation)
---   row.montant      (number)      ->  transactions.montant         numeric (recoercé en Number à la lecture)
---   row.statut                     ->  transactions.statut          text   ('Payé' = encaissé)
---   row.datePaiement (DD/MM/YYYY)  ->  transactions.date_paiement   text
+--   Les 8 champs métier d'une ligne (date, mois, reference, description, nature,
+--   montant, statut, datePaiement) sont sérialisés en JSON puis CHIFFRÉS
+--   (AES-GCM 256, clé dérivée du mot de passe via PBKDF2) DANS LE NAVIGATEUR,
+--   et stockés dans une seule colonne `transactions.payload` (text, base64).
+--   Postgres ne voit que du ciphertext illisible. Aucune colonne métier en clair
+--   n'est nécessaire : l'app lit TOUT le dataset et trie/agrège côté client.
 --
---   En-têtes CSV reconnus (parseCSV, fuzzy/casse-insensible) : MOIS, RÉFÉRENCE,
---   DESCRIPTION, NATURE, MONTANT HT, ENCAISSÉ/STATUT, DATE PAIEMENT, DATE.
---   Les dates restent du TEXTE DD/MM/YYYY (aucune conversion → round-trip exact,
---   les 3 chiffres de référence du dashboard sont préservés au centime près).
+--   La clé n'est JAMAIS stockée côté serveur. Seul le SEL (non secret) est stocké,
+--   en clair, dans app_settings (clé `crypto_salt`). Un vérificateur de mot de
+--   passe (constante chiffrée) est stocké dans `crypto_check`.
 --
--- Réglages (table app_settings, clé/valeur JSONB) ← clés localStorage :
---   fiscal_config   <- dashboard_fiscal_config_v1
---   checklist       <- dashboard_fiscal_checklist_v1
---   ae_config       <- dashboard_ae_config_v1
---   proj_overrides  <- dashboard_proj_overrides_v1
---   client_rules    <- dashboard_client_rules_v1
+-- Réglages (table app_settings, clé/valeur JSONB) :
+--   value = { "enc": "<base64>" }  (CHIFFRÉ) pour les 5 réglages synchronisés :
+--     fiscal_config, checklist, ae_config, proj_overrides, client_rules
+--   value EN CLAIR (non secret) pour les 2 clés méta de chiffrement :
+--     crypto_salt  = { "salt": "<base64 16o>", "iterations": 600000, "v": 1 }
+--     crypto_check = { "enc": "<chiffré d'une constante connue>" }
 --   (Le thème dashboard_theme_v1 reste LOCAL à l'appareil, non synchronisé.)
 -- ============================================================================
 
@@ -41,19 +40,14 @@ create extension if not exists pgcrypto;
 -- 1) TABLES
 -- ============================================================================
 
+-- transactions : UNIQUEMENT des colonnes techniques + le payload chiffré.
+-- Aucune donnée financière en clair.
 create table if not exists public.transactions (
-  id            uuid        primary key default gen_random_uuid(),
-  user_id       uuid        not null default auth.uid()
-                            references auth.users (id) on delete cascade,
-  date_emission text        not null default '',
-  mois          text        not null default '',
-  reference     text        not null default '',
-  description   text        not null default '',
-  nature        text        not null default '',
-  montant       numeric     not null default 0,
-  statut        text        not null default '',
-  date_paiement text        not null default '',
-  created_at    timestamptz not null default now()
+  id         uuid        primary key default gen_random_uuid(),
+  user_id    uuid        not null default auth.uid()
+                         references auth.users (id) on delete cascade,
+  payload    text        not null default '',   -- JSON des 8 champs, chiffré AES-GCM (base64)
+  created_at timestamptz not null default now()
 );
 create index if not exists transactions_user_id_idx on public.transactions (user_id);
 
@@ -61,7 +55,7 @@ create table if not exists public.app_settings (
   user_id    uuid        not null default auth.uid()
                          references auth.users (id) on delete cascade,
   key        text        not null,
-  value      jsonb       not null,
+  value      jsonb       not null,   -- { enc } chiffré (réglages) OU clair (crypto_salt/crypto_check)
   updated_at timestamptz not null default now(),
   primary key (user_id, key)
 );
@@ -142,7 +136,7 @@ create policy app_settings_delete on public.app_settings
 -- 5) POLICY RESTRICTIVE — MFA OBLIGATOIRE (niveau d'assurance aal2)
 --    Combinée en ET avec les policies « propriétaire » ci-dessus :
 --    sans 2e facteur validé (aal != aal2), l'API ne renvoie/accepte RIEN,
---    même si le front était contourné.
+--    même si le front était contourné. (Indépendante des colonnes lues.)
 -- ============================================================================
 drop policy if exists transactions_require_mfa on public.transactions;
 create policy transactions_require_mfa on public.transactions
@@ -161,7 +155,7 @@ create policy app_settings_require_mfa on public.app_settings
 --    security invoker => s'exécute avec le rôle + le RLS de l'appelant
 --    (donc soumise aux policies propriétaire ET aal2 ci-dessus).
 --    Tout en une transaction : delete de mes lignes puis insert du snapshot.
---    p_rows = tableau JSON de lignes au format appRowToDb (cf. mapping en tête).
+--    p_rows = tableau JSON de lignes { "payload": "<ciphertext base64>" }.
 -- ============================================================================
 create or replace function public.replace_transactions(p_rows jsonb)
 returns void
@@ -173,18 +167,10 @@ begin
   delete from public.transactions
    where user_id = (select auth.uid());
 
-  insert into public.transactions
-    (user_id, date_emission, mois, reference, description, nature, montant, statut, date_paiement)
+  insert into public.transactions (user_id, payload)
   select
     (select auth.uid()),
-    coalesce(r ->> 'date_emission', ''),
-    coalesce(r ->> 'mois', ''),
-    coalesce(r ->> 'reference', ''),
-    coalesce(r ->> 'description', ''),
-    coalesce(r ->> 'nature', ''),
-    coalesce((r ->> 'montant')::numeric, 0),
-    coalesce(r ->> 'statut', ''),
-    coalesce(r ->> 'date_paiement', '')
+    coalesce(r ->> 'payload', '')
   from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb)) as r;
 end;
 $$;
@@ -204,10 +190,8 @@ grant  execute on function public.replace_transactions(jsonb) to authenticated;
 --    select schemaname, tablename, policyname, permissive, cmd
 --      from pg_policies where tablename in ('transactions','app_settings');
 --
--- c) Test « API déconnectée » (rôle anon) : doit renvoyer 0 ligne / refus.
---    set role anon;
---      select * from public.transactions;   -- doit échouer ou ne rien renvoyer
---    reset role;
+-- c) Données bien ILLISIBLES : Table Editor → transactions → colonne `payload`
+--    doit afficher du base64 incompréhensible (pas de montant/description lisible).
 --
 -- d) Erreur 42501 « permission denied » au save/load côté app :
 --    => un GRANT manque. Ré-exécuter la section 3 (GRANTS) ci-dessus.

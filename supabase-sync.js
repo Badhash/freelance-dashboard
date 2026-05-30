@@ -15,9 +15,14 @@
 // Dépendances globales (script scope partagé) :
 //   - window.supabase           (SDK chargé via CDN)
 //   - window.SUPABASE_CONFIG     (supabase-config.js)
+//   - window.SupabaseCrypto      (supabase-crypto.js — chiffrement E2E, chargé AVANT)
 //   - DATASET / CLIENT_RULES     (let de data.js, réassignables ici)
 //   - saveDataset, rowKey, parseAmount, loadFiscalConfig, loadAEConfig  (data.js)
 //   - render, showConfirm, showToast, escapeHtml                        (render.js)
+//
+// CHIFFREMENT : les transactions et réglages partent CHIFFRÉS (AES-GCM, clé
+// dérivée du mot de passe) et sont déchiffrés au chargement. La frontière de
+// chiffrement est ICI (insert/select) ; le localStorage reste EN CLAIR.
 // ============================================================
 
 (function () {
@@ -26,15 +31,21 @@
   // --- Réglages synchronisés (clés app_settings ↔ clés localStorage) -------
   // Le thème (dashboard_theme_v1) reste volontairement LOCAL à l'appareil.
   const SETTINGS_KEYS = [
-    { key: 'fiscal_config',  ls: 'dashboard_fiscal_config_v1',    fallback: () => safeLoad(loadFiscalConfig, {}) },
+    // typeof-guard : loadFiscalConfig/loadAEConfig peuvent être ABSENTS (feature
+    // fiscale retirée pour reconstruction). On ne référence donc l'identifiant
+    // que s'il existe → pas de ReferenceError, et la synchro reprend telle quelle
+    // dès que la feature est reconstruite.
+    { key: 'fiscal_config',  ls: 'dashboard_fiscal_config_v1',    fallback: () => (typeof loadFiscalConfig === 'function' ? safeLoad(loadFiscalConfig, {}) : {}) },
     { key: 'checklist',      ls: 'dashboard_fiscal_checklist_v1', fallback: () => ({}) },
-    { key: 'ae_config',      ls: 'dashboard_ae_config_v1',        fallback: () => safeLoad(loadAEConfig, {}) },
+    { key: 'ae_config',      ls: 'dashboard_ae_config_v1',        fallback: () => (typeof loadAEConfig === 'function' ? safeLoad(loadAEConfig, {}) : {}) },
     { key: 'proj_overrides', ls: 'dashboard_proj_overrides_v1',   fallback: () => ({}) },
     { key: 'client_rules',   ls: 'dashboard_client_rules_v1',     fallback: () => [] }
   ];
 
-  // Colonnes lues sur la table transactions (ordre = mapping 1:1)
-  const TX_COLS = 'date_emission,mois,reference,description,nature,montant,statut,date_paiement';
+  // Clés méta de chiffrement dans app_settings (EN CLAIR, exclues de la synchro)
+  const CRYPTO_SALT_KEY = 'crypto_salt';   // { salt: base64, iterations, v }
+  const CRYPTO_CHECK_KEY = 'crypto_check'; // { enc } — vérificateur de mot de passe
+  const PBKDF2_ITERS = 600000;
 
   // --- État interne du module ----------------------------------------------
   let client = null;
@@ -42,6 +53,10 @@
   let aal2 = false;              // true une fois le 2e facteur validé
   let enrollMode = 'primary';    // 'primary' | 'backup'
   let pendingEnroll = null;      // { factorId } pendant un enrôlement
+  let pendingPassword = null;    // mot de passe en attente (login → dérivation clé post-aal2)
+
+  // Clé de chiffrement prête ? (vit en mémoire dans SupabaseCrypto, jamais persistée)
+  function hasCryptoKey() { return !!(window.SupabaseCrypto && window.SupabaseCrypto.hasKey()); }
 
   // ============================================================
   // CONFIG / GARDES
@@ -123,7 +138,7 @@
   }
 
   function showView(name) {
-    ['login', 'enroll', 'challenge', 'account'].forEach(v => {
+    ['login', 'enroll', 'challenge', 'account', 'unlock'].forEach(v => {
       show($('auth-view-' + v), v === name);
     });
   }
@@ -137,16 +152,29 @@
     const m = $('auth-modal');
     if (m) m.classList.remove('visible');
   }
+  // Fermeture À L'INITIATIVE de l'utilisateur (X / backdrop / Échap) : on purge
+  // aussi le mot de passe en attente pour ne pas le laisser résider en mémoire
+  // si la MFA est abandonnée (afterAuthenticated, lui, appelle closeModal()
+  // directement et conserve donc pendingPassword pour dériver la clé).
+  function dismissModal() {
+    pendingPassword = null;
+    closeModal();
+  }
 
   function updateAuthButton() {
     const btn = $('auth-btn');
     const label = $('auth-btn-label');
     if (!btn) return;
     show(btn, isConfigured());
-    btn.classList.remove('connected', 'mfa');
+    btn.classList.remove('connected', 'mfa', 'locked');
     if (!currentUser) {
       if (label) label.textContent = 'Se connecter';
       btn.title = 'Connecte-toi pour synchroniser tes données (cloud)';
+    } else if (aal2 && !hasCryptoKey()) {
+      // Session restaurée (reload) sans clé de chiffrement en mémoire → déverrouillage
+      btn.classList.add('locked');
+      if (label) label.textContent = 'Déverrouiller';
+      btn.title = 'Saisis ton mot de passe pour déchiffrer tes données cloud';
     } else if (aal2) {
       btn.classList.add('connected');
       if (label) label.textContent = 'Cloud';
@@ -157,7 +185,8 @@
       btn.title = '2e facteur à valider pour accéder au cloud';
     }
   }
-  function showSaveButton(on) { show($('save-btn'), on && aal2); }
+  // Sauvegarde possible seulement avec aal2 ET clé de chiffrement prête.
+  function showSaveButton(on) { show($('save-btn'), on && aal2 && hasCryptoKey()); }
 
   // ============================================================
   // INITIALISATION
@@ -190,12 +219,10 @@
         await refreshAAL();
         updateAuthButton();
         showSaveButton(aal2);
-        if (aal2) {
-          // Login + MFA déjà acquis → chargement auto silencieux
-          await autoLoadFromCloud({ silent: true });
-        }
-        // Si aal1 (facteur présent mais non rejoué), on n'impose pas de modale
-        // au boot : le bouton signale "MFA requise", l'utilisateur clique quand il veut.
+        // PAS de chargement auto au boot : la clé de chiffrement n'est jamais
+        // persistée, donc indisponible après un reload. updateAuthButton affiche
+        // alors « Déverrouiller » (si aal2) ou « MFA requise » (si aal1) ;
+        // l'utilisateur clique quand il veut pour saisir son mot de passe.
       }
     } catch (e) {
       console.warn('getSession', e);
@@ -223,12 +250,13 @@
 
     onClick('auth-btn', () => {
       if (!currentUser) { openModal('login'); setTimeout(() => { const f = $('auth-email'); if (f) f.focus(); }, 50); }
+      else if (aal2 && !hasCryptoKey()) { openModal('unlock'); setTimeout(() => { const f = $('auth-unlock-password'); if (f) { f.value = ''; f.focus(); } }, 50); }
       else if (aal2) { showAccount(); }
       else { openModal(); proceedMfa(); }
     });
     onClick('save-btn', doSave);
-    onClick('auth-close', closeModal);
-    onClick('auth-backdrop', closeModal);
+    onClick('auth-close', dismissModal);
+    onClick('auth-backdrop', dismissModal);
 
     onClick('auth-login-submit', doLogin);
     onEnter('auth-email', doLogin);
@@ -240,11 +268,14 @@
     onClick('auth-challenge-submit', doChallengeVerify);
     onEnter('auth-challenge-code', doChallengeVerify);
 
+    onClick('auth-unlock-submit', doUnlock);
+    onEnter('auth-unlock-password', doUnlock);
+
     onClick('auth-add-backup', startBackupEnroll);
     onClick('auth-logout', doLogout);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') dismissModal();
     });
   }
 
@@ -262,6 +293,9 @@
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) { setError('auth-login-error', traduireErreur(error)); return; }
       currentUser = data.user;
+      // Stash du mot de passe : le sel n'est lisible qu'après aal2 (MFA), donc
+      // la clé est dérivée dans afterAuthenticated() puis pendingPassword effacé.
+      pendingPassword = password;
       if ($('auth-password')) $('auth-password').value = '';
       await proceedMfa();
     } catch (e) {
@@ -279,6 +313,7 @@
       if (error) throw error;
       levels = data;
     } catch (e) {
+      pendingPassword = null;   // MFA en échec → on ne garde pas le mot de passe en clair
       setError('auth-login-error', traduireErreur(e));
       return;
     }
@@ -381,6 +416,7 @@
         await afterAuthenticated();
       }
     } catch (e) {
+      pendingPassword = null;
       setError('auth-enroll-error', traduireErreur(e));
     } finally {
       setBusy('auth-enroll-submit', false);
@@ -408,6 +444,7 @@
       aal2 = true;
       await afterAuthenticated();
     } catch (e) {
+      pendingPassword = null;
       setError('auth-challenge-error', traduireErreur(e));
     } finally {
       setBusy('auth-challenge-submit', false);
@@ -418,10 +455,141 @@
   // APRÈS AUTH RÉUSSIE (login + MFA = aal2)
   // ============================================================
   async function afterAuthenticated() {
+    closeModal();
+    let keyOk = false;
+    let needUnlock = false;
+    if (pendingPassword) {
+      try {
+        await ensureCryptoKey(pendingPassword);
+        keyOk = hasCryptoKey();
+      } catch (e) {
+        if (e && e.cryptoVerifier) {
+          // Auth réussie mais le vérificateur échoue → le mot de passe a changé
+          // depuis le dernier chiffrement (cf. footgun rotation de mot de passe).
+          showToast({ title: 'Re-chiffrement nécessaire',
+            body: 'Ton mot de passe a changé depuis le dernier chiffrement du cloud. Réimporte ton CSV puis clique « Sauvegarder » pour re-chiffrer.', ok: false });
+        } else {
+          showToast({ title: 'Clé de chiffrement', body: traduireErreur(e), ok: false });
+        }
+      } finally {
+        pendingPassword = null;
+      }
+    } else {
+      // aal2 atteint sans mot de passe en main (ex. MFA rejouée sur session restaurée)
+      needUnlock = true;
+    }
     updateAuthButton();
     showSaveButton(true);
-    closeModal();
-    await autoLoadFromCloud({ silent: false });
+    if (keyOk) {
+      await autoLoadFromCloud({ silent: false });
+    } else if (needUnlock) {
+      openModal('unlock');
+      setTimeout(() => { const f = $('auth-unlock-password'); if (f) { f.value = ''; f.focus(); } }, 50);
+    }
+  }
+
+  // ============================================================
+  // CLÉ DE CHIFFREMENT — dérivation + vérification (PBKDF2/AES-GCM)
+  // ============================================================
+  // Lit (ou crée au 1er setup) le sel + le vérificateur dans app_settings,
+  // dérive la clé du mot de passe, et la pose en mémoire (SupabaseCrypto).
+  // Ne pose JAMAIS la clé avant que le sel soit persisté (sinon ciphertext orphelin).
+  async function ensureCryptoKey(pw) {
+    const SC = window.SupabaseCrypto;
+    if (!SC) throw new Error('Module de chiffrement absent.');
+    if (!pw) throw new Error('Mot de passe requis pour dériver la clé.');
+
+    const { data, error } = await client.from('app_settings')
+      .select('key,value').in('key', [CRYPTO_SALT_KEY, CRYPTO_CHECK_KEY]);
+    if (error) throw error;
+    const rows = data || [];
+    const saltRow = rows.find(r => r.key === CRYPTO_SALT_KEY);
+    const checkRow = rows.find(r => r.key === CRYPTO_CHECK_KEY);
+    const uid = currentUser ? currentUser.id : undefined;
+
+    // --- 1er setup : aucun sel → on génère sel + vérificateur ---
+    if (!saltRow || !saltRow.value || !saltRow.value.salt) {
+      const salt = SC.randomBytes(16);
+      const iters = PBKDF2_ITERS;
+      const key = await SC.deriveKey(pw, salt, iters);
+      const checkEnc = await SC.makeVerifier(key);
+      const { error: e } = await client.from('app_settings').upsert([
+        { user_id: uid, key: CRYPTO_SALT_KEY,  value: { salt: SC.b64encode(salt), iterations: iters, v: 1 } },
+        { user_id: uid, key: CRYPTO_CHECK_KEY, value: { enc: checkEnc } }
+      ], { onConflict: 'user_id,key' });
+      if (e) throw e;            // sel non persisté → on NE pose PAS la clé
+      SC.setKey(key);
+      return { firstSetup: true };
+    }
+
+    // --- Sel existant : dériver la clé ---
+    const saltBytes = SC.b64decode(saltRow.value.salt);
+    const iters = saltRow.value.iterations || PBKDF2_ITERS;
+    const key = await SC.deriveKey(pw, saltBytes, iters);
+
+    // Vérificateur manquant (état partiel, ex. mutation manuelle de la table).
+    // AVANT de (re)stamper un vérificateur, on VALIDE la clé contre une éventuelle
+    // donnée déjà chiffrée : sinon un mauvais mot de passe écraserait le
+    // vérificateur et masquerait DÉFINITIVEMENT le vrai mot de passe.
+    if (!checkRow || !checkRow.value || !checkRow.value.enc) {
+      const { data: sample, error: sampleErr } = await client.from('transactions').select('payload').limit(1);
+      if (sampleErr) throw sampleErr;   // une sonde en échec NE DOIT PAS être prise pour « aucune donnée » → sinon on stamperait un vérificateur sur une clé non validée
+      if (sample && sample.length && sample[0].payload) {
+        try {
+          await SC.decrypt(key, sample[0].payload);   // throw si la clé ne correspond pas aux données existantes
+        } catch (e) {
+          SC.clearKey();
+          const err = new Error('verifier-mismatch');
+          err.cryptoVerifier = true;
+          throw err;
+        }
+      }
+      const checkEnc = await SC.makeVerifier(key);
+      const { error: e } = await client.from('app_settings').upsert(
+        [{ user_id: uid, key: CRYPTO_CHECK_KEY, value: { enc: checkEnc } }],
+        { onConflict: 'user_id,key' });
+      if (e) throw e;
+      SC.setKey(key);
+      return { firstSetup: false };
+    }
+
+    // Vérification : la clé déchiffre-t-elle le vérificateur ?
+    const ok = await SC.checkVerifier(key, checkRow.value.enc);
+    if (!ok) {
+      SC.clearKey();
+      const err = new Error('verifier-mismatch');
+      err.cryptoVerifier = true;
+      throw err;
+    }
+    SC.setKey(key);
+    return { firstSetup: false };
+  }
+
+  // ============================================================
+  // DÉVERROUILLAGE (reload : re-dérive la clé sans re-authentifier)
+  // ============================================================
+  async function doUnlock() {
+    const pw = $('auth-unlock-password') ? $('auth-unlock-password').value : '';
+    setError('auth-unlock-error', '');
+    if (!pw) { setError('auth-unlock-error', 'Mot de passe requis.'); return; }
+
+    setBusy('auth-unlock-submit', true);
+    try {
+      await ensureCryptoKey(pw);
+      if ($('auth-unlock-password')) $('auth-unlock-password').value = '';
+      updateAuthButton();
+      showSaveButton(true);
+      closeModal();
+      await autoLoadFromCloud({ silent: false });
+    } catch (e) {
+      if (e && e.cryptoVerifier) {
+        setError('auth-unlock-error', 'Mot de passe incorrect — ou ton mot de passe a changé depuis le dernier chiffrement (réimporte ton CSV puis Sauvegarde).');
+      } else {
+        setError('auth-unlock-error', traduireErreur(e));
+      }
+    } finally {
+      setBusy('auth-unlock-submit', false);
+    }
   }
 
   // ============================================================
@@ -447,15 +615,31 @@
   // ============================================================
   async function autoLoadFromCloud(opts) {
     opts = opts || {};
+    const SC = window.SupabaseCrypto;
+    if (!SC || !SC.hasKey()) return;   // pas de clé → on ne déchiffre rien (dashboard reste local)
     try {
-      const { data: rows, error } = await client.from('transactions').select(TX_COLS);
+      const { data: rows, error } = await client.from('transactions').select('payload');
       if (error) throw error;
 
-      const cloudRows = (rows || []).map(dbRowToApp);
+      // Déchiffrer TOUTES les lignes AVANT toute comparaison/écrasement :
+      // un échec partiel ne doit jamais écraser le local avec un cloud tronqué.
+      let cloudRows;
+      try {
+        cloudRows = [];
+        for (const row of (rows || [])) {
+          cloudRows.push(dbRowToApp(await SC.decryptRow(row.payload)));
+        }
+      } catch (decErr) {
+        console.error('Déchiffrement cloud', decErr);
+        showToast({ title: 'Erreur de déchiffrement', body: 'Impossible de déchiffrer les données cloud (clé incorrecte ?). Tes données locales sont intactes.', ok: false });
+        return;
+      }
+
       const localRows = Array.isArray(DATASET) ? DATASET : [];
 
       if (cloudRows.length === 0) {
         await loadSettingsFromCloud();
+        render();   // les réglages (règles clients, fiscal, projection) peuvent avoir changé → rafraîchir l'UI
         if (localRows.length > 0) {
           showToast({ title: 'Cloud vide', body: 'Aucune donnée dans le cloud. Clique « Sauvegarder » pour l\'initialiser.', ok: true });
         } else if (!opts.silent) {
@@ -493,18 +677,28 @@
   }
 
   async function loadSettingsFromCloud() {
+    const SC = window.SupabaseCrypto;
     try {
       const { data, error } = await client.from('app_settings').select('key,value');
       if (error) { console.warn('app_settings', error); return; }
-      (data || []).forEach(row => {
+      for (const row of (data || [])) {
+        // Clés méta de chiffrement : jamais écrites en localStorage, jamais déchiffrées ici.
+        if (row.key === CRYPTO_SALT_KEY || row.key === CRYPTO_CHECK_KEY) continue;
         const map = SETTINGS_KEYS.find(s => s.key === row.key);
-        if (!map || row.value == null) return;
-        try { localStorage.setItem(map.ls, JSON.stringify(row.value)); } catch (e) {}
+        if (!map || row.value == null) continue;
+        // Valeur chiffrée { enc } → déchiffrer ; tolère une valeur en clair (pré-migration).
+        let plain;
+        try {
+          plain = (SC && row.value && row.value.enc != null)
+            ? await SC.decryptSettingValue(row.value)
+            : row.value;
+        } catch (e) { console.warn('Déchiffrement réglage ' + row.key, e); continue; } // skip-one
+        try { localStorage.setItem(map.ls, JSON.stringify(plain)); } catch (e) {}
         // CLIENT_RULES est mis en cache (let de data.js) → réassignation explicite.
-        if (row.key === 'client_rules' && Array.isArray(row.value)) {
-          try { CLIENT_RULES = row.value; } catch (e) {}
+        if (row.key === 'client_rules' && Array.isArray(plain)) {
+          try { CLIENT_RULES = plain; } catch (e) {}
         }
-      });
+      }
     } catch (e) { console.warn('loadSettings', e); }
   }
 
@@ -517,11 +711,12 @@
   }
 
   async function doSave() {
-    if (!aal2 || !client || !currentUser) return;
+    const SC = window.SupabaseCrypto;
+    if (!aal2 || !client || !currentUser || !SC || !SC.hasKey()) return;
     const count = Array.isArray(DATASET) ? DATASET.length : 0;
     const ok = await showConfirm({
       title: 'Sauvegarder dans le cloud ?',
-      message: 'L\'état actuel du dashboard va REMPLACER le contenu du cloud (instantané miroir) :\n\n'
+      message: 'L\'état actuel du dashboard va être CHIFFRÉ puis REMPLACER le contenu du cloud (instantané miroir) :\n\n'
              + '• ' + count + ' opération' + (count > 1 ? 's' : '') + '\n'
              + '• réglages (fiscal, checklist, projection, règles clients)',
       okLabel: 'Sauvegarder',
@@ -532,22 +727,26 @@
 
     setBusy('save-btn', true);
     try {
-      // 1) Transactions — remplacement atomique côté serveur (delete + insert)
-      const payload = (Array.isArray(DATASET) ? DATASET : []).map(appRowToDb);
+      // 1) Transactions — chiffrées ligne par ligne, remplacement atomique serveur
+      const payload = [];
+      for (const r of (Array.isArray(DATASET) ? DATASET : [])) {
+        payload.push({ payload: await SC.encryptRow(appRowToDb(r)) });
+      }
       const { error: e1 } = await client.rpc('replace_transactions', { p_rows: payload });
       if (e1) throw e1;
 
-      // 2) Réglages — upsert clé/valeur (jamais null grâce aux fallbacks)
+      // 2) Réglages — valeur CHIFFRÉE { enc } (jamais null grâce aux fallbacks)
       const uid = currentUser ? currentUser.id : undefined;
-      const settingsRows = SETTINGS_KEYS.map(s => {
+      const settingsRows = [];
+      for (const s of SETTINGS_KEYS) {
         let value = readLocalJSON(s.ls);
         if (value == null) value = s.fallback();
-        return { user_id: uid, key: s.key, value };
-      });
+        settingsRows.push({ user_id: uid, key: s.key, value: await SC.encryptSettingValue(value) });
+      }
       const { error: e2 } = await client.from('app_settings').upsert(settingsRows, { onConflict: 'user_id,key' });
       if (e2) throw e2;
 
-      showToast({ title: 'Sauvegardé', body: count + ' opérations + réglages enregistrés dans le cloud.', ok: true });
+      showToast({ title: 'Sauvegardé (chiffré)', body: count + ' opérations + réglages chiffrés enregistrés dans le cloud.', ok: true });
     } catch (e) {
       console.error(e);
       showToast({ title: 'Échec de la sauvegarde', body: traduireErreur(e) + ' — tes données locales sont intactes.', ok: false });
@@ -564,6 +763,8 @@
     currentUser = null;
     aal2 = false;
     pendingEnroll = null;
+    pendingPassword = null;
+    if (window.SupabaseCrypto) window.SupabaseCrypto.clearKey();  // la clé ne survit pas à la déconnexion
     showSaveButton(false);
     updateAuthButton();
     closeModal();
@@ -592,6 +793,9 @@
     if (msg.includes('row-level security') || msg.includes('rls')) {
       return 'Accès refusé par la sécurité (RLS/MFA). Vérifie que le 2e facteur est validé.';
     }
+    if (error.name === 'OperationError' || msg.includes('operation failed') || msg.includes('operation-specific')) {
+      return 'Clé de chiffrement incorrecte ou données corrompues.';
+    }
     return error.message || 'Erreur inattendue.';
   }
 
@@ -604,6 +808,7 @@
     logout: doLogout,
     isConfigured,
     isAuthenticated: () => aal2,
+    hasCryptoKey,
     // utilitaires testables (mapping pur)
     _appRowToDb: appRowToDb,
     _dbRowToApp: dbRowToApp

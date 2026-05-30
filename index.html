@@ -339,6 +339,16 @@
       <button class="auth-submit secondary" id="auth-add-backup" type="button">Ajouter un authenticator de secours</button>
       <button class="auth-submit danger" id="auth-logout" type="button">Se déconnecter</button>
     </div>
+
+    <!-- VUE 5 — DÉVERROUILLAGE (re-dérive la clé de chiffrement après un reload) -->
+    <div class="auth-view" id="auth-view-unlock" style="display:none;">
+      <h3>Déverrouiller le cloud</h3>
+      <div class="auth-sub">Saisis ton mot de passe pour déchiffrer tes données cloud. La clé n'est jamais stockée : elle est redérivée à chaque session. Le dashboard reste utilisable sans déverrouillage.</div>
+      <label class="auth-label" for="auth-unlock-password">Mot de passe</label>
+      <input type="password" id="auth-unlock-password" class="auth-input" autocomplete="current-password" placeholder="••••••••" />
+      <div class="auth-error" id="auth-unlock-error"></div>
+      <button class="auth-submit" id="auth-unlock-submit" type="button">Déverrouiller</button>
+    </div>
   </div>
 </div>
 
@@ -350,6 +360,7 @@
 <script src="render-months.js"></script>
 <script src="render-projection.js"></script>
 <script src="render.js"></script>
+<script src="supabase-crypto.js"></script>
 <script src="supabase-sync.js"></script>
 <script src="main.js"></script>
 </body>
