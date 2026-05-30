@@ -35,6 +35,12 @@
   <div class="import-zone">
     <div class="last-import" id="last-import-info"></div>
     <input type="file" id="csv-file-input" accept=".csv" />
+    <button class="import-btn cloud" id="auth-btn" type="button" style="display:none;">
+      <span class="icon">☁</span> <span id="auth-btn-label">Se connecter</span>
+    </button>
+    <button class="import-btn cloud" id="save-btn" type="button" style="display:none;">
+      <span class="icon">💾</span> Sauvegarder
+    </button>
     <button class="import-btn danger" id="reset-btn" style="display:none;">
       <span class="icon">⌫</span> Réinitialiser
     </button>
@@ -484,12 +490,67 @@
   <div class="t-stats" id="toast-stats"></div>
 </div>
 
+<!-- AUTH / MFA MODAL (couche Supabase — affichée seulement si configurée) -->
+<div class="auth-modal" id="auth-modal">
+  <div class="auth-backdrop" id="auth-backdrop"></div>
+  <div class="auth-box">
+    <button class="auth-close" id="auth-close" type="button" aria-label="Fermer">×</button>
+
+    <!-- VUE 1 — LOGIN -->
+    <div class="auth-view" id="auth-view-login">
+      <h3>Connexion sécurisée</h3>
+      <div class="auth-sub">Accès à tes données cloud (protégées par RLS + MFA). Le dashboard reste utilisable sans connexion.</div>
+      <label class="auth-label" for="auth-email">Email</label>
+      <input type="email" id="auth-email" class="auth-input" autocomplete="username" placeholder="ton@email.fr" />
+      <label class="auth-label" for="auth-password">Mot de passe</label>
+      <input type="password" id="auth-password" class="auth-input" autocomplete="current-password" placeholder="••••••••" />
+      <div class="auth-error" id="auth-login-error"></div>
+      <button class="auth-submit" id="auth-login-submit" type="button">Se connecter</button>
+    </div>
+
+    <!-- VUE 2 — ENRÔLEMENT MFA (1er facteur ou facteur de secours) -->
+    <div class="auth-view" id="auth-view-enroll" style="display:none;">
+      <h3>Activer le 2e facteur (MFA)</h3>
+      <div class="auth-sub">Scanne ce QR code avec ton application d'authentification (Google Authenticator, Authy, 1Password…), puis saisis le code à 6 chiffres.</div>
+      <div class="auth-qr" id="auth-qr"></div>
+      <div class="auth-secret">Clé manuelle : <code id="auth-secret"></code></div>
+      <label class="auth-label" for="auth-enroll-code">Code à 6 chiffres</label>
+      <input type="text" inputmode="numeric" maxlength="6" id="auth-enroll-code" class="auth-input" autocomplete="one-time-code" placeholder="000000" />
+      <div class="auth-error" id="auth-enroll-error"></div>
+      <button class="auth-submit" id="auth-enroll-submit" type="button">Vérifier &amp; activer</button>
+    </div>
+
+    <!-- VUE 3 — CHALLENGE MFA (facteur déjà enrôlé) -->
+    <div class="auth-view" id="auth-view-challenge" style="display:none;">
+      <h3>Vérification 2e facteur</h3>
+      <div class="auth-sub">Saisis le code à 6 chiffres affiché par ton application d'authentification.</div>
+      <label class="auth-label" for="auth-challenge-code">Code à 6 chiffres</label>
+      <input type="text" inputmode="numeric" maxlength="6" id="auth-challenge-code" class="auth-input" autocomplete="one-time-code" placeholder="000000" />
+      <div class="auth-error" id="auth-challenge-error"></div>
+      <button class="auth-submit" id="auth-challenge-submit" type="button">Vérifier</button>
+    </div>
+
+    <!-- VUE 4 — COMPTE (connecté) -->
+    <div class="auth-view" id="auth-view-account" style="display:none;">
+      <h3>Connecté au cloud</h3>
+      <div class="auth-sub" id="auth-account-email"></div>
+      <div class="auth-factors" id="auth-factors"></div>
+      <button class="auth-submit secondary" id="auth-add-backup" type="button">Ajouter un authenticator de secours</button>
+      <button class="auth-submit danger" id="auth-logout" type="button">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase (couche optionnelle) : SDK via CDN + config isolée, AVANT data.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="data.js"></script>
 <script src="render-balance.js"></script>
 <script src="render-fiscal.js"></script>
 <script src="render-months.js"></script>
 <script src="render-projection.js"></script>
 <script src="render.js"></script>
+<script src="supabase-sync.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
