@@ -139,37 +139,6 @@
     margin-top: 4px;
   }
 
-  /* TABS */
-  .tabs {
-    display: inline-flex;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px;
-    margin-bottom: 32px;
-  }
-  .tab-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    padding: 10px 22px;
-    font-family: 'Inter Tight', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.2s;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active {
-    background: var(--accent);
-    color: var(--bg);
-  }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
   /* SECTION */
   .section {
     margin-bottom: 56px;
@@ -218,494 +187,6 @@
     color: var(--text-dim);
     margin-bottom: 28px;
     line-height: 1.5;
-  }
-
-  /* FISCAL GAUGE */
-  .fiscal-card {
-    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 32px;
-    position: relative;
-    overflow: hidden;
-  }
-  .fiscal-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 3px;
-    height: 100%;
-    background: var(--accent);
-  }
-  .fiscal-card h3 {
-    font-family: 'Fraunces', serif;
-    font-size: 28px;
-    font-weight: 400;
-    margin-bottom: 10px;
-  }
-  .fiscal-card .note {
-    color: var(--text-dim);
-    font-size: 14px;
-    margin-bottom: 30px;
-    line-height: 1.5;
-  }
-  .fiscal-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-  }
-  .fiscal-row {
-    padding: 18px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-  }
-  .fiscal-row .label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
-  .fiscal-row .big {
-    font-family: 'Fraunces', serif;
-    font-size: 32px;
-    font-weight: 400;
-    margin-bottom: 6px;
-  }
-  .fiscal-row .big.ok { color: var(--ok); }
-  .fiscal-row .big.warn { color: var(--warn); }
-  .fiscal-row .big.danger { color: var(--danger); }
-  .fiscal-row .big.info { color: var(--info); }
-  .fiscal-row .detail {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.5;
-  }
-  .fiscal-row .detail .case-ref {
-    display: inline-block;
-    padding: 1px 6px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    border-radius: 2px;
-    font-weight: 700;
-    margin-right: 4px;
-  }
-
-  /* Tax inputs */
-  .tax-inputs {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-  }
-  .tax-input-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: flex-start;
-  }
-  .tax-input-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-  .tax-parts-input {
-    width: 56px !important;
-  }
-
-  /* Tax breakdown (barème tranches) */
-  .tax-breakdown-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-  .tax-tranches {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .tax-tranche {
-    display: grid;
-    grid-template-columns: 1fr 120px 100px 120px;
-    gap: 16px;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
-    border-bottom: 1px solid var(--border);
-  }
-  .tax-tranche:last-child { border-bottom: none; }
-  .tax-tranche.active { background: var(--accent-soft); }
-  .tax-tranche .tb-range { color: var(--text-dim); }
-  .tax-tranche .tb-rate {
-    text-align: right;
-    color: var(--text);
-    font-weight: 600;
-  }
-  .tax-tranche .tb-base {
-    text-align: right;
-    color: var(--text-muted);
-  }
-  .tax-tranche .tb-tax {
-    text-align: right;
-    color: var(--text);
-    font-weight: 600;
-  }
-  .tax-tranche.active .tb-tax { color: var(--accent); }
-  .tax-tranche.total {
-    background: var(--bg-elev-2);
-    border-top: 2px solid var(--border-strong);
-    font-weight: 700;
-  }
-  .tax-tranche.total .tb-range { color: var(--text); }
-  .tax-tranche.total .tb-tax { color: var(--accent); font-size: 15px; }
-
-  /* RISK GAUGE */
-  .risk-gauge {
-    width: 100%;
-    height: 60px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    position: relative;
-    margin: 20px 0;
-    overflow: hidden;
-  }
-  .risk-gauge .bar {
-    position: absolute;
-    top: 0; left: 0;
-    height: 100%;
-    background: linear-gradient(90deg, var(--ok) 0%, var(--warn) 50%, var(--danger) 100%);
-  }
-  .risk-gauge .marker {
-    position: absolute;
-    top: -4px;
-    width: 2px;
-    height: calc(100% + 8px);
-    background: var(--text);
-  }
-  .risk-gauge .marker::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    width: 10px;
-    height: 10px;
-    background: var(--text);
-    border-radius: 50%;
-  }
-  .risk-gauge .label {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--bg);
-  }
-  .risk-gauge .label.l { left: 12px; }
-  .risk-gauge .label.c { left: 50%; transform: translate(-50%, -50%); }
-  .risk-gauge .label.r { right: 12px; }
-
-  /* DEADLINE PILL (header) */
-  .deadline-pill {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--bg-elev);
-    cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .deadline-pill:hover { transform: translateY(-1px); border-color: var(--text-muted); }
-  .deadline-pill .dp-jours {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .deadline-pill[data-niveau="green"] { border-color: rgba(46,160,67,0.45); }
-  .deadline-pill[data-niveau="green"] .dp-jours { color: var(--ok); }
-  .deadline-pill[data-niveau="amber"] { border-color: rgba(217,151,76,0.55); background: rgba(217,151,76,0.08); }
-  .deadline-pill[data-niveau="amber"] .dp-jours { color: var(--warn); }
-  .deadline-pill[data-niveau="red"] { border-color: rgba(207,86,76,0.6); background: rgba(207,86,76,0.10); }
-  .deadline-pill[data-niveau="red"] .dp-jours { color: var(--danger); }
-
-  /* CONFIG FISCALE */
-  .fiscal-config .fiscal-config-grid {
-    display: grid;
-    grid-template-columns: minmax(260px, 1.4fr) repeat(4, 1fr);
-    gap: 18px;
-    align-items: start;
-  }
-  .fiscal-config .fc-scenarios {
-    grid-row: span 1;
-  }
-  .fc-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .fc-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-  .fc-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.4;
-  }
-  .fc-mini-btn {
-    background: var(--accent-soft);
-    color: var(--accent);
-    border: 1px solid transparent;
-    border-radius: 2px;
-    padding: 1px 6px;
-    font-size: 11px;
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    margin-left: 6px;
-  }
-  .fc-mini-btn:hover { border-color: var(--accent); }
-  .fc-select {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 8px 10px;
-    font-family: inherit;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .fc-select:hover { border-color: var(--text-muted); }
-  .fc-input { width: 80px !important; }
-  .fc-scenario-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .fc-scenario {
-    display: grid;
-    grid-template-columns: 16px 1fr;
-    column-gap: 10px;
-    row-gap: 2px;
-    padding: 10px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .fc-scenario:hover { border-color: var(--text-muted); }
-  .fc-scenario input[type="radio"] { grid-row: span 2; align-self: center; accent-color: var(--accent); }
-  .fc-scenario .fc-sc-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .fc-scenario .fc-sc-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-    grid-column: 2;
-    line-height: 1.4;
-  }
-  .fc-scenario.active {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  /* SCENARIO CARDS */
-  .scenario-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-  }
-  .scenario-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    position: relative;
-  }
-  .scenario-card.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .sc-head { display: flex; justify-content: space-between; align-items: center; }
-  .sc-tag {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-  .sc-pin {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--accent);
-    font-weight: 700;
-    background: var(--accent-soft);
-    padding: 2px 8px;
-    border-radius: 2px;
-  }
-  .sc-title {
-    font-family: 'Fraunces', serif;
-    font-size: 18px;
-    color: var(--text);
-  }
-  .sc-big {
-    font-family: 'Fraunces', serif;
-    font-size: 26px;
-    margin-top: 4px;
-  }
-  .sc-big.ok { color: var(--ok); }
-  .sc-big.warn { color: var(--warn); }
-  .sc-big.danger { color: var(--danger); }
-  .sc-big.info { color: var(--info); }
-  .sc-sub {
-    font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .sc-lines {
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .sc-line {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 12px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .sc-line .v { color: var(--text); font-weight: 600; text-align: right; }
-  .sc-activate {
-    margin-top: auto;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: 2px;
-    padding: 8px 12px;
-    font-family: inherit;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .sc-activate:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* FORECAST TABLE */
-  .forecast-table-wrapper { overflow-x: auto; }
-  .forecast-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-  }
-  .forecast-table th {
-    text-align: right;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-muted);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 700;
-  }
-  .forecast-table th.left { text-align: left; }
-  .forecast-table td {
-    text-align: right;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-  }
-  .forecast-table td.left {
-    text-align: left;
-    color: var(--text-dim);
-  }
-  .forecast-table tbody tr:hover td { background: var(--bg-elev-2); }
-  .forecast-notes {
-    margin-top: 18px;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-  .forecast-notes ul { list-style: none; padding: 0; margin: 0; }
-  .forecast-notes li {
-    padding: 4px 0 4px 14px;
-    position: relative;
-  }
-  .forecast-notes li::before {
-    content: '·';
-    position: absolute;
-    left: 4px;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-
-  /* AE CONFIG */
-  .ae-config-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 18px;
-    margin-bottom: 8px;
-  }
-
-  /* CHECKLIST */
-  .checklist-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .checklist-row:hover { background: var(--bg-elev-2); }
-  .checklist-row input[type="checkbox"] {
-    margin-top: 2px;
-    accent-color: var(--accent);
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-  }
-  .checklist-row .cl-label {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.5;
-  }
-  .checklist-row.done .cl-label {
-    color: var(--text-muted);
-    text-decoration: line-through;
   }
 
   /* MONTH LIST (même que v1) */
@@ -1694,7 +1175,6 @@
   /* Ajustements spécifiques thème clair */
   [data-theme="light"] .chart-card,
   [data-theme="light"] .pending-card,
-  [data-theme="light"] .fiscal-row,
   [data-theme="light"] .proj-summary-card,
   [data-theme="light"] .ledger-col,
   [data-theme="light"] .balance-line {
@@ -1702,12 +1182,8 @@
   }
   [data-theme="light"] .balance-widget,
   [data-theme="light"] .month-list,
-  [data-theme="light"] .fiscal-card,
   [data-theme="light"] .projection-widget {
     box-shadow: var(--shadow-card);
-  }
-  [data-theme="light"] .tab-btn.active {
-    color: #FFFFFF;
   }
   [data-theme="light"] .import-btn .icon,
   [data-theme="light"] #reset-btn { color: var(--accent); }
@@ -2113,14 +1589,6 @@
     .title-block .subtitle { font-size: 13px; }
     .meta { text-align: left; font-size: 11px; }
     .meta .tjm { font-size: 16px; }
-    .deadline-pill { margin-top: 6px; padding: 5px 10px; }
-    .deadline-pill .dp-jours { font-size: 12px; }
-
-    /* Config fiscale : 1 colonne sur mobile */
-    .fiscal-config .fiscal-config-grid { grid-template-columns: 1fr; gap: 14px; }
-    .scenario-cards { grid-template-columns: 1fr; }
-    .forecast-table { font-size: 11px; }
-    .forecast-table th, .forecast-table td { padding: 8px 8px; }
 
     /* Import bar en bas fixé pour garder accessible */
     .import-zone {
@@ -2131,22 +1599,6 @@
     }
     .last-import { font-size: 10px; width: 100%; }
     .import-btn { font-size: 11px; padding: 10px 14px; }
-
-    /* Tabs scrollables horizontalement */
-    .tabs {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      white-space: nowrap;
-      margin-bottom: 24px;
-      scrollbar-width: none;
-    }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      font-size: 11px;
-      padding: 8px 14px;
-      flex-shrink: 0;
-    }
 
     /* Section titles plus compacts */
     .section { margin-bottom: 36px; }
@@ -2210,30 +1662,6 @@
     .pending-zone h3 { font-size: 22px; }
     .pending-list { grid-template-columns: 1fr; gap: 10px; }
 
-    /* Fiscal cards */
-    .fiscal-card { padding: 20px 16px; }
-    .fiscal-card h3 { font-size: 22px; }
-    .fiscal-card .note { font-size: 12px; margin-bottom: 20px; }
-    .fiscal-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .fiscal-row { padding: 14px; }
-    .fiscal-row .label { font-size: 9px; margin-bottom: 6px; }
-    .fiscal-row .big { font-size: 22px; }
-    .fiscal-row .detail { font-size: 10px; }
-    /* Tax input : wrap en colonne */
-    .tax-inputs { width: 100%; margin-top: 8px; }
-    .fiscal-card > div[style*="flex-wrap"] {
-      flex-direction: column;
-    }
-    /* Tax tranches : table scrollable */
-    .tax-tranches { overflow-x: auto; }
-    .tax-tranche {
-      grid-template-columns: 1fr 60px 80px 80px;
-      padding: 8px 10px;
-      font-size: 11px;
-      gap: 8px;
-    }
-    .tax-tranche.total .tb-tax { font-size: 13px; }
-
     /* Projection */
     .projection-header { padding: 16px 18px; gap: 10px; flex-wrap: wrap; }
     .ph-title { font-size: 18px; }
@@ -2281,10 +1709,6 @@
     }
     #theme-toggle svg { width: 18px; height: 18px; }
 
-    /* Risk gauge */
-    .risk-gauge { height: 50px; }
-    .risk-gauge .label { font-size: 10px; }
-
     /* Callouts */
     .callout { padding: 14px 16px; font-size: 12px; }
 
@@ -2304,7 +1728,6 @@
 
   /* Smartphones petits / portrait stricte */
   @media (max-width: 380px) {
-    .fiscal-grid { grid-template-columns: 1fr; }
     .projection-summary { grid-template-columns: 1fr; }
     .title-block h1 { font-size: 28px; }
     .balance-total .amount { font-size: 32px; }
@@ -2321,7 +1744,6 @@
   /* Améliorations tactiles : zones de clic minimum 44×44px (guidelines Apple) */
   @media (hover: none) and (pointer: coarse) {
     .month-header { min-height: 56px; }
-    .tab-btn { min-height: 40px; }
     .ledger-toggle { min-height: 48px; }
     .projection-header { min-height: 56px; }
     .balance-header { min-height: 56px; }
