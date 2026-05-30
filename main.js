@@ -74,6 +74,18 @@ function toggleTheme() {
 document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 // ============================================================
+// SERVICE WORKER (PWA) — enregistrement guardé, non bloquant.
+// Un échec d'enregistrement ne doit jamais casser l'app.
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => {
+      console.warn('Service worker non enregistré :', err);
+    });
+  });
+}
+
+// ============================================================
 // INIT
 // ============================================================
 render();
