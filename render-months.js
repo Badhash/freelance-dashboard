@@ -59,6 +59,10 @@ function renderMonth(m) {
 
   const totalEncaisse = m.salaire_net + m.notes_frais + m.tickets_resto + m.profit_share_paye + m.cooptation_revenu_paye;
 
+  // Part de ce qui a été réellement reçu (encaissé) sur ce qui a été facturé.
+  const pct = m.facturation > 0 ? Math.round(totalEncaisse / m.facturation * 100) : null;
+  const pctStr = pct !== null ? pct + ' %' : '—';
+
   return `
     <div class="month-row" data-mois="${m.mois}">
       <div class="month-header" onclick="this.parentElement.classList.toggle('open')">
@@ -67,6 +71,7 @@ function renderMonth(m) {
         <div class="month-value"><span class="label">CA facturé</span><span class="amount">${fmtShort(m.facturation)}</span></div>
         <div class="month-value paid"><span class="label">Salaire net</span><span class="amount">${fmtShort(m.salaire_net)}</span></div>
         ${psHeader}
+        <div class="month-pct"><span class="label">Reçu / facturé</span><span class="amount">${pctStr}</span></div>
         <div class="month-value total"><span class="label">Total encaissé</span><span class="amount">${fmtShort(totalEncaisse)}</span></div>
         <div class="chevron">›</div>
       </div>

@@ -200,7 +200,7 @@
   .month-row:last-child { border-bottom: none; }
   .month-header {
     display: grid;
-    grid-template-columns: 140px 1fr 130px 130px 130px 140px 40px;
+    grid-template-columns: 140px 1fr 130px 130px 130px 120px 140px 40px;
     gap: 16px;
     padding: 16px 24px;
     align-items: center;
@@ -259,6 +259,23 @@
     color: var(--accent);
     font-weight: 700;
     font-size: 12px;
+  }
+
+  .month-pct { text-align: right; }
+  .month-pct .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .month-pct .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dim);
   }
 
   .chevron {
@@ -2190,7 +2207,7 @@
     .month-row:last-child { border-bottom: none; }
     .month-header {
       display: grid;
-      grid-template-columns: 1fr auto 16px;
+      grid-template-columns: 1fr auto auto 16px;
       grid-template-rows: auto auto;
       gap: 1px 12px;
       padding: 11px 16px;
@@ -2201,9 +2218,16 @@
     .month-header .month-label { grid-column: 1; grid-row: 1; font-size: 16px; font-weight: 400; }
     .month-header .month-days { grid-column: 1; grid-row: 2; font-size: 12px; }
     .month-header .month-value { display: none; }
+    .month-header .month-pct {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      text-align: right;
+    }
+    .month-header .month-pct .label { display: none; }
+    .month-header .month-pct .amount { font-size: 13px; font-weight: 600; color: var(--text-muted); }
     .month-header .month-value.total {
       display: block;
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 1 / span 2;
       text-align: right;
     }
@@ -2211,7 +2235,7 @@
     .month-header .month-value.total .amount { font-size: 16px; font-weight: 600; color: var(--text); }
     .month-header .chevron {
       display: block;
-      grid-column: 3;
+      grid-column: 4;
       grid-row: 1 / span 2;
       text-align: right;
       color: var(--text-muted);
