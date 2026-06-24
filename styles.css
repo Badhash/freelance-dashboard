@@ -1199,7 +1199,8 @@
   }
   [data-theme="light"] .balance-widget,
   [data-theme="light"] .month-list,
-  [data-theme="light"] .projection-widget {
+  [data-theme="light"] .projection-widget,
+  [data-theme="light"] .activity-widget {
     box-shadow: var(--shadow-card);
   }
   [data-theme="light"] .import-btn .icon,
@@ -1589,6 +1590,79 @@
     color: var(--ok);
     letter-spacing: -0.01em;
     text-transform: none;
+  }
+
+  /* STATISTIQUES D'ACTIVITÉ */
+  .activity-widget {
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    margin-top: 20px;
+    overflow: hidden;
+  }
+  .activity-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .activity-title h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .activity-title .sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .activity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+  @media (max-width: 900px) {
+    .activity-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .activity-grid { grid-template-columns: 1fr; }
+  }
+  .stat-tile {
+    background: var(--bg);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-tile.accent .stat-value { color: var(--accent); }
+  .stat-tile.info .stat-value { color: var(--info); }
+  .stat-value .stat-unit {
+    font-size: 16px;
+    opacity: 0.7;
+    margin-left: 2px;
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .stat-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.45;
   }
 
 
@@ -2087,6 +2161,22 @@
     .ledger-row { font-size: 13px; }
     .ledger-final { padding: 16px; font-size: 11px; }
     .ledger-final .v { font-size: 24px; }
+
+    /* ---- Stats d'activité : carte iOS avec tuiles empilées ---- */
+    .activity-widget {
+      margin: 16px;
+      border: none;
+      border-radius: 16px;
+      background: var(--ios-card);
+      box-shadow: var(--shadow-card);
+    }
+    .activity-header { padding: 16px; border-bottom: 0.5px solid var(--ios-sep); }
+    .activity-title h2 { font-size: 17px; font-weight: 600; }
+    .activity-title .sub { font-size: 13px; color: var(--text-dim); }
+    .activity-grid { grid-template-columns: 1fr 1fr; gap: 0.5px; background: var(--ios-sep); }
+    .stat-tile { background: var(--ios-card); padding: 16px; gap: 4px; }
+    .stat-value { font-size: 26px; }
+    .stat-value .stat-unit { font-size: 14px; }
 
     /* ---- Pending : liste groupée empilée ---- */
     .pending-zone {
