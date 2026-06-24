@@ -244,6 +244,7 @@ function mergeDatasets(existing, incoming) {
 function aggregate() {
   const byMois = {};
   const clients = {};
+  const clientsByYear = {};   // year -> clientName -> { ca, jours }
   const delaisCA = [];
   const delaisPS = [];
   let totals = {
@@ -311,6 +312,12 @@ function aggregate() {
         clients[clientName].ca += r.montant;
         if (match) clients[clientName].jours += parseFloat(match[2]);
         clients[clientName].mois.add(m);
+        // Répartition par année
+        const yearKey = m.split('-')[1];
+        if (!clientsByYear[yearKey]) clientsByYear[yearKey] = {};
+        if (!clientsByYear[yearKey][clientName]) clientsByYear[yearKey][clientName] = { ca: 0, jours: 0 };
+        clientsByYear[yearKey][clientName].ca += r.montant;
+        if (match) clientsByYear[yearKey][clientName].jours += parseFloat(match[2]);
         // Délai paiement
         if (isPaid && r.date && r.datePaiement) {
           const delta = daysBetween(r.date, r.datePaiement);
@@ -420,10 +427,31 @@ function aggregate() {
     client, ca: v.ca, jours: v.jours, nb_mois: v.mois.size
   }));
 
+  // Stats agrégées par année (jours, CA, TJM moyen, congés acquis + split client)
+  const statsByYear = years.map(year => {
+    const ms = sortedMonths.filter(mk => mk.endsWith('-' + year)).map(mk => byMois[mk]);
+    const jours = ms.reduce((a, d) => a + (d.jours_travailles || 0), 0);
+    const ca = ms.reduce((a, d) => a + d.facturation, 0);
+    const moisActifs = ms.filter(d => d.jours_travailles > 0).length;
+    const clientsYear = Object.entries(clientsByYear[year] || {})
+      .map(([client, v]) => ({ client, ca: v.ca, jours: v.jours }))
+      .sort((a, b) => b.ca - a.ca);
+    return {
+      year,
+      jours,
+      ca,
+      tjm: jours ? ca / jours : 0,
+      moisActifs,
+      congesAcquis: moisActifs * 2.5,
+      clients: clientsYear
+    };
+  });
+
   return {
     months: sortedMonths.map(m => byMois[m]),
     monthsByKey: byMois,
     timeseries, totals, clients: clientsArr,
+    statsByYear,
     delaisCA: stats(delaisCA), delaisPS: stats(delaisPS),
     delaisPSList: delaisPS,
     years

@@ -1598,12 +1598,21 @@
     border: 1px solid var(--border-strong);
     border-radius: 6px;
     margin-top: 20px;
+    margin-bottom: 40px;
     overflow: hidden;
   }
   .activity-header {
     padding: 24px 32px;
-    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.15s;
   }
+  .activity-header:hover { background: rgba(228, 192, 104, 0.03); }
+  .activity-widget.expanded .activity-header { border-bottom: 1px solid var(--border); }
+  .activity-title { flex: 1; min-width: 0; }
   .activity-title h2 {
     font-family: 'Fraunces', serif;
     font-size: 22px;
@@ -1616,17 +1625,55 @@
     margin-top: 4px;
     line-height: 1.5;
   }
+  .activity-head-total { text-align: right; }
+  .activity-head-total .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .activity-head-total .amount {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .activity-head-total .amount .unit {
+    font-size: 18px;
+    color: var(--accent-dim);
+    margin-left: 2px;
+  }
+  .activity-header .collapse-arrow {
+    color: var(--text-muted);
+    font-size: 22px;
+    transition: transform 0.25s;
+    align-self: center;
+  }
+  .activity-widget.expanded .activity-header .collapse-arrow {
+    transform: rotate(90deg);
+    color: var(--accent);
+  }
+  .activity-collapsible { display: none; }
+  .activity-widget.expanded .activity-collapsible { display: block; }
+
   .activity-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1px;
     background: var(--border);
   }
+  .activity-grid.compact { grid-template-columns: repeat(4, 1fr); }
   @media (max-width: 900px) {
-    .activity-grid { grid-template-columns: repeat(2, 1fr); }
+    .activity-grid,
+    .activity-grid.compact { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 560px) {
-    .activity-grid { grid-template-columns: 1fr; }
+    .activity-grid,
+    .activity-grid.compact { grid-template-columns: 1fr; }
   }
   .stat-tile {
     background: var(--bg);
@@ -1635,6 +1682,7 @@
     flex-direction: column;
     gap: 5px;
   }
+  .activity-grid.compact .stat-tile { padding: 16px 18px; }
   .stat-value {
     font-family: 'Fraunces', serif;
     font-size: 34px;
@@ -1643,6 +1691,7 @@
     line-height: 1;
     color: var(--text);
   }
+  .activity-grid.compact .stat-value { font-size: 26px; }
   .stat-tile.accent .stat-value { color: var(--accent); }
   .stat-tile.info .stat-value { color: var(--info); }
   .stat-value .stat-unit {
@@ -1663,6 +1712,86 @@
     color: var(--text-dim);
     font-style: italic;
     line-height: 1.45;
+  }
+
+  /* Répartition par année / par client */
+  .activity-years { border-top: 1px solid var(--border); }
+  .year-block { border-top: 1px solid var(--border); }
+  .year-block:first-child { border-top: none; }
+  .year-block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 32px 14px;
+  }
+  .year-block-head .year-name {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text);
+  }
+  .year-block-head .year-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .client-split { padding: 18px 32px 26px; }
+  .client-split-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .client-rows { display: flex; flex-direction: column; gap: 12px; }
+  .client-row {
+    display: grid;
+    grid-template-columns: minmax(80px, 0.7fr) 1.6fr auto;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+  }
+  .client-row.empty {
+    display: block;
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .client-row .c-name {
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .client-row .c-bar {
+    height: 8px;
+    background: var(--bg-elev-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .client-row .c-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--warn));
+    border-radius: 4px;
+  }
+  .client-row .c-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    white-space: nowrap;
+  }
+  @media (max-width: 560px) {
+    .client-row {
+      grid-template-columns: 1fr auto;
+      gap: 4px 10px;
+    }
+    .client-row .c-bar { grid-column: 1 / -1; order: 3; }
   }
 
 
@@ -2162,7 +2291,7 @@
     .ledger-final { padding: 16px; font-size: 11px; }
     .ledger-final .v { font-size: 24px; }
 
-    /* ---- Stats d'activité : carte iOS avec tuiles empilées ---- */
+    /* ---- Stats d'activité : carte iOS repliable ---- */
     .activity-widget {
       margin: 16px;
       border: none;
@@ -2170,13 +2299,26 @@
       background: var(--ios-card);
       box-shadow: var(--shadow-card);
     }
-    .activity-header { padding: 16px; border-bottom: 0.5px solid var(--ios-sep); }
+    .activity-header { padding: 16px; gap: 12px; min-height: 44px; }
+    .activity-header:hover { background: transparent; }
+    .activity-widget.expanded .activity-header { border-bottom: 0.5px solid var(--ios-sep); }
     .activity-title h2 { font-size: 17px; font-weight: 600; }
     .activity-title .sub { font-size: 13px; color: var(--text-dim); }
-    .activity-grid { grid-template-columns: 1fr 1fr; gap: 0.5px; background: var(--ios-sep); }
-    .stat-tile { background: var(--ios-card); padding: 16px; gap: 4px; }
-    .stat-value { font-size: 26px; }
+    .activity-head-total .label { font-size: 10px; }
+    .activity-head-total .amount { font-size: 24px; font-weight: 700; color: var(--text); }
+    .activity-head-total .amount .unit { font-size: 14px; }
+    .activity-header .collapse-arrow { font-size: 18px; }
+    .activity-grid,
+    .activity-grid.compact { grid-template-columns: 1fr 1fr; gap: 0.5px; background: var(--ios-sep); }
+    .stat-tile,
+    .activity-grid.compact .stat-tile { background: var(--ios-card); padding: 14px; gap: 4px; }
+    .stat-value,
+    .activity-grid.compact .stat-value { font-size: 24px; }
     .stat-value .stat-unit { font-size: 14px; }
+    .activity-years { border-top: none; }
+    .year-block-head { padding: 16px 16px 12px; }
+    .year-block-head .year-name { font-size: 20px; font-weight: 600; }
+    .client-split { padding: 14px 16px 20px; }
 
     /* ---- Pending : liste groupée empilée ---- */
     .pending-zone {

@@ -802,7 +802,8 @@ function render() {
     });
 
     // Vider les zones internes du widget balance + stats d'activité
-    document.querySelectorAll('.balance-lines, .ledger-content, .activity-grid').forEach(el => el.innerHTML = '');
+    document.querySelectorAll('.balance-lines, .ledger-content, .activity-grid, .activity-years').forEach(el => el.innerHTML = '');
+    document.querySelectorAll('.activity-head-total .amount').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.balance-subtotal, .balance-total .amount, .official-value, .ledger-value').forEach(el => el.innerHTML = '');
 
     // Vider pending zone

@@ -182,13 +182,21 @@
 
   <!-- STATISTIQUES D'ACTIVITÉ (chiffres remplis par renderActivityStats après import) -->
   <div class="activity-widget" id="activity-widget">
-    <div class="activity-header">
+    <div class="activity-header" onclick="document.getElementById('activity-widget').classList.toggle('expanded')">
       <div class="activity-title">
         <h2>Statistiques d'activité</h2>
-        <div class="sub">Jours facturés, congés acquis et moyennes sur l'ensemble de ta mission</div>
+        <div class="sub">Jours facturés, congés acquis · répartition par année et par client</div>
       </div>
+      <div class="activity-head-total">
+        <div class="label">Jours facturés</div>
+        <div class="amount">—<span class="unit">j</span></div>
+      </div>
+      <div class="collapse-arrow">›</div>
     </div>
-    <div class="activity-grid"></div>
+    <div class="activity-collapsible">
+      <div class="activity-grid"></div>
+      <div class="activity-years"></div>
+    </div>
   </div>
 
   <!-- DÉTAIL MENSUEL -->
