@@ -9,7 +9,7 @@
 //                                  (Supabase, API Google Fonts, CDN…)
 // ============================================================
 
-const CACHE = 'pilotage-v1';
+const CACHE = 'pilotage-v2';
 const FONT_CACHE = 'pilotage-fonts-v1';
 
 // App-shell même origine pré-cachée à l'installation.
@@ -19,6 +19,7 @@ const APP_SHELL = [
   'styles.css',
   'data.js',
   'render-balance.js',
+  'render-stats.js',
   'render-months.js',
   'render-projection.js',
   'render.js',
