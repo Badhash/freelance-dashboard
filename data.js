@@ -206,9 +206,39 @@ function rowKey(r) {
   return [r.reference, r.nature, r.description, r.montant.toFixed(2)].join('||');
 }
 
-function mergeDatasets(existing, incoming) {
+// Lignes du dataset rendues obsolètes par un import (calcul pur, sans effet de bord).
+//
+// L'export du portage est un ÉTAT COMPLET, pas un journal de nouveautés : pour un
+// mois donné il contient TOUTES les lignes de ce mois. Une ligne connue en local
+// mais absente de l'import, sur un mois que l'import couvre, a donc été supprimée
+// ou ré-émise à la source.
+//
+// Le cas courant est la facture corrigée : le portage change le client final, le
+// TJM ou le nombre de jours, donc la description et/ou le montant changent, donc
+// rowKey() change aussi. Sans ce nettoyage la version corrigée était AJOUTÉE à côté
+// de l'ancienne, et l'agrégation mensuelle cumulait les deux (CA et jours doublés).
+//
+// On ne compare QUE sur les mois présents dans l'import : un export partiel ou
+// filtré sur un client ne peut pas effacer l'historique qu'il ne couvre pas.
+function supersededRows(existing, incoming) {
+  const incomingKeys = new Set(incoming.map(rowKey));
+  const incomingMonths = new Set(incoming.map(r => r.mois));
+  return existing.filter(r => incomingMonths.has(r.mois) && !incomingKeys.has(rowKey(r)));
+}
+
+// options.dropMissing = false : fusion purement additive (comportement historique),
+// utilisé quand l'utilisateur refuse les suppressions proposées à l'import.
+function mergeDatasets(existing, incoming, options = {}) {
+  const dropMissing = options.dropMissing !== false;
+  const removedRows = dropMissing ? supersededRows(existing, incoming) : [];
+  const removedKeys = new Set(removedRows.map(rowKey));
+
   const map = new Map();
-  existing.forEach(r => map.set(rowKey(r), r));
+  existing.forEach(r => {
+    const k = rowKey(r);
+    if (removedKeys.has(k)) return;
+    map.set(k, r);
+  });
 
   const addedRows = [];
   const updatedRows = [];
@@ -233,8 +263,8 @@ function mergeDatasets(existing, incoming) {
 
   return {
     rows: Array.from(map.values()),
-    stats: { added: addedRows.length, updated: updatedRows.length, unchanged },
-    changes: { addedRows, updatedRows }
+    stats: { added: addedRows.length, updated: updatedRows.length, unchanged, removed: removedRows.length },
+    changes: { addedRows, updatedRows, removedRows }
   };
 }
 

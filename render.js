@@ -91,6 +91,7 @@ function showToast({ title, body, stats, ok = true }) {
       <span><span class="s-label">Ajoutées</span><span class="s-value ok">${stats.added}</span></span>
       <span><span class="s-label">Mises à jour</span><span class="s-value warn">${stats.updated}</span></span>
       <span><span class="s-label">Déjà à jour</span><span class="s-value">${stats.unchanged}</span></span>
+      ${stats.removed ? `<span><span class="s-label">Supprimées</span><span class="s-value danger">${stats.removed}</span></span>` : ''}
     `;
     s.style.display = 'flex';
   } else {
@@ -355,18 +356,42 @@ function runAudit() {
       `Mois concernés : ${moisSansPAS.slice(0, 6).join(', ')}${moisSansPAS.length > 6 ? '…' : ''}`);
   }
 
-  // === 10. DOUBLONS EXACTS ===
-  const seen = {};
+  // === 10. DOUBLONS ET FACTURES RÉ-ÉMISES ===
+  // Un doublon EXACT ne peut pas exister : mergeDatasets déduplique sur exactement
+  // cette clé (reference + nature + description + montant). Ce qu'on cherche ici,
+  // c'est le QUASI-doublon — la même facture présente deux fois avec un libellé ou
+  // une ventilation TJM/jours différents, qui double le CA et les jours du mois.
+  const byRefNature = {};
   DATASET.forEach(r => {
-    const k = `${r.reference}|${r.nature}|${r.description}|${r.montant.toFixed(2)}`;
-    seen[k] = (seen[k] || 0) + 1;
+    const k = `${r.reference}|${r.nature}`;
+    if (!byRefNature[k]) byRefNature[k] = [];
+    byRefNature[k].push(r);
   });
-  const duplicates = Object.entries(seen).filter(([k, v]) => v > 1);
-  duplicates.forEach(([k, v]) => {
-    const parts = k.split('|');
-    addIssue('danger', 'duplicate', `Ligne en double`,
-      `Une ligne apparaît ${v} fois avec exactement les mêmes caractéristiques.`,
-      `${parts[1]} · ${parts[2]} · ${parts[3]} € · réf ${parts[0]}`);
+  Object.entries(byRefNature).forEach(([k, rows]) => {
+    if (rows.length < 2) return;
+    const [ref, nature] = k.split('|');
+
+    // a) Même référence, même nature, même montant : la même ligne comptée deux fois.
+    const parMontant = {};
+    rows.forEach(r => {
+      const cle = r.montant.toFixed(2);
+      if (!parMontant[cle]) parMontant[cle] = [];
+      parMontant[cle].push(r);
+    });
+    Object.entries(parMontant).forEach(([montant, dupes]) => {
+      if (dupes.length < 2) return;
+      addIssue('danger', 'duplicate', `Ligne en double ${dupes[0].mois}`,
+        `${dupes.length} lignes de même montant sur la même référence et la même nature. C'est la signature d'une facture ré-émise dont l'ancienne version est restée : réimporte le CSV et accepte les suppressions proposées.`,
+        `${nature} · ${fmt(parseFloat(montant))} · réf ${ref} · ${dupes.map(d => d.description || '—').join('  |  ')}`);
+    });
+
+    // b) Plusieurs facturations sur une même référence : une facture = une ligne.
+    //    Deux missions facturées le même mois portent deux références distinctes.
+    if (nature === 'Crédit - Facturation' && Object.keys(parMontant).length > 1) {
+      addIssue('warn', 'duplicate', `Facturations multiples sur ${ref}`,
+        `Plusieurs lignes de facturation partagent la même référence avec des montants différents. Vérifie s'il ne s'agit pas d'une facture corrigée dont l'ancienne version est restée dans le dashboard.`,
+        rows.map(r => `${fmt(r.montant)} · ${r.description || '—'}`).join('  |  '));
+    }
   });
 
   // === 11. COOPTATION : crédit ≠ revenu correspondant ===
@@ -414,10 +439,14 @@ function runAudit() {
   });
 
   // === 13. MOIS MULTI-CLIENTS (info) ===
-  const clientsByMois = {};
+  // On mémorise aussi les RÉFÉRENCES : deux missions réellement facturées en
+  // parallèle portent deux références distinctes. Deux clients sur UNE SEULE
+  // référence, c'est une facture ré-émise avec un client corrigé, pas un mois
+  // multi-missions — et ça ne doit surtout pas servir d'excuse en règle 14.
+  const facturationByMois = {};
   DATASET.forEach(r => {
     if (r.nature !== 'Crédit - Facturation') return;
-    if (!clientsByMois[r.mois]) clientsByMois[r.mois] = new Set();
+    if (!facturationByMois[r.mois]) facturationByMois[r.mois] = { clients: new Set(), refs: new Set() };
     // Détection client via description
     let clientLabel = 'Autre';
     if (r.description.includes('CLIENT_A')) clientLabel = 'CLIENT_A';
@@ -427,11 +456,13 @@ function runAudit() {
       const m = r.description.match(/Facturation\s+([A-Z][A-Za-z\s]+?)\s*\(/);
       if (m) clientLabel = m[1].trim();
     }
-    clientsByMois[r.mois].add(clientLabel);
+    facturationByMois[r.mois].clients.add(clientLabel);
+    facturationByMois[r.mois].refs.add(r.reference);
   });
-  Object.entries(clientsByMois).forEach(([mois, clientsSet]) => {
-    if (clientsSet.size >= 2) {
-      const clients = [...clientsSet].join(' + ');
+  const estMultiMissions = (v) => v.clients.size >= 2 && v.refs.size >= 2;
+  Object.entries(facturationByMois).forEach(([mois, v]) => {
+    if (estMultiMissions(v)) {
+      const clients = [...v.clients].join(' + ');
       addIssue('info', 'multi_clients', `Mois multi-clients ${mois}`,
         `Deux missions facturées en parallèle ce mois-ci. Les ratios (TR/jour, charges) peuvent sembler atypiques car les jours facturés cumulés dépassent le nombre de jours ouvrés.`,
         `Clients : ${clients}`);
@@ -439,18 +470,19 @@ function runAudit() {
   });
 
   // === 14. JOURS FACTURÉS EXCESSIFS (> 23/mois, physiquement improbable) ===
-  Object.entries(clientsByMois).forEach(([mois, clientsSet]) => {
+  Object.entries(facturationByMois).forEach(([mois, v]) => {
     const moisData = AGG.monthsByKey[mois];
     if (!moisData) return;
     const jours = moisData.jours_travailles;
     if (jours > 23) {
-      const severity = clientsSet.size >= 2 ? 'info' : 'warn';
-      const contextMsg = clientsSet.size >= 2
+      const multiMissions = estMultiMissions(v);
+      const severity = multiMissions ? 'info' : 'warn';
+      const contextMsg = multiMissions
         ? `Lié à la facturation multi-clients de ce mois. Chaque client facturé séparément = jours cumulés. À confirmer.`
-        : `Ce volume dépasse le maximum physique d'un mois (23 jours ouvrés max). Probable facturation rétroactive ou erreur.`;
+        : `Ce volume dépasse le maximum physique d'un mois (23 jours ouvrés max). Probable facturation rétroactive, ou ligne en double laissée par une facture ré-émise.`;
       addIssue(severity, 'volume', `${jours} jours facturés ${mois}`,
         contextMsg,
-        `Max théorique : 23 jours ouvrés/mois`);
+        `Max théorique : 23 jours ouvrés/mois · ${v.refs.size} référence${v.refs.size > 1 ? 's' : ''} de facturation`);
     }
   });
 
@@ -573,7 +605,8 @@ function showImportDiff(fileName, changes) {
   if (!changes) return;
   const addedRows = changes.addedRows || [];
   const updatedRows = changes.updatedRows || [];
-  if (addedRows.length === 0 && updatedRows.length === 0) return;
+  const removedRows = changes.removedRows || [];
+  if (addedRows.length === 0 && updatedRows.length === 0 && removedRows.length === 0) return;
 
   const modal = document.getElementById('diff-modal');
   const subEl = document.getElementById('diff-sub');
@@ -607,6 +640,7 @@ function showImportDiff(fileName, changes) {
   if (fileName) parts.push(fileName);
   parts.push(`${addedRows.length} ajout${addedRows.length > 1 ? 's' : ''}`);
   parts.push(`${updatedRows.length} mise${updatedRows.length > 1 ? 's' : ''} à jour`);
+  if (removedRows.length) parts.push(`${removedRows.length} suppression${removedRows.length > 1 ? 's' : ''}`);
   subEl.textContent = parts.join(' · ');
 
   // Cartes résumé : focus sur l'info "cash" = encaissé + nouveau CA
@@ -630,6 +664,21 @@ function showImportDiff(fileName, changes) {
   `;
 
   const sections = [];
+
+  // En premier : ce que l'import a retiré. C'est le changement le moins attendu,
+  // donc celui qui doit sauter aux yeux.
+  if (removedRows.length) {
+    sections.push({
+      title: `Lignes supprimées (${removedRows.length}) · ${fmt(sum(removedRows))}`,
+      severity: 'danger',
+      items: removedRows.map(r => ({
+        title: `${fmt(r.montant)} — ${r.nature.replace(/^(Crédit|Revenu|Charges) - /, '')}`,
+        desc: r.description || '—',
+        right: r.mois || '',
+        detail: `Plus présente dans l'export${r.reference ? ` · ${r.reference}` : ''}`
+      }))
+    });
+  }
 
   if (nowPaid.length) {
     sections.push({

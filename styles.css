@@ -566,6 +566,7 @@
   }
   .toast .t-stats {
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     margin-top: 12px;
     padding-top: 12px;
@@ -577,6 +578,7 @@
   .toast .t-stats .s-value { color: var(--text); font-weight: 600; margin-left: 4px; }
   .toast .t-stats .s-value.ok { color: var(--ok); }
   .toast .t-stats .s-value.warn { color: var(--warn); }
+  .toast .t-stats .s-value.danger { color: var(--danger); }
 
   /* PROJECTION WIDGET */
   .projection-widget {
