@@ -85,7 +85,8 @@ function buildViewModel() {
   const ghosts = AGG.months.filter((m) => m.facturation > 0 && m.details_profit_share.length === 0).map((m) => {
     const { m: mo, y } = UI.mk(m.mois);
     const emit = new Date(y, mo, 16);
-    return { mois: m.mois, facturation: m.facturation, emit, eta: med ? UI.addDays(emit, med) : null };
+    // late : la date d'émission habituelle est passée, l'audit (règle 7) le signale déjà en critique.
+    return { mois: m.mois, facturation: m.facturation, emit, eta: med ? UI.addDays(emit, med) : null, late: UI.daysDiff(emit, today) >= 0 };
   }).filter((g) => UI.daysDiff(g.emit, today) < 45);
 
   // Côté client : factures émises par le portage, pas encore réglées par le client (hors total)
@@ -126,6 +127,11 @@ function buildViewModel() {
     t, today, soldeFacture, soldeEncaisse, creditsEncaisses, chargesPayees, versementsRecus,
     psPending, psSum, provRest, provMois, provPer, coopPending, coopRest, tjm, med, medCA,
     arrivals, ghosts, clientPending, curY, prevY, lastM, sy,
+    // Profit shares en retard, sans échéance estimable, et « au moins un émis » (pour ne pas
+    // écrire « tout ce qui a été émis t'a été versé » quand rien n'a encore été émis).
+    psLate: arrivals.filter((a) => a.left != null && a.left < 0),
+    psUndated: arrivals.filter((a) => !a.eta),
+    psEver: AGG.months.some((m) => m.details_profit_share.length > 0),
     // Cumuls de janvier à lastM (chiffres affichés) ; les deltas N / N-1 se lisent dans cmp.
     caCur: cumul(curY, 1, 'facturation'), caPrev: prevY ? cumul(prevY, 1, 'facturation') : 0,
     jCur: cumul(curY, 1, 'jours_travailles'), jPrev: prevY ? cumul(prevY, 1, 'jours_travailles') : 0,
@@ -157,7 +163,7 @@ function renderChrome(meta) {
 // d'import se couper. On retire alors, dans l'ordre et seulement tant qu'il le faut : les libellés
 // cloud, les icônes de navigation, « CSV » du bouton d'import, l'info d'import longue, puis le
 // libellé « Vérifier » (icône et badge restent, nom accessible conservé).
-const BAR_FIT = ['fit-1', 'fit-2', 'fit-3', 'fit-4', 'fit-5'];
+const BAR_FIT = ['fit-1', 'fit-2', 'fit-3', 'fit-4', 'fit-5', 'fit-6'];
 function fitAppbar() {
   const bar = document.getElementById('appbar');
   const info = document.getElementById('last-import-info');

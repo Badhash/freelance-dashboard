@@ -1,7 +1,7 @@
 // ============================================================
 // SUPABASE — CONFIG (bloc isolé)
 // ============================================================
-// ⚙️  C'EST LE SEUL FICHIER À ÉDITER pour brancher le cloud.
+// Configuration : C'EST LE SEUL FICHIER À ÉDITER pour brancher le cloud.
 //
 // Où trouver ces valeurs : Supabase Dashboard → ton projet →
 //   Project Settings → API
@@ -9,7 +9,7 @@
 //     • Project API keys → clé "anon" / "publishable"
 //                                        → champ `publishableKey` ci-dessous
 //
-// ⚠️  NE METS JAMAIS la clé `service_role` ici : elle contourne le RLS
+// Attention : NE METS JAMAIS la clé `service_role` ici : elle contourne le RLS
 //     et donnerait un accès total à tes données depuis cette page publique.
 //     Seule la clé publishable (anon) doit figurer dans le front.
 //

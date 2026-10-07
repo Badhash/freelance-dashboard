@@ -99,3 +99,6 @@ table.pt { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width:
 @media (forced-colors: active) {
   .pbar i { forced-color-adjust: none; }
 }
+
+/* Sombre : le surtitre du total projeté est posé sur le halo cyan, on le remonte en --text-2 (AA) */
+[data-theme="dark"] .proj-hero .eyebrow { color: var(--text-2); }

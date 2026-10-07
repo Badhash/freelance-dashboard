@@ -26,14 +26,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/shell.css">
-<link rel="stylesheet" href="css/hero.css">
-<link rel="stylesheet" href="css/activity.css">
-<link rel="stylesheet" href="css/months.css">
-<link rel="stylesheet" href="css/projection.css">
-<link rel="stylesheet" href="css/overlays.css">
+<!-- ?v= : à incrémenter avec CACHE dans sw.js. Un ancien service worker ne trouve pas ces URL
+     dans son cache, donc il ne peut pas mélanger des fichiers de deux versions. -->
+<link rel="stylesheet" href="css/tokens.css?v=6">
+<link rel="stylesheet" href="css/base.css?v=6">
+<link rel="stylesheet" href="css/shell.css?v=6">
+<link rel="stylesheet" href="css/hero.css?v=6">
+<link rel="stylesheet" href="css/activity.css?v=6">
+<link rel="stylesheet" href="css/months.css?v=6">
+<link rel="stylesheet" href="css/projection.css?v=6">
+<link rel="stylesheet" href="css/overlays.css?v=6">
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><span class="stars"></span><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
@@ -129,7 +131,7 @@
       </div>
     </div>
     <div class="steps" id="steps">
-      <div class="card step"><span class="n">1</span><h2 class="h3">Exporte depuis l’intranet</h2><p>Sur la page des opérations de ton compte d’activité, clique « Exporter CSV » (script fourni avec le dashboard). Sans filtre ni recherche active.</p></div>
+      <div class="card step"><span class="n">1</span><h2 class="h3">Exporte depuis l’intranet</h2><p>Sur la page des opérations de ton compte d’activité, clique «&nbsp;Exporter CSV&nbsp;» (script fourni avec le dashboard). Sans filtre ni recherche active.</p></div>
       <div class="card step"><span class="n">2</span><h2 class="h3">Importe le fichier</h2><p>Les lignes sont fusionnées sans doublon. Une facture corrigée entre deux exports&nbsp;? On te propose de retirer l’ancienne version.</p></div>
       <div class="card step"><span class="n">3</span><h2 class="h3">Pilote</h2><p>Ce qu’on te doit, les profit shares en route, ton activité, ta projection jusqu’à décembre&nbsp;: tout se calcule tout seul.</p></div>
     </div>
@@ -283,18 +285,18 @@
 
 <!-- Supabase (couche optionnelle) : SDK via CDN + config isolée, AVANT data.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="data.js"></script>
-<script src="icons.js"></script>
-<script src="charts.js"></script>
-<script src="render-balance.js"></script>
-<script src="render-stats.js"></script>
-<script src="render-months.js"></script>
-<script src="render-projection.js"></script>
-<script src="render-overlays.js"></script>
-<script src="render.js"></script>
-<script src="supabase-crypto.js"></script>
-<script src="supabase-sync.js"></script>
-<script src="main.js"></script>
+<script src="supabase-config.js?v=6"></script>
+<script src="data.js?v=6"></script>
+<script src="icons.js?v=6"></script>
+<script src="charts.js?v=6"></script>
+<script src="render-balance.js?v=6"></script>
+<script src="render-stats.js?v=6"></script>
+<script src="render-months.js?v=6"></script>
+<script src="render-projection.js?v=6"></script>
+<script src="render-overlays.js?v=6"></script>
+<script src="render.js?v=6"></script>
+<script src="supabase-crypto.js?v=6"></script>
+<script src="supabase-sync.js?v=6"></script>
+<script src="main.js?v=6"></script>
 </body>
 </html>

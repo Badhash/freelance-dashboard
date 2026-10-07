@@ -114,7 +114,7 @@ i[data-icon] { display: contents; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .sw.est { background: transparent !important; border: 1.5px dashed var(--est-stroke); }
 
-/* Total comptable : double soulignement (greffe Atelier) */
+/* Total comptable : double soulignement */
 .ledger-total { text-decoration: underline double; text-decoration-thickness: 1px; text-underline-offset: 5px; text-decoration-color: currentColor; }
 
 /* ---------- Repliables (contrat : bouton[data-qa-toggle][aria-controls] → cible .fold-body) ---------- */
@@ -208,7 +208,7 @@ i[data-icon] { display: contents; }
 
 @media (max-width: 640px) {
   /* Mobile : seule la navigation (61 px) colle, sous la barre d'état */
-  html { scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
+  html { scroll-padding-top: calc(72px + env(safe-area-inset-top)); scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom)); }  /* bas : le dock ne masque pas le focus */
   :root { --gutter: 16px; }
   .section { margin-top: 48px; }
   .section-head { margin-bottom: 16px; }
@@ -232,3 +232,6 @@ i[data-icon] { display: contents; }
   .split > span, .g-bar, .lk, .sw { forced-color-adjust: none; }
   .pill, .chip, .badge { border: 1px solid CanvasText; }
 }
+
+/* Titre qui enveloppe un bouton de repli : présent dans le plan du document, sans style propre */
+.fold-h { margin: 0; font: inherit; color: inherit; letter-spacing: inherit; }

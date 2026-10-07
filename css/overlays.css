@@ -105,7 +105,7 @@ html.modal-open { overflow: hidden; }
 .auth-foot .ic { width: 15px; height: 15px; flex: none; }
 
 /* ---------- Toast (inversé) ---------- */
-.toast { position: fixed; z-index: 120; right: 20px; bottom: 20px; width: min(380px, calc(100% - 32px)); display: none; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 10px 14px 14px; border-radius: 20px; background: var(--tt-bg); color: var(--tt-text); box-shadow: var(--shadow-pop); }
+.toast { position: fixed; z-index: 90; right: 20px; bottom: 20px; width: min(380px, calc(100% - 32px)); display: none; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 10px 14px 14px; border-radius: 20px; background: var(--tt-bg); color: var(--tt-text); box-shadow: var(--shadow-pop); }
 .toast.visible { display: grid; animation: toastIn .45s var(--ease) both; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(18px) scale(.97); } }
 .toast-ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--ok); color: #05210F; }

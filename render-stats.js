@@ -28,9 +28,12 @@ function qStep(j) { return !(j > 0) ? 0 : Math.min(6, Math.max(1, Math.ceil(j / 
 function monthState(y, m) {
   const first = UI.mk(AGG.months[0].mois);
   if (+y < first.y || (+y === first.y && m < first.m)) return 'out';
-  if (+y > +VM.curY || (+y === +VM.curY && m > VM.lastM)) return 'future';
-  const t = VM.today;
-  if (!AGG.monthsByKey[UI.key(m, y)] && (+y > t.getFullYear() || (+y === t.getFullYear() && m >= t.getMonth() + 1))) return 'future';
+  // Mois en cours ou à venir : « à venir ». Le mois précédent aussi tant qu'il n'est pas facturé
+  // (sa facture part en fin de mois ou au début du suivant). Un mois passé plus ancien sans facture
+  // (intercontrat) compte à 0 jour dans le taux, comme dans la liste des mois.
+  const t = VM.today, idx = +y * 12 + m, now = t.getFullYear() * 12 + t.getMonth() + 1;
+  if (idx >= now) return 'future';
+  if (idx === now - 1 && !(AGG.monthsByKey[UI.key(m, y)] || {}).facturation) return 'future';
   return 'on';
 }
 
@@ -168,7 +171,7 @@ function drawSparkTJM() {
     + UI.srTable('Évolution du TJM', ['Depuis', 'TJM'], [[UI.monthLabel(pts[0].mois), UI.eur0(pts[0].v)], ...changes.map((i) => [UI.monthLabel(pts[i].mois), UI.eur0(pts[i].v)])]);
 }
 
-// Instrument « délais constatés » (greffe Cockpit) : plage min–max, médiane,
+// Instrument « délais constatés » : plage min–max, médiane,
 // seuils d'audit profit share (100 j attention, 130 j critique).
 function drawDelais() {
   const el = document.getElementById('spark-delais');
@@ -399,7 +402,7 @@ function drawCumul() {
   };
   hit.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); const px = (e.clientX - r.left) / r.width * W; show(Math.round((px - P.l) / (W - P.l - P.r) * 11), e.clientX, e.clientY); });
   hit.addEventListener('pointerleave', () => { UI.ttHide(); cross.style.opacity = '0'; });
-  hit.addEventListener('focus', () => show(idx));
+  hit.addEventListener('focus', () => UI.ttFocus(hit, () => show(idx)));
   hit.addEventListener('blur', () => { UI.ttHide(); cross.style.opacity = '0'; });
   hit.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1); }
@@ -407,7 +410,7 @@ function drawCumul() {
   });
 }
 
-// Constellation (greffe Solstice « une pastille = un jour », transposée en ciel) :
+// Constellation « une pastille = un jour » (un ciel étoilé en sombre) :
 // 1 point plein = 1 jour facturé (fraction en part de disque), 1 anneau = 1 jour ouvré
 // non facturé, anneau pointillé = jour ouvré à venir. 5 points par rangée = une semaine.
 // Les mois d'avant l'historique restent vides (« hors historique »), comme dans le taux.

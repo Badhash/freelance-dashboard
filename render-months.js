@@ -1,6 +1,6 @@
 // ============================================================
 // AURORA — « En attente de versement » (#pending) : piste des profit shares
-// (greffe Cockpit : écoulé plein, reste pointillé, échéance, trait d'aujourd'hui),
+// (écoulé plein, reste pointillé, échéance, trait d’aujourd’hui),
 // profit share pas encore émis (carte fantôme), côté client hors total.
 // « Mois par mois » (#tab-detail) : journal compact (voyants + micro-barre),
 // détail déplié (cascade ligne à ligne, arrivé / en attente / prélevé).
@@ -11,6 +11,10 @@
 // « Tout supprimer », que render() vide), on revient aux valeurs par défaut de la spec.
 const OPEN_MONTHS = new Set();
 const OPEN_YEARS = new Set();
+// Ouvertures par défaut (mois de référence et son année), tant que l'utilisateur n'y a pas touché :
+// quand un réimport apporte un nouveau mois de référence, elles le suivent.
+const AUTO_OPEN = new Set();
+let REF_MOIS = null;
 let TRK_CLIENT_OPEN = false;
 
 // Typographie française : espace insécable avant « : » et « ; » (jamais de retour à la ligne devant).
@@ -43,11 +47,16 @@ function monthFlows(m) {
   const invUnpaid = UI.sum(VM.clientPending.filter((c) => c.mois === m.mois), 'montant');
   const invPaid = m.facturation - invUnpaid;
   const invoice = Math.abs(m.facturation) <= 0.005 ? 'none' : invUnpaid <= 0.005 ? 'paid' : m.facturation_payee && invPaid > 0.5 ? 'partial' : 'unpaid';
-  // Mois facturé sans aucune ligne de profit share : « pas encore émis » tant que l'émission habituelle
-  // a moins de 45 j de retard (même règle que VM.ghosts), sinon manquant (critique dans l'audit).
+  // Mois facturé sans aucune ligne de profit share : « pas encore émis » jusqu'à l'émission habituelle
+  // (le 16 du mois suivant), puis manquant, comme la règle 7 de l'audit qui le signale en critique.
   const noPs = m.facturation > 0 && ps.n === 0;
   const ghost = noPs ? VM.ghosts.find((g) => g.mois === m.mois) || null : null;
-  return { sal, tr, ndf, ps, coop, prel, prov, pourToi, reste, arrived, pending, invoice, invPaid, invUnpaid, ghost, psNotIssued: noPs && !!ghost, psMissing: noPs && !ghost };
+  // Montants affichés (en-tête, tuiles) : dans un mois sans facture, la cooptation est le seul flux,
+  // on la compte ; dans un mois facturé, elle reste hors du % du facturé.
+  const shownArrived = m.facturation ? arrived : arrived + coop.paid;
+  const shownPending = m.facturation ? pending : pending + coop.pend;
+  return { sal, tr, ndf, ps, coop, prel, prov, pourToi, reste, arrived, pending, shownArrived, shownPending, invoice, invPaid, invUnpaid, ghost,
+    psNotIssued: noPs && !!ghost && !ghost.late, psMissing: noPs && (!ghost || ghost.late) };
 }
 // Entrée de l'audit (dernier passage, silencieux à chaque rendu) d'une catégorie donnée pour ce mois.
 function monthAuditIssue(mois, category) {
@@ -106,6 +115,18 @@ function psPillFor(m, f) {
 // ---------------------------------------------------------------- piste des profit shares
 // Jours écoulés depuis l'émission, rapportés au délai médian quand il est connu.
 const moElapsed = (waited, med) => (waited == null ? '' : `${waited} j écoulés${med ? ` sur ~${med}` : ''}`);
+// Fin du titre de la piste : « tout devrait être arrivé vers le … » seulement si toutes les
+// échéances sont connues et à venir ; sinon on nomme les retards et les échéances inconnues.
+function pendingTail(last, n) {
+  const late = VM.psLate, undated = VM.psUndated;
+  if (late.length || undated.length) {
+    const parts = [];
+    if (late.length) parts.push(`${late.length > 1 ? `${late.length} en retard` : n > 1 ? '1 en retard' : 'en retard'} (<b>${UI.eur0(UI.sum(late, 'montant'))}</b>)`);
+    if (undated.length) parts.push(`${undated.length > 1 ? `${undated.length} sans échéance connue` : n > 1 ? '1 sans échéance connue' : 'sans échéance connue'}`);
+    return n > 1 ? `, dont ${parts.join(' et ')}` : `, ${parts.join(', ')}`;
+  }
+  return last ? `, ${n > 1 ? 'tout devrait être arrivé' : 'attendu'} vers le <b>${UI.dLong(last.eta)}</b>` : '';
+}
 function renderPendingTrack() {
   const host = document.getElementById('pending');
   if (!host.firstElementChild) TRK_CLIENT_OPEN = false;
@@ -114,10 +135,10 @@ function renderPendingTrack() {
   const clients = VM.clientPending;
   const last = items.filter((a) => a.eta).slice(-1)[0];
   const n = items.length;
-  const lastLate = last && last.left < 0;
   const head = n
-    ? `${n} profit share${n > 1 ? 's' : ''} ${n > 1 ? 'sont' : 'est'} en route vers toi${MO_NB}: <b>${UI.eur0(VM.psSum)}</b>${last ? `, ${n > 1 ? (lastLate ? 'tout aurait dû être arrivé' : 'tout devrait être arrivé') : (lastLate ? 'il était attendu' : 'attendu')} vers le <b>${UI.dLong(last.eta)}</b>` : ''}.`
-    : `Aucun profit share en attente${MO_NB}: tout ce qui a été émis t’a été versé.`;
+    ? `${n} profit share${n > 1 ? 's' : ''} ${n > 1 ? 'sont' : 'est'} en route vers toi${MO_NB}: <b>${UI.eur0(VM.psSum)}</b>${pendingTail(last, n)}.`
+    : VM.psEver ? `Aucun profit share en attente${MO_NB}: tout ce qui a été émis t’a été versé.`
+      : `Aucun profit share émis pour l’instant${ghosts.length ? `${MO_NB}: le premier est attendu vers le <b>${UI.dLong(ghosts[0].emit)}</b>` : ''}.`;
   const today = VM.today;
   // Axe : du 1er du mois de la plus ancienne émission de profit share à la fin du mois de la dernière échéance.
   const allStarts = [...items.map((a) => a.emit), ...ghosts.map((g) => g.emit)].filter(Boolean);
@@ -168,10 +189,10 @@ function renderPendingTrack() {
       <div class="trk-val"><span class="v tab">${UI.eur2(a.montant)}</span>${UI.pill(sev, pillTxt, late || longWait ? 'alert' : 'clock')}</div>
     </li>`;
   };
-  const ghostRow = (g) => `<li class="trk-row ghost">
-      <div class="trk-lab"><span class="trk-n"><span class="sw est"></span>Profit share ${UI.monthLower(g.mois)}</span><span class="trk-h">Pas encore émis · émission habituelle vers le ${UI.dShort(g.emit)}</span><span class="trk-h trk-h2">${g.eta ? `Arrivée estimée vers le ${UI.dShort(g.eta)}` : ''}</span></div>
+  const ghostRow = (g) => `<li class="trk-row ghost${g.late ? ' late' : ''}">
+      <div class="trk-lab"><span class="trk-n"><span class="sw est"></span>Profit share ${UI.monthLower(g.mois)}</span><span class="trk-h">${g.late ? `Pas émis · l’émission était attendue le ${UI.dShort(g.emit)}` : `Pas encore émis · émission habituelle vers le ${UI.dShort(g.emit)}`}</span><span class="trk-h trk-h2">${g.eta ? `Arrivée estimée vers le ${UI.dShort(g.eta)}` : ''}</span></div>
       ${lane({ emit: g.emit, eta: g.eta, ghost: true, tip: { t: `Profit share ${UI.monthLower(g.mois)} (pas encore émis)`, v: 'Montant connu à l’émission', rows: [['Émission habituelle', UI.dLong(g.emit)], ['Arrivée estimée', g.eta ? UI.dLong(g.eta) : '—']] } })}
-      <div class="trk-val"><span class="v muted">Montant connu à l’émission</span><span class="pill muted est">${icon('circleDashed')}Pas encore émis</span></div>
+      <div class="trk-val"><span class="v muted">Montant connu à l’émission</span>${g.late ? UI.pill('danger', 'Émission en retard', 'alert') : `<span class="pill muted est">${icon('circleDashed')}Pas encore émis</span>`}</div>
     </li>`;
   const clientRow = (c) => {
     const late = c.late != null && c.late > 0;
@@ -236,6 +257,15 @@ function renderPendingTrack() {
 function onTrackToggle(e) { if (e.target.id === 'trk-client-t') TRK_CLIENT_OPEN = e.detail.open; }
 
 // ---------------------------------------------------------------- mois par mois
+// « 22 j × 610 € » n'est écrit que si la multiplication donne bien le facturé ; sinon (plusieurs
+// factures à des TJM différents, avoir) on donne le TJM moyen. Sans motif (TJM * jours) : jours inconnus.
+function monthDays(m, long) {
+  if (!m.jours_travailles) return m.facturation ? 'Jours non précisés' : 'Sans facturation';
+  const j = UI.num1(m.jours_travailles);
+  const exact = Math.abs(m.jours_travailles * m.tjm - m.facturation) < 1;
+  if (long) return exact ? `${j} jours à ${UI.eur0(m.tjm)}` : `${j} jours (TJM moyen ${UI.eur0(m.facturation / m.jours_travailles)})`;
+  return exact ? `${j} j × ${UI.eur0(m.tjm)}` : `${j} j · TJM moy. ${UI.eur0(m.facturation / m.jours_travailles)}`;
+}
 function monthStory(m, f) {
   const { m: mo, y } = UI.mk(m.mois);
   const name = UI.MF[mo - 1] + ' ' + y;
@@ -251,14 +281,14 @@ function monthStory(m, f) {
     if (wait.length) s0 += `${got.length ? ', et' : ', mais'} ${wait.join(' et ')} en attente`;
     return s0 + '.';
   }
-  let s = `<b>${name}</b>${MO_NB}: ${m.jours_travailles ? `<b>${UI.num1(m.jours_travailles)} jours à ${UI.eur0(m.tjm)}</b>, soit ` : ''}<b>${UI.eur0(m.facturation)}</b> ${moMany(m.facturation) ? 'facturés' : 'facturé'}`;
+  let s = `<b>${name}</b>${MO_NB}: ${m.jours_travailles ? `<b>${monthDays(m, true)}</b>, soit ` : ''}<b>${UI.eur0(m.facturation)}</b> ${moMany(m.facturation) ? 'facturés' : 'facturé'}`;
   const paidOn = m.facturation_date_paiement ? ' le ' + UI.esc(m.facturation_date_paiement) : '';
   if (f.invoice === 'paid') s += `, réglés par le client${paidOn}. `;
   else if (f.invoice === 'partial') s += `${MO_NB}: <b>${UI.eur0(f.invPaid)}</b> réglés par le client${paidOn}, <b>${UI.eur0(f.invUnpaid)}</b> encore en attente. `;
   else s += ', pas encore réglés par le client. ';
   s += `${arrivedTxt}${f.pending > 0.5 ? `, <b>${UI.eur0(f.pending)}</b> ${moMany(f.pending) ? 'sont' : 'est'} en attente` : ''}.`;
   if (f.psNotIssued) {
-    s += ` Le profit share n’est pas encore émis${MO_NB}: il ${f.ghost.emit < VM.today ? 'aurait dû' : 'devrait'} l’être vers le ${UI.endDot(UI.dShort(f.ghost.emit))}`;
+    s += ` Le profit share n’est pas encore émis${MO_NB}: il devrait l’être vers le ${UI.endDot(UI.dShort(f.ghost.emit))}`;
   } else if (f.psMissing) {
     s += ` Aucun profit share n’a été émis alors qu’il était attendu vers le ${UI.dLong(monthPsDue(m.mois))}${MO_NB}: l’audit le signale comme manquant.`;
   } else if (f.ps.pend) {
@@ -269,7 +299,12 @@ function monthStory(m, f) {
     else if (a.left < 0) s += ` ${amt} était attendu vers le ${UI.dShort(a.eta)}${MO_NB}: en retard de <b>${-a.left} j</b>.`;
     else if (a.left === 0) s += ` ${amt} est attendu aujourd’hui.`;
     else s += ` ${amt} est attendu vers le ${UI.endDot(UI.dShort(a.eta))}`;
-  } else if (f.ps.paid) s += f.invoice === 'paid' && f.pending <= 0.5 ? ` Profit share versé${MO_NB}: ce mois est soldé.` : ' Profit share versé.';
+  } else if (f.ps.paid) {
+    // « Soldé » seulement si rien n'est en attente ET si l'équation de clôture tombe juste.
+    const gap = monthGap(m, f);
+    if (gap && gap.kind !== 'round') s += ` Profit share versé, mais un écart de clôture de <b>${UI.eur0(Math.abs(f.reste))}</b> reste à expliquer (voir l’audit).`;
+    else s += f.invoice === 'paid' && f.pending <= 0.5 ? ` Profit share versé${MO_NB}: ce mois est soldé.` : ' Profit share versé.';
+  }
   return s;
 }
 
@@ -362,8 +397,8 @@ function monthDetail(m, f) {
     <div class="md-grid">
       ${casc}
       <div class="md-side">
-        <div class="md-tile ok"><span class="mt-l">${icon('check')}Arrivé chez toi</span><span class="mt-v tab">${UI.eur2(f.arrived)}</span><span class="mt-h">${fact ? UI.pct0(f.arrived / fact * 100) + ' du facturé · ' : ''}versements payés uniquement</span></div>
-        <div class="md-tile warn"><span class="mt-l">${icon('clock')}Encore en attente</span><span class="mt-v tab">${UI.eur2(f.pending)}</span><span class="mt-h">${f.prov ? `+ ${UI.eur0(f.prov)} de provision congés, comptés dans ton total à récupérer` : 'émis, pas encore versés'}</span></div>
+        <div class="md-tile ok"><span class="mt-l">${icon('check')}Arrivé chez toi</span><span class="mt-v tab">${UI.eur2(f.shownArrived)}</span><span class="mt-h">${fact ? UI.pct0(f.arrived / fact * 100) + ' du facturé · ' : ''}versements payés uniquement</span></div>
+        <div class="md-tile warn"><span class="mt-l">${icon('clock')}Encore en attente</span><span class="mt-v tab">${UI.eur2(f.shownPending)}</span><span class="mt-h">${f.prov ? `+ ${UI.eur0(f.prov)} de provision congés, comptés dans ton total à récupérer` : 'émis, pas encore versés'}</span></div>
         <div class="md-tile"><span class="mt-l">${icon('receipt')}Prélevé</span><span class="mt-v tab">${UI.eur2(f.prel)}</span><span class="mt-h">commission, charges sociales, PAS${regul ? ', net des régularisations' : ''}</span></div>
         ${f.psNotIssued ? `<div class="md-ghost"><span class="mt-l">${icon('circleDashed')}Profit share ${UI.esc(UI.monthLower(m.mois))}</span><span class="mt-h">Pas encore émis. Émission habituelle vers le <b>${UI.dShort(g.emit)}</b>${g.eta ? `, arrivée estimée vers le <b>${UI.dShort(g.eta)}</b>` : ''}</span></div>` : ''}
         ${f.psMissing ? `<div class="md-ghost bad"><span class="mt-l">${icon('alert')}Profit share ${UI.esc(UI.monthLower(m.mois))}</span><span class="mt-h">Manquant${MO_NB}: rien n’a été émis alors que l’émission était attendue vers le <b>${UI.dLong(due)}</b>.</span>${moAuditLink()}</div>` : ''}
@@ -387,10 +422,10 @@ function monthRow(m) {
     <div class="mrow${open ? ' is-open' : ''}" data-mois="${id}" data-fold-root>
       <button class="mhead" type="button" id="mh-${id}" ${UI.toggleAttrs('md-' + id, open)}>
         ${voyants(m, f)}
-        <span class="m-n"><span class="mname">${UI.MF[mo - 1]} <small>${y}</small></span><span class="mdays">${m.jours_travailles ? `${UI.num1(m.jours_travailles)} j × ${UI.eur0(m.tjm)}` : 'Sans facturation'}</span></span>
+        <span class="m-n"><span class="mname">${UI.MF[mo - 1]} <small>${y}</small></span><span class="mdays">${monthDays(m)}</span></span>
         <span class="m-s">${split}</span>
         <span class="mcol m-v"><span class="k">Facturé</span><span class="x">${m.facturation ? UI.eur0(m.facturation) : '—'}</span></span>
-        <span class="mcol m-r"><span class="k">Arrivé chez toi</span><span class="x${f.arrived ? '' : ' dim'}">${f.arrived ? UI.eur0(f.arrived) : '—'}</span></span>
+        <span class="mcol m-r"><span class="k">Arrivé chez toi</span><span class="x${f.shownArrived ? '' : ' dim'}">${f.shownArrived ? UI.eur0(f.shownArrived) : '—'}</span></span>
         <span class="mcol m-ps"><span class="k">Profit share</span><span class="mps"><span class="x${m.profit_share_total ? '' : ' dim'}">${m.profit_share_total ? UI.eur0(m.profit_share_total) : '—'}</span>${psPillFor(m, f)}</span></span>
         <span class="chev">${icon('chevron')}</span>
       </button>
@@ -411,9 +446,14 @@ function renderMonthsLists() {
   // à défaut de toute facturation, le dernier mois de l'historique.
   const refM = AGG.monthsByKey[UI.key(VM.lastM, VM.curY)] || AGG.months[AGG.months.length - 1];
   if (!host.firstElementChild) {
-    OPEN_MONTHS.clear(); OPEN_YEARS.clear();
-    OPEN_MONTHS.add(refM.mois);
-    OPEN_YEARS.add(VM.curY);
+    OPEN_MONTHS.clear(); OPEN_YEARS.clear(); AUTO_OPEN.clear(); REF_MOIS = null;
+  }
+  if (refM.mois !== REF_MOIS) {
+    AUTO_OPEN.forEach((k) => { OPEN_MONTHS.delete(k); OPEN_YEARS.delete(k); });
+    AUTO_OPEN.clear();
+    OPEN_MONTHS.add(refM.mois); OPEN_YEARS.add(VM.curY);
+    AUTO_OPEN.add(refM.mois); AUTO_OPEN.add(VM.curY);
+    REF_MOIS = refM.mois;
   }
   const rf = monthFlows(refM);
   const anyMissing = AGG.months.some((m) => monthFlows(m).psMissing);
@@ -421,7 +461,7 @@ function renderMonthsLists() {
     <header class="section-head">
       <div>
         <span class="eyebrow">${icon('list')}Mois par mois</span>
-        <h2 id="months-title">${UI.esc(UI.monthLabel(refM.mois))}${MO_NB}: ${refM.facturation ? `<b>${UI.eur0(refM.facturation)}</b> ${moMany(refM.facturation) ? 'facturés' : 'facturé'}` : 'aucune facturation'}, ${rf.arrived > 0.5 ? `<b>${UI.eur0(rf.arrived)}</b> déjà ${moMany(rf.arrived) ? 'arrivés' : 'arrivé'} chez toi` : 'rien n’est encore arrivé chez toi'}.</h2>
+        <h2 id="months-title">${UI.esc(UI.monthLabel(refM.mois))}${MO_NB}: ${refM.facturation ? `<b>${UI.eur0(refM.facturation)}</b> ${moMany(refM.facturation) ? 'facturés' : 'facturé'}` : 'aucune facturation'}, ${rf.shownArrived > 0.5 ? `<b>${UI.eur0(rf.shownArrived)}</b> déjà ${moMany(rf.shownArrived) ? 'arrivés' : 'arrivé'} chez toi` : 'rien n’est encore arrivé chez toi'}.</h2>
         <p>Ouvre un mois pour voir où est parti chaque euro facturé, et ce qui est payé ou non.</p>
       </div>
     </header>
@@ -437,11 +477,11 @@ function renderMonthsLists() {
       const open = OPEN_YEARS.has(y);
       const ye = UI.esc(y);
       return `<div class="year-block${open ? ' is-open' : ''}" id="months-${ye}" data-year-block="${ye}" data-fold-root>
-        <button class="year-head" type="button" id="yh-${ye}" ${UI.toggleAttrs('yl-' + ye, open)}>
+        <h3 class="fold-h"><button class="year-head" type="button" id="yh-${ye}" ${UI.toggleAttrs('yl-' + ye, open)}>
           <span class="y">${ye}</span><span class="chip${enCours ? ' accent' : ''}">${n} mois ${enCours ? 'en cours' : 'clôturé' + (n > 1 ? 's' : '')}</span>
           <span class="ym"><b>${UI.eur0(st.ca)}</b> facturés · <b>${UI.num1(st.jours)} j</b> · TJM moyen <b>${UI.eur0(st.tjm)}</b></span>
-          <span class="yh-more" aria-hidden="true">Voir les ${n} mois</span><span class="chev">${icon('chevron')}</span>
-        </button>
+          <span class="yh-more" aria-hidden="true">${n > 1 ? `Voir les ${n} mois` : 'Voir le mois'}</span><span class="chev">${icon('chevron')}</span>
+        </button></h3>
         <div class="fold-body${open ? ' is-open' : ''}" id="yl-${ye}" role="region" aria-labelledby="yh-${ye}"><div>
           <div class="card mlist">
             <div class="mlist-head" aria-hidden="true"><span>État</span><span>Mois</span><span>Répartition du facturé</span><span>Facturé</span><span>Arrivé chez toi</span><span>Profit share</span><span></span></div>
@@ -462,6 +502,7 @@ function onMonthsToggle(e) {
   const row = b.closest('.mrow');
   if (row && b.classList.contains('mhead')) {
     const k = row.dataset.mois;
+    AUTO_OPEN.delete(k);
     if (e.detail.open) {
       OPEN_MONTHS.add(k);
       const inner = row.querySelector('.md-in');
@@ -470,5 +511,8 @@ function onMonthsToggle(e) {
     return;
   }
   const yb = b.closest('.year-block');
-  if (yb && b.classList.contains('year-head')) { if (e.detail.open) OPEN_YEARS.add(yb.dataset.yearBlock); else OPEN_YEARS.delete(yb.dataset.yearBlock); }
+  if (yb && b.classList.contains('year-head')) {
+    AUTO_OPEN.delete(yb.dataset.yearBlock);
+    if (e.detail.open) OPEN_YEARS.add(yb.dataset.yearBlock); else OPEN_YEARS.delete(yb.dataset.yearBlock);
+  }
 }

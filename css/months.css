@@ -86,7 +86,8 @@
 .mhead:hover { background: var(--surface-hover); }
 .mrow.is-open .mhead:hover { background: transparent; }
 .mhead .chev { width: 32px; height: 32px; justify-self: end; }
-@media (min-width: 861px) { .mhead .mcol .k { display: none; } }
+/* Libellés de colonne masqués visuellement mais lus dans le nom du bouton (« Facturé 13 420 € ») */
+@media (min-width: 861px) { .mhead .mcol .k { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; } }
 .mname { font-size: 16px; font-weight: 750; letter-spacing: -.015em; }
 .m-n { min-width: 0; }
 .mname small { font-weight: 600; color: var(--muted); font-size: 12.5px; }
@@ -114,7 +115,7 @@
 .story b { color: var(--text); font-weight: 750; }
 .md-grid { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 
-/* Cascade ligne à ligne (greffe Atelier/Cockpit) */
+/* Cascade ligne à ligne */
 .casc { padding: 14px 18px 10px; border-radius: var(--r-md); background: var(--surface-solid); border: 1px solid var(--hairline); }
 [data-theme="dark"] .casc { background: rgba(255, 255, 255, .03); }
 .casc-h, .casc-r { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(90px, 1fr) 104px 52px; gap: 12px; align-items: center; }
@@ -180,7 +181,7 @@
   .mhead .m-s .mini-split { flex: 1; } .mhead .m-s .mini-cap { margin: 0; white-space: nowrap; }
   .mhead .m-v { grid-area: v; text-align: right; } .mhead .chev { grid-area: c; }
   .mhead .m-r, .mhead .m-ps { display: none; }
-  .mhead .mcol .k { display: none; }
+  .mhead .mcol .k { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 640px) {
   .track { padding: 16px 16px 14px; }
@@ -221,3 +222,6 @@
 @media (forced-colors: active) {
   .trk-done, .trk-over, .c-bar i, .mini-split span, .vy { forced-color-adjust: none; }
 }
+
+/* Sombre : les fonds teintés des tuiles empilent trois couches, l'aide passe en --text-2 (AA) */
+[data-theme="dark"] .md-tile.ok .mt-h, [data-theme="dark"] .md-tile.warn .mt-h { color: var(--text-2); }

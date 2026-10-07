@@ -29,7 +29,10 @@ function projModel() {
     const jOuvres = joursOuvres(projYear, mo);
     let jours;
     if (isKnown) jours = realMonth.jours_travailles;
-    else if (overrides[moisKey] !== undefined) jours = overrides[moisKey];
+    else if (Number.isFinite(Number(overrides[moisKey]))) {
+      // Valeur stockée (ou restaurée du cloud) : forcée en nombre et bornée, jamais réinjectée telle quelle.
+      jours = Math.min(jOuvres, Math.max(0, Number(overrides[moisKey])));
+    }
     else jours = jOuvres;
     const proj = projectMonth(projYear, mo, jours, tjm);
     const r = { ...proj, moisKey, isKnown, joursOuvres: jOuvres, realData: realMonth || null };
@@ -117,8 +120,8 @@ function renderProjection(keepFocus) {
     <header class="section-head">
       <div>
         <span class="eyebrow">${icon('sparkles')}Projection fin ${projYear}</span>
-        <h2 id="projection-title">D’ici le 31 décembre, encore <b>≈ ${UI.eur0(ft.total)}</b> pour toi.</h2>
-        <p>${fut.length ? `Avec ${daysSentence}, au TJM de ${UI.eur0(tjm)}. Ajuste tes jours${UI.NBP}: tout se recalcule aussitôt.` : 'Plus aucun mois à projeter cette année.'}</p>
+        <h2 id="projection-title">Tes jours d’ici au 31 décembre te rapporteront encore <b>≈ ${UI.eur0(ft.total)}</b>.</h2>
+        <p>${fut.length ? `Avec ${daysSentence}, au TJM de ${UI.eur0(tjm)}. Versés au fil des mois suivants${UI.NBP}: le salaire début du mois d’après, le profit share environ ${VM.med ? `${VM.med} jours` : 'trois mois'} après son émission. Ajuste tes jours${UI.NBP}: tout se recalcule aussitôt.` : 'Plus aucun mois à projeter cette année.'}</p>
       </div>
     </header>
     <article class="card proj" aria-labelledby="projection-title">
@@ -137,7 +140,7 @@ function renderProjection(keepFocus) {
       </div>
       <div class="proj-main">
         <div class="proj-chart">
-          <header class="card-head"><div class="grow"><h3>Ce que tu auras perçu en ${projYear}</h3><p>Cumul salaire net + profit shares + tickets, par mois d’activité</p></div></header>
+          <header class="card-head"><div class="grow"><h3>Ce que ton activité ${projYear} t’aura rapporté</h3><p>Cumul salaire net + profit shares + tickets, compté au mois d’activité (pas à la date de versement)</p></div></header>
           <div class="legend"><span><i class="lk" style="background:var(--c-ink)"></i>${projYear} réalisé</span><span><i class="lk dash" style="color:var(--c-ink)"></i>${projYear} projeté</span>${PROJ.prevY ? `<span><i class="lk" style="background:var(--c-prev)"></i>${PROJ.prevY}</span>` : ''}</div>
           <div class="chart" id="chart-proj"></div>
           ${knownNoPs ? `<p class="card-foot">${icon('info')}<span>${UI.MF[knownNoPs.month - 1]} ne compte que ${UI.eur0(knownNoPs.total)}${UI.NBP}: son profit share n’est pas encore émis${ghost ? ` (vers le ${UI.dShort(ghost.emit)})` : ''}, il s’ajoutera alors.</span></p>` : ''}
@@ -205,11 +208,12 @@ function parseDays(s) {
   return /^(\d+\.?\d*|\.\d+)$/.test(t) ? Number(t) : NaN;
 }
 
-// Pas d'un demi-jour, borné à [0, jours ouvrés]. Renvoie false si rien ne change.
+// Borné à [0, jours ouvrés], au dixième (précision affichée) : une saisie « 18,3 » est retenue telle quelle
+// (comme en v1) ; le pas d'un demi-jour est celui des boutons +/−. Renvoie false si rien ne change.
 function setProjDays(moisKey, v) {
   const row = PROJ.rows.find((r) => r.moisKey === moisKey);
   if (!row) return false;
-  v = Math.min(row.joursOuvres, Math.max(0, Math.round(v * 2) / 2 || 0));
+  v = Math.min(row.joursOuvres, Math.max(0, Math.round(v * 10) / 10 || 0));
   if (v === row.jours) return false;
   const ov = loadProjOverrides();
   ov[moisKey] = v;
@@ -220,7 +224,7 @@ function stepProjDays(moisKey, delta) {
   const row = PROJ.rows.find((r) => r.moisKey === moisKey);
   return !!row && setProjDays(moisKey, row.jours + delta);
 }
-// Le champ affiche la valeur retenue (bornée, arrondie au demi-jour).
+// Le champ affiche la valeur retenue (bornée).
 function showProjDays(inp) {
   const row = PROJ.rows.find((r) => r.moisKey === inp.dataset.mois);
   if (row) inp.value = UI.num1(row.jours);
@@ -334,7 +338,7 @@ function drawProjCumul() {
   };
   hit.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); const px = (e.clientX - r.left) / r.width * W; show(Math.round((px - P.l) / (W - P.l - P.r) * 11), e.clientX, e.clientY); });
   hit.addEventListener('pointerleave', () => { UI.ttHide(); cross.style.opacity = '0'; });
-  hit.addEventListener('focus', () => show(idx));
+  hit.addEventListener('focus', () => UI.ttFocus(hit, () => show(idx)));
   hit.addEventListener('blur', () => { UI.ttHide(); cross.style.opacity = '0'; });
   hit.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1); }

@@ -141,6 +141,9 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
   .appbar.fit-4 .im-short { display: inline; }
   .appbar.fit-5 .act-audit { padding: 0 10px; gap: 4px; }
   .appbar.fit-5 .act-audit .act-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Dernier palier (641–720 px une fois connecté) : la marque perd « freelance », les actions se resserrent */
+  .appbar.fit-6 .brand-light { display: none; }
+  .appbar.fit-6 .actions { gap: 4px; }
 }
 @media (max-width: 1140px) {
   .secnav-d { display: none; }
@@ -158,7 +161,9 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
 /* Mobile : barre d'app compacte non collante, navigation collante 4 × 44 px, dock d'actions au pouce */
 @media (max-width: 640px) {
   /* backdrop-filter créerait un bloc conteneur pour le dock fixe : la barre mobile n'en a pas */
-  .appbar { position: relative; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
+  /* Fond conservé (contraste AA des textes atténués sur le halo), sans backdrop-filter qui ferait
+     de la barre le bloc conteneur du dock fixe. */
+  .appbar { position: relative; background: var(--appbar); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
   .appbar::after { display: none; }
   .appbar-in { padding: calc(12px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); min-height: 64px; gap: 10px; }
   .brand { min-height: 44px; }  /* cible tactile ≥ 44 px */
@@ -213,6 +218,7 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
 }
 @media (max-height: 500px) and (max-width: 640px) {
   body:not(.is-empty) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .actions { padding: 4px; bottom: calc(6px + env(safe-area-inset-bottom)); border-radius: 18px; }
   .act, #reset-btn, #auth-btn, #save-btn { height: 44px; gap: 2px; border-radius: 14px; font-size: 10.5px; }
   .act .ic { width: 18px; height: 18px; }

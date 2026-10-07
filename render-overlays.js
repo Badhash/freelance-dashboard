@@ -30,6 +30,9 @@ const ModalCtl = (() => {
     html.style.scrollBehavior = '';
   }
   function onOpen(m) {
+    // Un toast déjà affiché ne reste pas par-dessus la modale : il revient à sa fermeture.
+    const t = document.getElementById('toast');
+    if (t && t.classList.contains('visible') && t._opts) { TOAST_QUEUE = t._opts; clearTimeout(t._timer); t.classList.remove('visible'); }
     if (!stack.length) lock();
     stack.push({ m, focus: document.activeElement });
     setTimeout(() => {
@@ -174,6 +177,7 @@ function showToast(opts) {
   s.hidden = !stats;
   t.classList.toggle('error', !ok);
   t.setAttribute('role', ok ? 'status' : 'alert');
+  t._opts = opts;
   t.classList.add('visible');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('visible'), ok ? 5000 : 8000);
@@ -239,10 +243,10 @@ function runAudit(opts) {
     const expected = v.ca * AUDIT_RULES.COMMISSION_PCT_EXPECTED;
     const delta = Math.abs(v.commission - expected);
     if (delta > AUDIT_RULES.COMMISSION_TOLERANCE) {
-      const actualPct = (v.commission / v.ca * 100).toFixed(2);
+      const actualPct = UI.frDec(v.commission / v.ca * 100, 2);
       addIssue('danger', 'commission', `Commission ${mois} hors norme`,
         `La commission portage devrait être exactement 6 % du CA facturé. Écart de ${fmt(delta)} détecté.`,
-        `CA ${fmt(v.ca)} · commission ${fmt(v.commission)} (${actualPct}%) · attendu ${fmt(expected)}`);
+        `CA ${fmt(v.ca)} · commission ${fmt(v.commission)} (${actualPct}${UI.NBP}%) · attendu ${fmt(expected)}`);
     }
   });
 
@@ -311,11 +315,11 @@ function runAudit(opts) {
     const trPerJour = v.total / joursEffectifs;
     if (trPerJour < AUDIT_RULES.TR_MIN) {
       addIssue('warn', 'tr', `Tickets resto bas ${mois}`,
-        `Le ratio par jour de présence (${trPerJour.toFixed(2)} €) est inférieur au seuil bas habituel (${AUDIT_RULES.TR_MIN} €).`,
+        `Le ratio par jour de présence (${UI.eur2(trPerJour)}) est inférieur au seuil bas habituel (${UI.eur2(AUDIT_RULES.TR_MIN)}).`,
         `Total TR ${fmt(v.total)} · base ${joursEffectifs} jours${moisData.jours_travailles > 23 ? ' (plafonné, ' + moisData.jours_travailles + ' facturés)' : ''}`);
     } else if (trPerJour > AUDIT_RULES.TR_MAX) {
       addIssue('info', 'tr', `Tickets resto élevés ${mois}`,
-        `Le ratio par jour de présence (${trPerJour.toFixed(2)} €) dépasse le seuil haut habituel (${AUDIT_RULES.TR_MAX} €).`,
+        `Le ratio par jour de présence (${UI.eur2(trPerJour)}) dépasse le seuil haut habituel (${UI.eur2(AUDIT_RULES.TR_MAX)}).`,
         `Total TR ${fmt(v.total)} · base ${joursEffectifs} jours`);
     }
   });
@@ -377,7 +381,7 @@ function runAudit(opts) {
     const ratio = v.charges_ps / v.ps;
     if (ratio < AUDIT_RULES.CHARGES_PS_PCT_MIN || ratio > AUDIT_RULES.CHARGES_PS_PCT_MAX) {
       addIssue('warn', 'charges_ps', `Charges sur PS ${mois} atypiques`,
-        `Le ratio charges/profit share (${(ratio*100).toFixed(1)}%) sort du range attendu (${(AUDIT_RULES.CHARGES_PS_PCT_MIN*100).toFixed(0)}-${(AUDIT_RULES.CHARGES_PS_PCT_MAX*100).toFixed(0)}%).`,
+        `Le ratio charges/profit share (${UI.frDec(ratio * 100, 1)}${UI.NBP}%) sort de la plage attendue (${(AUDIT_RULES.CHARGES_PS_PCT_MIN*100).toFixed(0)}–${(AUDIT_RULES.CHARGES_PS_PCT_MAX*100).toFixed(0)}${UI.NBP}%).`,
         `PS ${fmt(v.ps)} · charges ${fmt(v.charges_ps)}`);
     }
   });
@@ -517,7 +521,7 @@ function runAudit(opts) {
     } else if (absDelta >= m.facturation * 0.02) {
       addIssue('warn', 'equation', `Écart de clôture important ${m.mois}`,
         `L'équation de clôture ne balance pas. Il y a probablement une ligne manquante ou une erreur.`,
-        `CA ${fmt(m.facturation)} · somme sorties ${fmt(somme)} · delta ${fmt(delta)} (${(delta/m.facturation*100).toFixed(1)}%)`);
+        `CA ${fmt(m.facturation)} · somme sorties ${fmt(somme)} · delta ${fmt(delta)} (${UI.frDec(delta / m.facturation * 100, 1)}${UI.NBP}%)`);
     }
   });
 
@@ -719,7 +723,7 @@ function showImportDiff(fileName, changes, summary) {
   if (newCharges.length) secs.push({ t: 'Nouvelles charges', sev: 'charge', tot: sum(newCharges), items: newCharges.map((r) => ({ a: r.montant, t: short(r.nature), d: r.description, r: r.date, x: `Mois ${r.mois}` })) });
   if (otherAdded.length) secs.push({ t: 'Autres lignes', sev: 'accent', tot: null, items: otherAdded.map((r) => ({ a: r.montant, t: r.nature, d: r.description, r: r.date, x: `Mois ${r.mois}` })) });
   if (dateChanges.length) secs.push({ t: 'Dates de paiement modifiées', sev: 'accent', tot: null, items: dateChanges.map(({ prev, next }) => ({ a: next.montant, t: next.description || next.nature, d: `${prev.datePaiement || '—'}  →  ${next.datePaiement || '—'}`, r: next.mois, x: '' })) });
-  if (nowUnpaid.length) secs.push({ t: 'Paiements annulés', sev: 'danger', tot: null, items: nowUnpaid.map(({ next }) => ({ a: next.montant, t: next.description || next.nature, d: `Statut « Payé » → « ${next.statut || 'non payé'} »`, r: next.mois, x: '' })) });
+  if (nowUnpaid.length) secs.push({ t: 'Paiements annulés', sev: 'danger', tot: null, items: nowUnpaid.map(({ next }) => ({ a: next.montant, t: next.description || next.nature, d: `Statut «${UI.NBP}Payé${UI.NBP}» → «${UI.NBP}${next.statut || 'non payé'}${UI.NBP}»`, r: next.mois, x: '' })) });
   document.getElementById('diff-list').innerHTML = secs.map((sec) => `
     <section class="mgroup"><h3 class="mgroup-t"><i class="ldot ${sec.sev}"></i>${esc(sec.t)} (${sec.items.length})${sec.tot != null ? `<b>${esc(UI.eur2(sec.tot))}</b>` : ''}</h3>
     ${sec.note ? `<p class="mgroup-n">${esc(sec.note)}</p>` : ''}

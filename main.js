@@ -19,7 +19,7 @@ async function importFile(file) {
       const ex = bad[0].mois.length > 24 ? bad[0].mois.slice(0, 24) + '…' : bad[0].mois;
       showToast({
         title: 'Import refusé',
-        body: `${n} ligne${p ? 's ont' : ' a'} un mois illisible (« ${ex} », format attendu MM-AAAA, par exemple 09-2026). Rien n’a été importé.`,
+        body: `${n} ligne${p ? 's ont' : ' a'} un mois illisible («${UI.NBP}${ex}${UI.NBP}», format attendu MM-AAAA, par exemple 09-2026). Rien n’a été importé.`,
         ok: false
       });
       return;
@@ -31,7 +31,7 @@ async function importFile(file) {
     if (obsoletes.length > 0) {
       const n = obsoletes.length, p = n > 1;
       const apercu = obsoletes.slice(0, 5)
-        .map((r) => `• ${r.mois} · ${r.nature.replace(/^(Crédit|Revenu|Charges) - /, '')} · ${fmt(r.montant)}\n  ${r.description || '—'}`)
+        .map((r) => `• ${r.mois} · ${r.nature.replace(/^(Crédit|Revenu|Charges) - /, '')} · ${UI.eur2(r.montant)}\n  ${r.description || '—'}`)
         .join('\n');
       const reste = n > 5 ? `\n• … et ${n - 5} autre${n - 5 > 1 ? 's' : ''}` : '';
       dropMissing = await showConfirm({
@@ -100,9 +100,11 @@ document.addEventListener('click', (e) => {
 // « Restaurer depuis le cloud » n'apparaît que si le bouton cloud est disponible
 (function syncCloudCtas() {
   const b = document.getElementById('auth-btn');
-  const sync = () => document.querySelectorAll('[data-needs-cloud]').forEach((el) => { el.hidden = !b || b.style.display === 'none'; });
+  // Masqué quand le cloud n'est pas configuré, et une fois connecté avec la clé (classe .connected) :
+  // la vue Compte n'offre pas de restauration, il faut se reconnecter pour recharger les données.
+  const sync = () => document.querySelectorAll('[data-needs-cloud]').forEach((el) => { el.hidden = !b || b.style.display === 'none' || b.classList.contains('connected'); });
   sync();
-  if (b) new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['style'] });
+  if (b) new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['style', 'class'] });
 })();
 
 // ---------------------------------------------------------------- thème

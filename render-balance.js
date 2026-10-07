@@ -32,7 +32,7 @@ function signedMoney(n, cents) { return (n <= -0.005 ? '<span class="m-int">−<
 
 function heroNote() {
   const dated = VM.arrivals.filter((a) => a.eta);
-  if (!VM.arrivals.length) return `Aucun profit share en attente${UI.NBP}: tout ce qui a été émis t’a été versé.`;
+  if (!VM.arrivals.length) return VM.psEver ? `Aucun profit share en attente${UI.NBP}: tout ce qui a été émis t’a été versé.` : `Aucun profit share émis pour l’instant.`;
   if (!dated.length) {
     // Aucune date estimable (eta nulle) : pas encore de délai médian (aucun profit share
     // payé), ou dates d'émission absentes. On le dit, sans jamais prétendre « rien en attente ».
@@ -44,10 +44,16 @@ function heroNote() {
   }
   const next = dated[0], last = dated[dated.length - 1];
   let note = `Prochain versement${UI.NBP}: <b>${UI.eur0(next.montant)} vers le ${UI.dShort(next.eta)}</b>, ${whenTxt(next.left)}.`;
-  if (last !== next) {
-    note += last.left < 0
-      ? ` Les profit shares déjà émis sont tous en retard${UI.NBP}: le dernier était attendu vers le ${UI.endDot(UI.dShort(last.eta))}`
-      : ` Les profit shares déjà émis devraient tous être arrivés vers le ${UI.endDot(UI.dShort(last.eta))}`;
+  const late = VM.psLate.length, undated = VM.psUndated.length;
+  if (last.left < 0 && late === dated.length) {
+    note += dated.length > 1 ? ` Les profit shares déjà émis sont tous en retard${UI.NBP}: le dernier était attendu vers le ${UI.endDot(UI.dShort(last.eta))}` : '';
+  } else if (late || undated) {
+    const parts = [];
+    if (late) parts.push(`${late} en retard`);
+    if (undated) parts.push(`${undated} sans échéance connue`);
+    note += ` Parmi les profit shares déjà émis${UI.NBP}: ${parts.join(', ')}.`;
+  } else if (last !== next) {
+    note += ` Les profit shares déjà émis devraient tous être arrivés vers le ${UI.endDot(UI.dShort(last.eta))}`;
   }
   return note;
 }
@@ -133,7 +139,7 @@ function renderArrivals() {
       ${rest ? `<button class="text-link arr-more" type="button" data-act="open-solde">Et ${rest} autre${rest > 1 ? 's' : ''} dans le détail du solde${icon('arrowRight')}</button>` : ''}
       <p class="card-foot">${icon('info')}<span>${why}${ghostTxt}</span></p>`;
   } else {
-    body = `<div class="arr-big"><span class="v">0${UI.NB}€</span><span class="t">rien en attente</span></div><p class="card-foot">${icon('check')}<span>Tous les profit shares émis t’ont été versés.</span></p>`;
+    body = `<div class="arr-big"><span class="v">0${UI.NB}€</span><span class="t">rien en attente</span></div><p class="card-foot">${icon('check')}<span>${VM.psEver ? 'Tous les profit shares émis t’ont été versés.' : 'Aucun profit share émis pour l’instant.'}</span></p>`;
   }
   el.innerHTML = `
     <header class="card-head">
@@ -266,7 +272,7 @@ function renderSoldeDetail() {
   if (!adv) adv = '<li class="line"><span class="l"><span class="n">Aucune créance en attente</span></span></li>';
   const lrow = (k, v, sign) => `<div class="lrow"><span>${UI.esc(k)}</span><span>${UI.signed2(v, sign)}</span></div>`;
   host.innerHTML = `
-    <button class="fold-head" type="button" id="solde-toggle" ${UI.toggleAttrs('solde-body', wasOpen)}>
+    <h2 class="fold-h"><button class="fold-head" type="button" id="solde-toggle" ${UI.toggleAttrs('solde-body', wasOpen)}>
       <span class="ic-tile">${icon('receipt')}</span>
       <span class="fh-t"><span class="fold-title">Détail du solde</span><span class="fold-sub">D’où viennent les ${UI.eur2(VM.soldeFacture)} qu’on te doit et les ${signedEur2(VM.soldeEncaisse)} sur ton compte</span></span>
       <span class="fold-sums" aria-hidden="true">
@@ -275,7 +281,7 @@ function renderSoldeDetail() {
         <span class="sum-chip"><span class="sw" style="background:var(--c-ink)"></span>Sur encaissé <b>${signedEur0(VM.soldeEncaisse)}</b></span>
       </span>
       <span class="chev">${icon('chevron')}</span>
-    </button>
+    </button></h2>
     <div class="fold-body${wasOpen ? ' is-open' : ''}" id="solde-body" role="region" aria-labelledby="solde-toggle"><div><div class="fold-inner">
       <div class="solde-grid">
         <div class="sub-card">

@@ -25,6 +25,7 @@ const UI = (() => {
   const r0 = (n) => Math.round(n) || 0;
   const int = (n) => nf0(r0(n));
   const num1 = (n) => nf1(Math.round(n * 10) / 10 || 0);
+  const frDec = (n, d) => (Number(n) || 0).toFixed(d).replace('.', ',');
   const eur0 = (n) => int(n) + NB + '€';
   const eur2 = (n) => nf2(n || 0) + NB + '€';
   const eur0z = (n) => (Math.abs(n) < 0.5 ? '—' : eur0(n));
@@ -130,13 +131,22 @@ const UI = (() => {
     el.style.left = left + 'px';
     el.style.top = top + 'px';
   }
-  function ttHide() { const el = tt(); if (el) el.hidden = true; }
+  // Infobulle ouverte au focus clavier : quand la tabulation fait défiler la page, on la
+  // replace sur son élément au lieu de la fermer (c'est parfois la seule lecture des valeurs).
+  let TT_FOCUS = null;
+  function ttFocus(el, place) { TT_FOCUS = { el, place }; place(); }
+  function ttHide() { TT_FOCUS = null; const el = tt(); if (el) el.hidden = true; }
+  function ttOnScroll() {
+    const el = tt();
+    if (TT_FOCUS && el && !el.hidden && document.activeElement === TT_FOCUS.el) TT_FOCUS.place();
+    else ttHide();
+  }
   function bindTip(el, fn) {
     const show = (e) => ttShow(fn(), e.clientX, e.clientY);
     el.addEventListener('pointerenter', show);
     el.addEventListener('pointermove', show);
     el.addEventListener('pointerleave', ttHide);
-    el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); ttShow(fn(), r.left + r.width / 2, r.top); });
+    el.addEventListener('focus', () => ttFocus(el, () => { const r = el.getBoundingClientRect(); ttShow(fn(), r.left + r.width / 2, r.top); }));
     el.addEventListener('blur', ttHide);
   }
   const ttRow = (color, label, value) => `<div class="tt-r"><span class="tt-k">${color ? `<i style="background:${color}"></i>` : ''}${esc(label)}</span><span class="tt-v">${esc(value)}</span></div>`;
@@ -177,17 +187,17 @@ const UI = (() => {
       clearTimeout(rt);
       rt = setTimeout(() => { if (innerWidth !== lastW) { lastW = innerWidth; redraw(); } }, 120);
     });
-    addEventListener('scroll', ttHide, { passive: true });
+    addEventListener('scroll', ttOnScroll, { passive: true });
     // Échap masque l'infobulle sans déplacer le focus (WCAG 1.4.13)
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ttHide(); });
   }
 
   return {
-    $, $$, NB, NBP, int, num1, eur0, eur2, eur0z, signed2, pct0, pct1, kEur, esc, sum, money,
+    $, $$, NB, NBP, int, num1, frDec, eur0, eur2, eur0z, signed2, pct0, pct1, kEur, esc, sum, money,
     MS, MF, DAY, mk, key, byMois, addDays, daysDiff, dShort, dLong, monthLabel, monthLower, endDot,
     pill, statusPill, delta, deltaPill, splitBar, bindSplit, legendList,
     niceStep, scaleY, svg, rtop, uid, srTable,
-    ttShow, ttHide, bindTip, ttRow, ttTitle,
+    ttShow, ttHide, ttFocus, bindTip, ttRow, ttTitle,
     chart, redraw, resetCharts, setOpen, toggleAttrs, init
   };
 })();
