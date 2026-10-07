@@ -22,6 +22,10 @@ addClientRule('KEYWORD_IN_DESCRIPTION', 'Display Name')
 listClientRules()
 ```
 
+## Exporting from the portage intranet
+
+`tools/reecho-export.user.js` is a Tampermonkey userscript that adds an "Exporter CSV" button on the activity account page of the Reecho intranet. It walks every page of the "Opérations" tab and downloads a CSV in the exact format `parseCSV()` expects (historical headers, `DD/MM/YYYY` dates, amounts positive in the direction of their nature). It refuses to export while a search or filter is active, since the import treats an export as the complete state of the months it covers.
+
 ## Privacy
 
 No tracking, no analytics, no backend. Your financial data never leaves your browser.

@@ -140,4 +140,15 @@ test('un mois non couvert par l\'export est conservé intact', () => {
   assert.strictEqual(avec.rows.filter(r => r.mois === '01-2030').length, 1);
 });
 
+test('TJM et jours lus même avec des espaces dans la parenthèse', () => {
+  // Saisie libre côté portage : "(610 * 20 )" au lieu de "(610.00 * 20.00)".
+  const espaces = parseCSV([
+    HEADER,
+    '31/05/2030,05-2030,RC-2030-05-0001,Facturation GAMMA DEMO (05-2030) ( 610 * 20 ),Crédit - Facturation,"12 200,00",Non payé,'
+  ].join('\n'));
+  const mai = aggregateOf(espaces).monthsByKey['05-2030'];
+  assert.strictEqual(mai.jours_travailles, 20);
+  assert.strictEqual(mai.tjm, 610);
+});
+
 console.log(`\n${passed} tests OK`);

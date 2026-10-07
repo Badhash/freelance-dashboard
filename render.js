@@ -303,7 +303,7 @@ function runAudit() {
   const facturByMois = {};
   const psByMoisCount = {};
   DATASET.forEach(r => {
-    if (r.nature === 'Crédit - Facturation' && r.description.match(/\([\d.]+\s*\*\s*[\d.]+\)/)) {
+    if (r.nature === 'Crédit - Facturation' && r.description.match(/\(\s*[\d.]+\s*\*\s*[\d.]+\s*\)/)) {
       facturByMois[r.mois] = (facturByMois[r.mois] || 0) + 1;
     }
     if (r.nature === 'Revenu - Profit Share') {

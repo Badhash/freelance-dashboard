@@ -327,7 +327,7 @@ function aggregate() {
         if (isPaid) { totals.ca_paye += r.montant; d.facturation_payee = true; d.facturation_date_paiement = r.datePaiement; }
         else totals.ca_non_paye += r.montant;
         totals.ca += r.montant;
-        const match = r.description.match(/\(([\d.]+)\s*\*\s*([\d.]+)\)/);
+        const match = r.description.match(/\(\s*([\d.]+)\s*\*\s*([\d.]+)\s*\)/);
         if (match) { d.tjm = parseFloat(match[1]); d.jours_travailles += parseFloat(match[2]); }
         // Client
         let clientName = 'Autre';
