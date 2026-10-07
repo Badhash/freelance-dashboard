@@ -73,9 +73,15 @@ function buildViewModel() {
   const today = todayDate();
   const med = AGG.delaisPS.median || 0;
   const medCA = AGG.delaisCA.median || 0;
-  // Arrivée estimée d'un profit share = date d'émission + délai médian constaté (dérivée d'affichage)
+  // Arrivée estimée d'un profit share = date d'émission + délai médian constaté (dérivée d'affichage).
+  // Le profit share du mois M est émis le 16 de M+1 ; une ligne datée plus tôt dans l'export (cas réel :
+  // celui de juin daté du 16/06) partirait un mois trop tôt et paraîtrait en retard. On prend donc la
+  // plus tardive des deux dates ; « Émis le » continue d'afficher la date de l'export.
   const arrivals = psPending.map((ps) => {
-    const emit = parseDate(ps.date_emission);
+    const { m: mo, y } = UI.mk(ps.mois);
+    const usual = new Date(y, mo, 16);
+    const raw = parseDate(ps.date_emission);
+    const emit = raw && raw < usual ? usual : raw;
     const eta = emit && med ? UI.addDays(emit, med) : null;
     return { ...ps, emit, eta, waited: emit ? UI.daysDiff(emit, today) : null, left: eta ? UI.daysDiff(today, eta) : null };
   }).sort((a, b) => (a.eta || 0) - (b.eta || 0));
