@@ -1,357 +1,255 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#0E0F13" media="(prefers-color-scheme: dark)"/>
-<meta name="theme-color" content="#FAF8F3" media="(prefers-color-scheme: light)"/>
-<meta name="format-detection" content="telephone=no"/>
-<title>Dashboard de pilotage</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Pilotage" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pilotage">
+<meta name="theme-color" content="#F4F4F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#07070D" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<title>Pilotage freelance</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+  // Thème posé AVANT le premier rendu : ?theme= > préférence enregistrée > système.
+  (function () {
+    var t = null;
+    try { t = new URLSearchParams(location.search).get('theme'); } catch (e) {}
+    try { if (t !== 'light' && t !== 'dark') t = localStorage.getItem('dashboard_theme_v1'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/hero.css">
+<link rel="stylesheet" href="css/activity.css">
+<link rel="stylesheet" href="css/months.css">
+<link rel="stylesheet" href="css/projection.css">
+<link rel="stylesheet" href="css/overlays.css">
 </head>
 <body>
-<div class="container">
+<div class="aurora" aria-hidden="true"><span class="stars"></span><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+<a class="skip" href="#main">Aller au contenu</a>
+<input type="file" id="csv-file-input" accept=".csv" class="sr-only" tabindex="-1" aria-hidden="true">
 
-  <header>
-    <div class="title-block">
-      <h1>Pilotage <em>Freelance</em></h1>
-      <div class="subtitle">Dashboard de pilotage financier · Analyse & Projection</div>
-    </div>
-    <div class="meta">
-      <div>Mission principale</div>
-      <div>via plateforme</div>
-      <span class="tjm" id="header-tjm">—</span>
-    </div>
-  </header>
+<!-- ================= BARRE D'APP ================= -->
+<header class="appbar" id="appbar">
+  <div class="appbar-in">
+    <a class="brand" href="#main" aria-label="Pilotage freelance, haut de page">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8F7BFF"/><stop offset=".55" stop-color="#6C47FF"/><stop offset="1" stop-color="#1AA0C4"/></linearGradient></defs><rect width="32" height="32" rx="10" fill="url(#bm)"/><path d="M7 21c3-7 6-10 9-10s6 3 9 10" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M11 22.5c1.6-3.4 3.3-5 5-5s3.4 1.6 5 5" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+      <span class="brand-text">
+        <span class="brand-name">Pilotage <span class="brand-light">freelance</span></span>
+        <span class="brand-meta"><span class="tjm-chip" id="header-tjm"></span><span class="dot-sep" aria-hidden="true"></span><span id="last-import-info">Aucun import pour l’instant</span></span>
+      </span>
+    </a>
 
-  <!-- IMPORT BAR -->
-  <div class="import-zone">
-    <div class="last-import" id="last-import-info"></div>
-    <input type="file" id="csv-file-input" accept=".csv" />
-    <button class="import-btn cloud" id="auth-btn" type="button" style="display:none;">
-      <span class="icon">☁</span> <span id="auth-btn-label">Se connecter</span>
-    </button>
-    <button class="import-btn cloud" id="save-btn" type="button" style="display:none;">
-      <span class="icon">💾</span> Sauvegarder
-    </button>
-    <button class="import-btn danger" id="reset-btn" style="display:none;">
-      <span class="icon">⌫</span> Réinitialiser
-    </button>
-    <button class="import-btn" id="audit-btn" onclick="runAudit()" style="display:none;">
-      <span class="icon">🔍</span> Vérifier
-      <span class="audit-badge" id="audit-badge" style="display:none;"></span>
-    </button>
-    <label class="import-btn" for="csv-file-input">
-      <span class="icon">↑</span> Importer CSV
-    </label>
-  </div>
+    <nav class="secnav secnav-d" aria-label="Sections">
+      <a href="#overview" data-nav="overview"><i data-icon="layout"></i>Aperçu</a>
+      <a href="#activity-widget" data-nav="activity"><i data-icon="chart"></i>Activité</a>
+      <a href="#projection-widget" data-nav="projection"><i data-icon="sparkles"></i>Projection</a>
+      <a href="#tab-detail" data-nav="months"><i data-icon="list"></i>Mois</a>
+    </nav>
 
-  <!-- AUDIT MODAL -->
-  <div class="audit-modal" id="audit-modal" style="display:none;">
-    <div class="audit-modal-backdrop" onclick="closeAudit()"></div>
-    <div class="audit-modal-content">
-      <div class="audit-header">
-        <div>
-          <h2>Vérification des calculs</h2>
-          <div class="audit-sub" id="audit-sub">Audit automatique de ton historique</div>
-        </div>
-        <button class="audit-close" onclick="closeAudit()">×</button>
-      </div>
-      <div class="audit-summary" id="audit-summary"></div>
-      <div class="audit-list" id="audit-list"></div>
-      <div class="audit-footer">
-        <div class="audit-legend">
-          <span class="al-item"><span class="dot" style="background: var(--danger)"></span>Critique</span>
-          <span class="al-item"><span class="dot" style="background: var(--warn)"></span>Attention</span>
-          <span class="al-item"><span class="dot" style="background: var(--info)"></span>Info</span>
-          <span class="al-item"><span class="dot" style="background: var(--ok)"></span>OK</span>
-        </div>
-      </div>
+    <button class="btn icon ghost theme-toggle" type="button" id="theme-toggle" aria-label="Basculer le thème clair ou sombre" title="Thème clair ou sombre"><span class="only-dark"><i data-icon="sun"></i></span><span class="only-light"><i data-icon="moon"></i></span></button>
+
+    <!-- Actions : barre en bureau, dock au pouce en mobile (mêmes nœuds, mêmes id) -->
+    <div class="actions" role="group" aria-label="Actions">
+      <button class="act needs-data" type="button" id="reset-btn" title="Réinitialiser le dashboard" hidden><span class="act-ic"><i data-icon="rotate"></i></span><span class="act-l">Réinitialiser</span></button>
+      <button class="act" type="button" id="auth-btn" title="Connecte-toi pour synchroniser tes données (cloud)" style="display:none"><span class="act-ic"><i data-icon="cloud"></i><span class="act-dot" aria-hidden="true"></span></span><span class="act-l" id="auth-btn-label">Se connecter</span></button>
+      <button class="act" type="button" id="save-btn" title="Sauvegarder dans le cloud (chiffré)" style="display:none"><span class="act-ic"><i data-icon="cloudUpload"></i></span><span class="act-l">Sauvegarder</span></button>
+      <button class="act act-audit needs-data" type="button" id="audit-btn" hidden><span class="act-ic"><i data-icon="shield"></i></span><span class="act-l">Vérifier</span><span class="badge" id="audit-badge" hidden></span></button>
+      <label class="act act-primary" for="csv-file-input" role="button" tabindex="0"><span class="act-ic"><i data-icon="upload"></i></span><span class="act-l">Importer<span class="im-hide"> CSV</span></span></label>
     </div>
   </div>
+</header>
 
-  <!-- IMPORT DIFF MODAL -->
-  <div class="audit-modal" id="diff-modal" style="display:none;">
-    <div class="audit-modal-backdrop" onclick="closeImportDiff()"></div>
-    <div class="audit-modal-content">
-      <div class="audit-header">
-        <div>
-          <h2>Nouveautés de l'import</h2>
-          <div class="audit-sub" id="diff-sub"></div>
+<!-- Navigation de sections : rangée collante (tablette), 4 segments de 44 px (mobile) -->
+<nav class="secnav secnav-m" aria-label="Sections">
+  <a href="#overview" data-nav="overview">Aperçu</a>
+  <a href="#activity-widget" data-nav="activity">Activité</a>
+  <a href="#projection-widget" data-nav="projection">Projection</a>
+  <a href="#tab-detail" data-nav="months">Mois</a>
+</nav>
+
+<main id="main" class="wrap">
+
+  <!-- ================= ÉTAT VIDE (statique) ================= -->
+  <section class="empty" id="empty-state" hidden aria-labelledby="empty-title">
+    <div class="card empty-hero">
+      <div>
+        <span class="eyebrow"><span class="live-dot" aria-hidden="true"></span>Bienvenue</span>
+        <h1 id="empty-title">Ton portage, enfin <span>en pleine lumière.</span></h1>
+        <p class="lead">Importe l’export CSV de l’intranet de ton portage : tu verras aussitôt ce qu’il te doit, ce qui arrive et quand, et ce que tu toucheras d’ici la fin de l’année.</p>
+        <div class="empty-ctas">
+          <label class="btn primary" for="csv-file-input" role="button" tabindex="0"><i data-icon="upload"></i>Importer mon premier CSV</label>
+          <button class="btn secondary" type="button" data-act="cloud" data-needs-cloud><i data-icon="cloud"></i>Restaurer depuis le cloud</button>
+          <a class="btn ghost" href="#steps"><i data-icon="info"></i>Comment exporter ?</a>
         </div>
-        <button class="audit-close" onclick="closeImportDiff()">×</button>
+        <div class="drop" id="drop"><i data-icon="file"></i><span>Ou glisse ton fichier ici. Tu pourras réimporter un CSV plus récent à tout moment, sans doublon.</span></div>
       </div>
-      <div class="audit-summary" id="diff-summary"></div>
-      <div class="audit-list" id="diff-list"></div>
-      <div class="audit-footer">
-        <div class="audit-legend">
-          <span class="al-item"><span class="dot" style="background: var(--ok)"></span>Encaissé</span>
-          <span class="al-item"><span class="dot" style="background: var(--info)"></span>Nouveau</span>
-          <span class="al-item"><span class="dot" style="background: var(--warn)"></span>Charge</span>
-          <span class="al-item"><span class="dot" style="background: var(--danger)"></span>Attention</span>
-        </div>
+      <div class="empty-art" aria-hidden="true">
+        <svg viewBox="0 0 460 360" role="presentation">
+          <defs>
+            <linearGradient id="ea1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--c-ps)"/><stop offset="1" style="stop-color:var(--c-sal)"/></linearGradient>
+            <linearGradient id="ea2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c-ps);stop-opacity:.28"/><stop offset="1" style="stop-color:var(--c-ps);stop-opacity:0"/></linearGradient>
+          </defs>
+          <g style="fill:var(--surface-solid);stroke:var(--border)">
+            <rect x="30" y="24" width="250" height="168" rx="22"/><rect x="292" y="24" width="140" height="168" rx="20"/>
+            <rect x="30" y="204" width="402" height="122" rx="20"/>
+          </g>
+          <rect x="52" y="48" width="92" height="9" rx="4.5" style="fill:var(--surface-3)"/>
+          <rect x="52" y="70" width="168" height="34" rx="10" style="fill:url(#ea1);opacity:.9"/>
+          <g><rect x="52" y="124" width="104" height="10" rx="5" style="fill:var(--c-ps)"/><rect x="159" y="124" width="46" height="10" rx="3" style="fill:var(--c-sal)"/><rect x="208" y="124" width="12" height="10" rx="5" style="fill:var(--c-extra)"/></g>
+          <rect x="52" y="150" width="206" height="24" rx="9" style="fill:var(--surface-3)"/>
+          <path d="M308 160 H332 V132 H372 V104 H410" style="fill:none;stroke:var(--c-ps);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+          <path d="M308 160 H332 V132 H372 V104 H410 V170 H308 Z" style="fill:url(#ea2)"/>
+          <circle cx="332" cy="132" r="5" style="fill:var(--c-ps);stroke:var(--surface-solid);stroke-width:2"/><circle cx="372" cy="104" r="5" style="fill:var(--c-ps);stroke:var(--surface-solid);stroke-width:2"/>
+          <rect x="308" y="44" width="64" height="9" rx="4.5" style="fill:var(--surface-3)"/><rect x="308" y="62" width="96" height="16" rx="6" style="fill:var(--surface-3)"/>
+          <g style="fill:var(--c-ink)">
+            <circle cx="60" cy="236" r="4.5"/><circle cx="73" cy="236" r="4.5"/><circle cx="86" cy="236" r="4.5"/><circle cx="99" cy="236" r="4.5"/><circle cx="112" cy="236" r="4.5"/>
+            <circle cx="60" cy="249" r="4.5"/><circle cx="73" cy="249" r="4.5"/><circle cx="86" cy="249" r="4.5"/><circle cx="99" cy="249" r="4.5"/><circle cx="112" cy="249" r="4.5"/>
+            <circle cx="60" cy="262" r="4.5"/><circle cx="73" cy="262" r="4.5"/><circle cx="86" cy="262" r="4.5"/><circle cx="99" cy="262" r="4.5"/>
+            <circle cx="140" cy="236" r="4.5"/><circle cx="153" cy="236" r="4.5"/><circle cx="166" cy="236" r="4.5"/><circle cx="179" cy="236" r="4.5"/><circle cx="192" cy="236" r="4.5"/>
+            <circle cx="140" cy="249" r="4.5"/><circle cx="153" cy="249" r="4.5"/><circle cx="166" cy="249" r="4.5"/>
+          </g>
+          <g style="fill:none;stroke:var(--c-prev);stroke-width:1.5"><circle cx="112" cy="262" r="3.8"/><circle cx="179" cy="249" r="3.8"/><circle cx="192" cy="249" r="3.8"/><circle cx="140" cy="262" r="3.8"/></g>
+          <path d="M236 300 C 270 292, 290 262, 320 266 S 380 240, 412 230 L 412 312 L 236 312 Z" style="fill:var(--c-ink-wash)"/>
+          <path d="M236 300 C 270 292, 290 262, 320 266 S 380 240, 412 230" style="fill:none;stroke:var(--c-ink);stroke-width:3;stroke-linecap:round"/>
+          <path d="M236 306 C 280 300, 310 284, 340 282 S 390 268, 412 262" style="fill:none;stroke:var(--c-prev);stroke-width:2;stroke-linecap:round"/>
+          <circle cx="412" cy="230" r="6" style="fill:var(--c-ink);stroke:var(--surface-solid);stroke-width:3"/>
+        </svg>
       </div>
     </div>
+    <div class="steps" id="steps">
+      <div class="card step"><span class="n">1</span><h2 class="h3">Exporte depuis l’intranet</h2><p>Sur la page des opérations de ton compte d’activité, clique « Exporter CSV » (script fourni avec le dashboard). Sans filtre ni recherche active.</p></div>
+      <div class="card step"><span class="n">2</span><h2 class="h3">Importe le fichier</h2><p>Les lignes sont fusionnées sans doublon. Une facture corrigée entre deux exports ? On te propose de retirer l’ancienne version.</p></div>
+      <div class="card step"><span class="n">3</span><h2 class="h3">Pilote</h2><p>Ce qu’on te doit, les profit shares en route, ton activité, ta projection jusqu’à décembre : tout se calcule tout seul.</p></div>
+    </div>
+    <div class="card privacy"><i data-icon="lock"></i><span>Tes données restent dans ce navigateur. La synchronisation cloud est optionnelle et chiffrée avant l’envoi.</span></div>
+  </section>
+
+  <!-- ================= CONTENU (points de montage remplis par les render-*.js) ================= -->
+  <div id="main-content" hidden>
+    <section class="hero-grid" id="overview" aria-label="Aperçu">
+      <article class="card hero" id="hero"></article>          <!-- render-balance.js -->
+      <article class="card arrivals" id="arrivals"></article>  <!-- render-balance.js -->
+      <div class="kpis" id="kpis"></div>                         <!-- render-stats.js -->
+    </section>
+    <section class="card fold" id="balance-widget" aria-label="Détail du solde" data-fold-root></section> <!-- render-balance.js -->
+    <section class="section" id="pending" aria-labelledby="pending-title"></section>                     <!-- render-months.js -->
+    <section class="section" id="activity-widget" aria-labelledby="activity-title"></section>            <!-- render-stats.js -->
+    <section class="section" id="projection-widget" aria-labelledby="projection-title"></section>        <!-- render-projection.js -->
+    <section class="section" id="tab-detail" aria-labelledby="months-title"></section>                   <!-- render-months.js -->
   </div>
 
-  <!-- EMPTY STATE (affiché si pas de données) -->
-  <div class="empty-state" id="empty-state" style="display:none;">
-    <h2>Commence par importer ton CSV</h2>
-    <p>Extraie le tableau de l'intranet de ton portage avec le script console, télécharge-le en CSV, puis dépose-le ici. Tu peux réimporter un CSV plus récent à tout moment : les nouvelles lignes sont fusionnées sans doublon, et si une facture a été corrigée ou ré-émise entre deux exports, le dashboard te propose de retirer l'ancienne version.</p>
-    <label class="import-btn" for="csv-file-input">
-      <span class="icon">↑</span> Importer mon premier CSV
-    </label>
-  </div>
-
-  <!-- MAIN CONTENT (affiché si données présentes) -->
-  <div id="main-content">
-
-  <!-- BALANCE WIDGET (chiffres remplis par renderBalanceWidget après import) -->
-  <div class="balance-widget" id="balance-widget">
-    <div class="balance-header" onclick="document.getElementById('balance-widget').classList.toggle('expanded')">
-      <div class="balance-title">
-        <h2>Solde du compte de portage</h2>
-        <div class="sub">Argent qui te reste sur ton compte · clique pour voir le détail</div>
-      </div>
-      <div class="balance-total">
-        <div class="label">Total à récupérer</div>
-        <div class="amount">—<span class="unit">€</span></div>
-      </div>
-      <div class="collapse-arrow">›</div>
-    </div>
-
-    <div class="balance-collapsible">
-      <!-- BALANCE OFFICIELLE -->
-      <div class="balance-official">
-        <div class="official-item">
-          <div class="official-label">Solde sur encaissé</div>
-          <div class="official-value">—<span class="u"> €</span></div>
-          <div class="official-hint">Trésorerie disponible sur ton compte · argent déjà reçu par ta société de portage mais pas encore reversé</div>
-        </div>
-        <div class="official-separator"></div>
-        <div class="official-item">
-          <div class="official-label">Solde sur facturé</div>
-          <div class="official-value warn">—<span class="u"> €</span></div>
-          <div class="official-hint">Total acquis · ce que ton portage te doit en additionnant les prestations facturées non encore payées</div>
-        </div>
-      </div>
-
-      <div class="balance-body">
-        <div class="balance-section receivable">
-          <div class="section-label">
-            <span class="dot-icon"></span>
-            Ils te paieront plus tard
-          </div>
-          <div class="balance-subtotal">—<span class="unit">€</span></div>
-          <div class="balance-lines"></div>
-          <div class="balance-note">Délai médian constaté entre émission et encaissement.</div>
-        </div>
-        <div class="balance-section advance">
-          <div class="section-label">
-            <span class="dot-icon"></span>
-            Provisions & autres créances
-          </div>
-          <div class="balance-subtotal">—<span class="unit">€</span></div>
-          <div class="balance-lines"></div>
-          <div class="balance-note">La provision congés s'accumule à chaque mois de salaire. À récupérer à la sortie ou lors d'une prise de congés.</div>
-        </div>
-      </div>
-
-      <!-- DÉTAIL DU SOLDE SUR ENCAISSÉ -->
-      <div class="balance-ledger">
-        <div class="ledger-toggle" onclick="event.stopPropagation(); document.querySelector('.balance-widget').classList.toggle('ledger-open')">
-          <span class="ledger-label">
-            <span class="ledger-arrow">›</span>
-            Détail du calcul du solde sur encaissé
-          </span>
-          <span class="ledger-value">—</span>
-        </div>
-        <div class="ledger-content"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STATISTIQUES D'ACTIVITÉ (chiffres remplis par renderActivityStats après import) -->
-  <div class="activity-widget" id="activity-widget">
-    <div class="activity-header" onclick="document.getElementById('activity-widget').classList.toggle('expanded')">
-      <div class="activity-title">
-        <h2>Statistiques d'activité</h2>
-        <div class="sub">Jours facturés, congés acquis · répartition par année et par client</div>
-      </div>
-      <div class="activity-head-total">
-        <div class="label">Jours facturés</div>
-        <div class="amount">—<span class="unit">j</span></div>
-      </div>
-      <div class="collapse-arrow">›</div>
-    </div>
-    <div class="activity-collapsible">
-      <div class="activity-grid"></div>
-      <div class="activity-years"></div>
-    </div>
-  </div>
-
-  <!-- DÉTAIL MENSUEL -->
-  <div id="tab-detail">
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">2026 <span class="year-tag" data-year-tag="2026"></span></div>
-      </div>
-
-      <div class="pending-zone">
-        <h3>Profit share en attente</h3>
-        <div class="sub">Prestations réalisées, facturées au client, non encore payées.</div>
-        <div class="pending-list"></div>
-      </div>
-
-      <!-- PROJECTION -->
-      <div class="projection-widget" id="projection-widget">
-        <div class="projection-header" onclick="document.getElementById('projection-widget').classList.toggle('open')">
-          <div class="ph-left">
-            <div class="ph-dot"></div>
-            <div>
-              <div class="ph-title">Projection jusqu'à fin d'année</div>
-              <div class="ph-sub">Estimation salaire, profit share et trésorerie sur les mois à venir — clique pour afficher</div>
-            </div>
-          </div>
-          <div class="ph-right">
-            <div class="ph-total" id="projection-total"></div>
-            <div class="ph-arrow">›</div>
-          </div>
-        </div>
-        <div class="projection-body">
-          <div class="projection-legend">
-            <div class="pl-item">
-              <div class="pl-swatch" style="background: var(--accent)"></div>
-              <span>Modifiable · mets tes jours réels attendus</span>
-            </div>
-            <div class="pl-item">
-              <div class="pl-swatch" style="background: var(--info); opacity: 0.5"></div>
-              <span>Calculé automatiquement</span>
-            </div>
-          </div>
-          <div class="projection-table-wrapper">
-            <table class="projection-table" id="projection-table">
-              <thead>
-                <tr>
-                  <th class="left">Mois</th>
-                  <th>Jours ouvrés</th>
-                  <th>Jours facturés</th>
-                  <th>Congés</th>
-                  <th>CA facturé</th>
-                  <th>Salaire net</th>
-                  <th>Profit share</th>
-                  <th>Tickets resto</th>
-                  <th>Total perçu</th>
-                </tr>
-              </thead>
-              <tbody id="projection-tbody"></tbody>
-              <tfoot id="projection-tfoot"></tfoot>
-            </table>
-          </div>
-          <div class="projection-summary" id="projection-summary"></div>
-        </div>
-      </div>
-
-      <div class="month-list" id="months-2026"></div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">2025 <span class="year-tag" data-year-tag="2025"></span></div>
-        <div class="section-sub">Clique sur un mois pour voir le détail complet</div>
-      </div>
-      <div class="month-list" id="months-2025"></div>
-    </div>
-  </div>
-  </div><!-- fin main-content -->
-
-  <footer>
-    <span id="footer-text">Importe un CSV pour démarrer</span>
+  <footer class="foot" id="footer">
+    <span><i data-icon="file"></i><span id="footer-text">Aucune donnée : importe un CSV pour démarrer</span></span>
+    <button class="foot-audit" id="footer-audit" type="button" hidden></button>
+    <span><i data-icon="lock"></i>Données stockées dans ce navigateur · synchro cloud chiffrée en option</span>
   </footer>
+</main>
+
+<!-- ================= MODALES (ouverture = classe .visible) ================= -->
+<div class="modal" id="diff-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="diff-title" aria-describedby="diff-sub">
+    <header class="modal-head">
+      <span class="modal-ic accent"><i data-icon="sparkles"></i></span>
+      <div class="modal-titles"><h2 id="diff-title">Nouveautés de l’import</h2><p id="diff-sub"></p></div>
+      <button class="btn icon ghost modal-x" type="button" data-qa-close aria-label="Fermer"><i data-icon="x"></i></button>
+    </header>
+    <div class="mbanner" id="diff-banner" role="status" hidden></div>
+    <div class="modal-summary" id="diff-summary"></div>
+    <div class="modal-body" id="diff-list"></div>
+    <footer class="modal-foot">
+      <div class="legend-inline" aria-hidden="true"><span><i class="ldot ok"></i>Encaissé</span><span><i class="ldot accent"></i>Nouveau</span><span><i class="ldot charge"></i>Charge</span><span><i class="ldot danger"></i>Supprimé</span></div>
+      <button class="btn primary" type="button" data-qa-close>C’est noté</button>
+    </footer>
+  </div>
 </div>
 
-<!-- Theme toggle -->
-<button id="theme-toggle" aria-label="Basculer thème clair/sombre" title="Basculer thème clair/sombre">
-  <svg class="icon-sun" viewBox="0 0 24 24">
-    <path d="M12 4.5a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V5.5a1 1 0 0 1 1-1zm0 11.5a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0 1.5a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V18.5a1 1 0 0 1 1-1zM4.5 12a1 1 0 0 1 1-1H7a1 1 0 1 1 0 2H5.5a1 1 0 0 1-1-1zm12.5 0a1 1 0 0 1 1-1h1.5a1 1 0 1 1 0 2H18a1 1 0 0 1-1-1zM6.22 6.22a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 1 1-1.42 1.42L6.22 7.64a1 1 0 0 1 0-1.42zm9.08 9.08a1 1 0 0 1 1.42 0l1.06 1.06a1 1 0 1 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 0-1.42zm0-9.08a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0zm-9.08 9.08a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 0 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0z"/>
-  </svg>
-  <svg class="icon-moon" viewBox="0 0 24 24">
-    <path d="M12.14 2.5a.75.75 0 0 1 .61 1.05 7.5 7.5 0 0 0 7.7 10.47.75.75 0 0 1 .79.99 9.5 9.5 0 1 1-9.85-12.53.75.75 0 0 1 .75.02z"/>
-  </svg>
-</button>
+<div class="modal" id="audit-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="audit-title" aria-describedby="audit-sub">
+    <header class="modal-head">
+      <span class="modal-ic"><i data-icon="shield"></i></span>
+      <div class="modal-titles"><h2 id="audit-title">Vérification des calculs</h2><p id="audit-sub">Audit automatique de ton historique</p></div>
+      <button class="btn icon ghost modal-x" type="button" data-qa-close aria-label="Fermer"><i data-icon="x"></i></button>
+    </header>
+    <div class="modal-summary" id="audit-summary"></div>
+    <div class="modal-body" id="audit-list"></div>
+    <footer class="modal-foot">
+      <div class="legend-inline" aria-hidden="true"><span><i class="ldot danger"></i>Critique</span><span><i class="ldot warn"></i>Attention</span><span><i class="ldot accent"></i>Info</span><span><i class="ldot ok"></i>OK</span></div>
+      <button class="btn secondary" type="button" data-qa-close>Fermer</button>
+    </footer>
+  </div>
+</div>
 
-<!-- Confirm modal (remplace confirm() natif bloqué en iframe) -->
-<div class="confirm-modal" id="confirm-modal">
-  <div class="confirm-backdrop"></div>
-  <div class="confirm-box">
-    <h3 id="confirm-title">Confirmation</h3>
-    <div class="msg" id="confirm-message"></div>
+<div class="modal modal-sm confirm-modal" id="confirm-modal">
+  <div class="modal-backdrop confirm-backdrop"></div>
+  <div class="modal-panel" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <span class="confirm-ic"><i data-icon="alert"></i></span>
+    <h2 id="confirm-title">Confirmation</h2>
+    <div class="confirm-msg" id="confirm-message"></div>
     <div class="confirm-actions">
-      <button class="confirm-btn" id="confirm-cancel">Annuler</button>
-      <button class="confirm-btn danger" id="confirm-ok">Confirmer</button>
+      <button class="btn secondary" type="button" id="confirm-cancel" data-qa-close>Annuler</button>
+      <button class="btn danger" type="button" id="confirm-ok">Confirmer</button>
     </div>
   </div>
 </div>
 
-<!-- Toast notification -->
-<div class="toast" id="toast">
-  <div class="t-title" id="toast-title"></div>
-  <div class="t-body" id="toast-body"></div>
-  <div class="t-stats" id="toast-stats"></div>
-</div>
+<!-- Authentification cloud : TOUS les id d'origine (lus par supabase-sync.js). Vues basculées par style.display. -->
+<div class="modal modal-sm auth-modal" id="auth-modal">
+  <div class="modal-backdrop" id="auth-backdrop"></div>
+  <div class="modal-panel auth-panel" tabindex="-1" role="dialog" aria-modal="true" aria-label="Cloud chiffré">
+    <button class="btn icon ghost modal-x" type="button" id="auth-close" data-qa-close aria-label="Fermer"><i data-icon="x"></i></button>
 
-<!-- AUTH / MFA MODAL (couche Supabase — affichée seulement si configurée) -->
-<div class="auth-modal" id="auth-modal">
-  <div class="auth-backdrop" id="auth-backdrop"></div>
-  <div class="auth-box">
-    <button class="auth-close" id="auth-close" type="button" aria-label="Fermer">×</button>
-
-    <!-- VUE 1 — LOGIN -->
     <div class="auth-view" id="auth-view-login">
+      <span class="auth-orb" aria-hidden="true"><i data-icon="cloud"></i></span>
       <h3>Connexion sécurisée</h3>
-      <div class="auth-sub">Accès à tes données cloud (protégées par RLS + MFA). Le dashboard reste utilisable sans connexion.</div>
+      <div class="auth-sub">Synchronise tes données entre tes appareils. Chiffrées dans ton navigateur avant l’envoi, protégées par RLS et MFA. Le dashboard reste utilisable sans connexion.</div>
       <label class="auth-label" for="auth-email">Email</label>
-      <input type="email" id="auth-email" class="auth-input" autocomplete="username" placeholder="ton@email.fr" />
+      <input type="email" id="auth-email" class="auth-input" autocomplete="username" placeholder="ton@email.fr">
       <label class="auth-label" for="auth-password">Mot de passe</label>
-      <input type="password" id="auth-password" class="auth-input" autocomplete="current-password" placeholder="••••••••" />
-      <div class="auth-error" id="auth-login-error"></div>
+      <input type="password" id="auth-password" class="auth-input" autocomplete="current-password" placeholder="Ton mot de passe">
+      <div class="auth-error" id="auth-login-error" role="alert"></div>
       <button class="auth-submit" id="auth-login-submit" type="button">Se connecter</button>
+      <p class="auth-foot"><i data-icon="lock"></i>Clé de chiffrement jamais stockée, redérivée à chaque session.</p>
     </div>
 
-    <!-- VUE 2 — ENRÔLEMENT MFA (1er facteur ou facteur de secours) -->
     <div class="auth-view" id="auth-view-enroll" style="display:none;">
-      <h3>Activer le 2e facteur (MFA)</h3>
-      <div class="auth-sub">Scanne ce QR code avec ton application d'authentification (Google Authenticator, Authy, 1Password…), puis saisis le code à 6 chiffres.</div>
+      <span class="auth-orb" aria-hidden="true"><i data-icon="phone"></i></span>
+      <h3>Activer le 2e facteur</h3>
+      <div class="auth-sub">Scanne ce QR code avec ton application d’authentification (Google Authenticator, Authy, 1Password…), puis saisis le code à 6 chiffres.</div>
       <div class="auth-qr" id="auth-qr"></div>
       <div class="auth-secret">Clé manuelle : <code id="auth-secret"></code></div>
       <label class="auth-label" for="auth-enroll-code">Code à 6 chiffres</label>
-      <input type="text" inputmode="numeric" maxlength="6" id="auth-enroll-code" class="auth-input" autocomplete="one-time-code" placeholder="000000" />
-      <div class="auth-error" id="auth-enroll-error"></div>
-      <button class="auth-submit" id="auth-enroll-submit" type="button">Vérifier &amp; activer</button>
+      <input type="text" inputmode="numeric" maxlength="6" id="auth-enroll-code" class="auth-input otp" autocomplete="one-time-code" placeholder="000000">
+      <div class="auth-error" id="auth-enroll-error" role="alert"></div>
+      <button class="auth-submit" id="auth-enroll-submit" type="button">Vérifier et activer</button>
     </div>
 
-    <!-- VUE 3 — CHALLENGE MFA (facteur déjà enrôlé) -->
     <div class="auth-view" id="auth-view-challenge" style="display:none;">
-      <h3>Vérification 2e facteur</h3>
-      <div class="auth-sub">Saisis le code à 6 chiffres affiché par ton application d'authentification.</div>
+      <span class="auth-orb" aria-hidden="true"><i data-icon="shield"></i></span>
+      <h3>Vérification en deux étapes</h3>
+      <div class="auth-sub">Saisis le code à 6 chiffres affiché par ton application d’authentification.</div>
       <label class="auth-label" for="auth-challenge-code">Code à 6 chiffres</label>
-      <input type="text" inputmode="numeric" maxlength="6" id="auth-challenge-code" class="auth-input" autocomplete="one-time-code" placeholder="000000" />
-      <div class="auth-error" id="auth-challenge-error"></div>
+      <input type="text" inputmode="numeric" maxlength="6" id="auth-challenge-code" class="auth-input otp" autocomplete="one-time-code" placeholder="000000">
+      <div class="auth-error" id="auth-challenge-error" role="alert"></div>
       <button class="auth-submit" id="auth-challenge-submit" type="button">Vérifier</button>
+      <p class="auth-foot"><i data-icon="info"></i>Pense à ajouter un authenticator de secours une fois connecté.</p>
     </div>
 
-    <!-- VUE 4 — COMPTE (connecté) -->
     <div class="auth-view" id="auth-view-account" style="display:none;">
+      <span class="auth-orb" aria-hidden="true"><i data-icon="user"></i></span>
       <h3>Connecté au cloud</h3>
       <div class="auth-sub" id="auth-account-email"></div>
       <div class="auth-factors" id="auth-factors"></div>
@@ -359,26 +257,41 @@
       <button class="auth-submit danger" id="auth-logout" type="button">Se déconnecter</button>
     </div>
 
-    <!-- VUE 5 — DÉVERROUILLAGE (re-dérive la clé de chiffrement après un reload) -->
     <div class="auth-view" id="auth-view-unlock" style="display:none;">
+      <span class="auth-orb" aria-hidden="true"><i data-icon="key"></i></span>
       <h3>Déverrouiller le cloud</h3>
-      <div class="auth-sub">Saisis ton mot de passe pour déchiffrer tes données cloud. La clé n'est jamais stockée : elle est redérivée à chaque session. Le dashboard reste utilisable sans déverrouillage.</div>
+      <div class="auth-sub">Saisis ton mot de passe pour déchiffrer tes données cloud. La clé n’est jamais stockée : elle est redérivée à chaque session. Le dashboard reste utilisable sans déverrouillage.</div>
       <label class="auth-label" for="auth-unlock-password">Mot de passe</label>
-      <input type="password" id="auth-unlock-password" class="auth-input" autocomplete="current-password" placeholder="••••••••" />
-      <div class="auth-error" id="auth-unlock-error"></div>
+      <input type="password" id="auth-unlock-password" class="auth-input" autocomplete="current-password" placeholder="Ton mot de passe">
+      <div class="auth-error" id="auth-unlock-error" role="alert"></div>
       <button class="auth-submit" id="auth-unlock-submit" type="button">Déverrouiller</button>
     </div>
   </div>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-ic" id="toast-ic"><i data-icon="check"></i></span>
+  <div>
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-body" id="toast-body"></div>
+    <div class="toast-stats" id="toast-stats"></div>
+  </div>
+  <button class="btn icon ghost toast-x" type="button" id="toast-close" aria-label="Fermer la notification"><i data-icon="x"></i></button>
+</div>
+
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
 <!-- Supabase (couche optionnelle) : SDK via CDN + config isolée, AVANT data.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="charts.js"></script>
 <script src="render-balance.js"></script>
 <script src="render-stats.js"></script>
 <script src="render-months.js"></script>
 <script src="render-projection.js"></script>
+<script src="render-overlays.js"></script>
 <script src="render.js"></script>
 <script src="supabase-crypto.js"></script>
 <script src="supabase-sync.js"></script>

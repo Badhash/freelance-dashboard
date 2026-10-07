@@ -9,20 +9,33 @@
 //                                  (Supabase, API Google Fonts, CDN…)
 // ============================================================
 
-const CACHE = 'pilotage-v5';
+const CACHE = 'pilotage-v6';
 const FONT_CACHE = 'pilotage-fonts-v1';
 
 // App-shell même origine pré-cachée à l'installation.
 const APP_SHELL = [
   '.',
   'index.html',
-  'styles.css',
+  'css/tokens.css',
+  'css/base.css',
+  'css/shell.css',
+  'css/hero.css',
+  'css/activity.css',
+  'css/months.css',
+  'css/projection.css',
+  'css/overlays.css',
   'data.js',
+  'icons.js',
+  'charts.js',
   'render-balance.js',
   'render-stats.js',
   'render-months.js',
   'render-projection.js',
+  'render-overlays.js',
   'render.js',
+  'supabase-config.js',
+  'supabase-crypto.js',
+  'supabase-sync.js',
   'main.js',
   'favicon.svg',
   'manifest.json',

@@ -1,0 +1,169 @@
+/* ==========================================================================
+   AURORA — tokens (source unique des couleurs, rayons, ombres, mouvement)
+   Clair = « aube lavande » ; sombre = « nuit polaire ».
+   Le thème est posé sur <html data-theme="light|dark"> AVANT le premier rendu
+   (script en <head>) : ?theme= > localStorage dashboard_theme_v1 > système.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --font: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- Surfaces ---- */
+  --bg: #F4F4F9;
+  --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
+  --surface-2: #F8F7FC;
+  --surface-3: #EFEDF7;
+  --surface-hover: #F5F3FC;
+  --appbar: rgba(244, 244, 249, .80);
+  --dock: rgba(255, 255, 255, .86);
+  --border: #E6E4F0;
+  --border-strong: #D7D4E5;
+  --hairline: #ECEAF4;
+
+  /* ---- Texte (contrastes mesurés sur --bg / --surface) ---- */
+  --text: #0E0D1A;      /* 18,6:1 */
+  --text-2: #46435C;    /* 9,4:1 */
+  --muted: #67647E;     /* 5,2:1 sur --bg, 5,7:1 sur blanc */
+  --faint: #6F6C86;     /* 4,6:1 sur --bg (libellés de colonnes, jamais < 11px) */
+
+  /* ---- Accent d'interface (focus, liens, bouton principal) ---- */
+  --accent: #6C47FF;
+  --accent-hover: #5A35F0;
+  --accent-text: #5532E8; /* 6,0:1 sur --accent-soft */
+  --accent-soft: #EFEBFF;
+  --accent-soft-2: #E1D9FF;
+  --on-accent: #FFFFFF;
+  --btn-primary: linear-gradient(180deg, #7C5CFF 0%, #6C47FF 100%);
+
+  /* ---- Grammaire de couleur des données : la couleur = la NATURE de l'argent ----
+     Validée (validate_palette.js, --pairs all) en clair sur #FFFFFF et en sombre sur #15142A. */
+  --c-ps: #6C47FF;                       /* profit share (partout) */
+  --c-ps-tint: rgba(108, 71, 255, .30);  /* profit share émis mais en attente */
+  --c-sal: #1AA0C4;                      /* salaire net + provision congés (salaire différé) */
+  --c-sal-tint: rgba(26, 160, 196, .30);
+  --c-extra: #E8558F;                    /* « petits plus » : tickets resto, notes de frais, cooptation */
+  --c-extra-tint: rgba(232, 85, 143, .30);
+  --c-charge: #BDB8D2;                   /* prélevé : commission, charges, PAS (contexte, toujours étiqueté) */
+  /* L'encre = activité, totaux et temps (CA, jours, année en cours). Jamais une nature d'argent. */
+  --c-ink: #2B2659;
+  --c-ink-wash: rgba(43, 38, 89, .10);
+  --c-prev: #8E8AA6;                     /* année précédente (contexte) */
+  /* « Pas encore réel » (estimé, projeté, pas encore émis) = contour pointillé + voile, jamais une couleur. */
+  --est-stroke: #8E8AA6;
+
+  /* ---- Statuts (réservés, toujours avec icône + libellé) ---- */
+  --ok: #16A35A;     --ok-text: #0E7444;     --ok-soft: #E4F6EB;
+  --warn: #F0A020;   --warn-text: #8F4C00;   --warn-soft: #FFF1DA;
+  --danger: #E5484D; --danger-text: #BF262C; --danger-soft: #FDEBEC;
+  --danger-solid: #D93A40;
+
+  /* ---- Aurore ---- */
+  --aurora-1: rgba(124, 92, 255, .30);
+  --aurora-2: rgba(26, 190, 230, .22);
+  --aurora-3: rgba(240, 90, 160, .17);
+  --hero-ink: linear-gradient(180deg, #0E0D1A 35%, #3B2A9A 120%);
+  --hero-shine: linear-gradient(105deg, transparent 38%, rgba(124, 92, 255, .55) 50%, transparent 62%);
+  --star: transparent;
+
+  /* ---- Profondeur ---- */
+  --shadow-sm: 0 1px 2px rgba(20, 14, 60, .06);
+  --shadow-card: 0 1px 2px rgba(20, 14, 60, .04), 0 14px 34px -20px rgba(30, 20, 90, .22);
+  --shadow-pop: 0 40px 90px -30px rgba(30, 16, 110, .45), 0 2px 8px rgba(20, 14, 60, .08);
+  --shadow-accent: 0 10px 22px -10px rgba(108, 71, 255, .7);
+  --card-hi: 0 0 0 transparent;
+
+  /* ---- Graphiques ---- */
+  --grid: #ECEAF4;
+  --axis: #67647E;
+  --tt-bg: rgba(14, 13, 26, .95);
+  --tt-text: #FFFFFF;
+  --tt-muted: #B9B6CF;
+
+  /* Rampe séquentielle encre (tracker des jours), 6 pas clair → foncé + encre lisible dessus */
+  --q1: #ECEAF6; --q2: #D3CFEA; --q3: #ADA7D6; --q4: #847CC0; --q5: #5B52A3; --q6: #2B2659;
+
+  /* ---- Rayons, espacements, mouvement ---- */
+  --r-xl: 28px; --r-lg: 24px; --r-md: 16px; --r-sm: 12px; --r-xs: 8px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-14: 56px; --sp-16: 64px;
+  --maxw: 1304px;
+  --gutter: 32px;
+  --appbar-h: 68px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --dur-1: .2s; --dur-2: .45s; --dur-3: .9s;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #07070D;
+  /* Cartes translucides SANS backdrop-filter : les halos sont déjà flous, le verre ne coûte rien. */
+  --surface: rgba(24, 22, 40, .74);
+  --surface-solid: #14131F;
+  --surface-2: rgba(255, 255, 255, .04);
+  --surface-3: rgba(255, 255, 255, .075);
+  --surface-hover: rgba(255, 255, 255, .05);
+  --appbar: rgba(8, 8, 14, .74);
+  --dock: rgba(20, 19, 31, .86);
+  --border: rgba(255, 255, 255, .085);
+  --border-strong: rgba(255, 255, 255, .16);
+  --hairline: rgba(255, 255, 255, .07);
+
+  --text: #F4F3FB;
+  --text-2: #BCB9D3;
+  --muted: #908DAA;     /* 5,6:1 sur #15142A */
+  --faint: #8C89A8;     /* 5,4:1 */
+
+  --accent: #8F7BFF;
+  --accent-hover: #A493FF;
+  --accent-text: #B0A3FF;
+  --accent-soft: rgba(143, 123, 255, .14);
+  --accent-soft-2: rgba(143, 123, 255, .26);
+  --btn-primary: linear-gradient(180deg, #7C5CFF 0%, #6440F5 100%);
+
+  --c-ps: #8F7BFF;
+  --c-ps-tint: rgba(143, 123, 255, .34);
+  --c-sal: #169DBC;
+  --c-sal-tint: rgba(22, 157, 188, .34);
+  --c-extra: #E35D96;
+  --c-extra-tint: rgba(227, 93, 150, .34);
+  --c-charge: #5A5679;
+  --c-ink: #E4E1F8;
+  --c-ink-wash: rgba(228, 225, 248, .10);
+  --c-prev: #7D79A0;
+  --est-stroke: #8C89A8;
+
+  --ok: #3DD68C;     --ok-text: #62E3A4;     --ok-soft: rgba(61, 214, 140, .12);
+  --warn: #F5B544;   --warn-text: #F8C46C;   --warn-soft: rgba(245, 181, 68, .13);
+  --danger: #FF6B6B; --danger-text: #FF8F8F; --danger-soft: rgba(255, 107, 107, .13);
+  --danger-solid: #D93A40;
+
+  --aurora-1: rgba(124, 92, 255, .50);
+  --aurora-2: rgba(20, 170, 210, .30);
+  --aurora-3: rgba(230, 80, 150, .26);
+  --hero-ink: linear-gradient(180deg, #FFFFFF 30%, #C7BCFF 115%);
+  --hero-shine: linear-gradient(105deg, transparent 38%, rgba(140, 220, 255, .75) 50%, transparent 62%);
+  --star: rgba(255, 255, 255, .55);
+
+  --shadow-sm: none;
+  --shadow-card: none;
+  --shadow-pop: 0 40px 100px -30px rgba(0, 0, 0, .8);
+  --shadow-accent: 0 8px 28px -8px rgba(124, 92, 255, .75);
+  --card-hi: inset 0 1px 0 rgba(255, 255, 255, .06);
+
+  --grid: rgba(255, 255, 255, .07);
+  --axis: #8C89A8;
+  --tt-bg: rgba(246, 245, 255, .97);
+  --tt-text: #0E0D1A;
+  --tt-muted: #5C5975;
+
+  /* Rampe inversée : plus c'est rempli, plus c'est lumineux */
+  --q1: #1C1A2E; --q2: #2C2950; --q3: #433E78; --q4: #625CA6; --q5: #8C86CF; --q6: #D9D5FF;
+}
+
+/* Transparence réduite : surfaces opaques partout */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --appbar: #F4F4F9; --dock: #FFFFFF; }
+  [data-theme="dark"] { --surface: #14131F; --appbar: #0B0B12; --dock: #14131F; }
+}

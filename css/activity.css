@@ -1,0 +1,89 @@
+/* ==========================================================================
+   AURORA — KPI du premier écran + section Activité (CA cumulé, bilan par
+   année, constellation des jours). Propriétaire : render-stats.js
+   ========================================================================== */
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpi { padding: 20px 20px 18px; display: flex; flex-direction: column; }
+.kpi-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpi-label { font-size: 13px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 8px; letter-spacing: 0; }
+.kpi-label .ic { width: 16px; height: 16px; color: var(--accent-text); }
+.kpi-value { margin-top: 12px; font-size: 30px; font-weight: 750; letter-spacing: -.03em; line-height: 1.05; white-space: nowrap; }
+.kpi-value .m-cur { font-size: .55em; font-weight: 650; color: var(--muted); letter-spacing: 0; }
+.kpi-sub { margin-top: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.kpi-viz { margin-top: auto; padding-top: 14px; }
+.kpi-viz .chart { margin: 0; }
+.tracker { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+.tracker span { height: 26px; border-radius: 6px; background: var(--surface-3); transition: transform .15s var(--ease); }
+.tracker span[tabindex]:hover, .tracker span[tabindex]:focus-visible { transform: translateY(-2px); }
+.tracker span.future { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.tracker-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--faint); font-weight: 650; }
+
+/* ---------- Grille Activité ---------- */
+.act-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.cumul { grid-column: span 7; display: flex; flex-direction: column; }
+.cumul .chart { flex: 1; min-height: 210px; }
+.yearcard { grid-column: span 5; display: flex; flex-direction: column; }
+.cst { grid-column: 1 / -1; }
+.big-delta { margin-top: 16px; display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
+.big-delta .v { font-size: 34px; font-weight: 750; letter-spacing: -.03em; line-height: 1.05; }
+.big-delta .v.up { color: var(--ok-text); }
+.big-delta .v.down { color: var(--danger-text); }
+.big-delta .t { font-size: 14px; color: var(--muted); max-width: 48ch; }
+.big-delta .t b { color: var(--text); white-space: nowrap; }
+.cumul .chart { margin-top: 10px; }
+
+/* Bilan par année */
+.yc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.yearcard .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.clients { margin-top: 12px; border-radius: var(--r-md); border: 1px solid var(--hairline); padding: 14px 16px 16px; flex: 1; }
+.clients h4 { font-size: 13.5px; font-weight: 750; display: flex; align-items: baseline; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap; }
+.clients h4 span { color: var(--muted); font-weight: 600; font-size: 12px; }
+.client-list { list-style: none; }
+.client { margin-top: 12px; }
+.client-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.client-name { font-weight: 750; font-size: 14px; }
+.client-meta { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.client-top .client-meta { margin: 0; }
+.client-val { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.client-bar { margin-top: 6px; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.client-bar i { display: block; height: 100%; border-radius: 999px; background: var(--c-ink); transform-origin: left; animation: grow var(--dur-3) var(--ease) both; }
+
+/* ---------- Constellation des jours ---------- */
+.cst-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
+.cst-legend { margin-top: 6px; }
+.lk.ring.est { box-shadow: none; border: 1.5px dashed var(--est-stroke); }
+.cst-years { margin-top: 18px; display: grid; gap: 14px; }
+.cst-year + .cst-year { padding-top: 14px; border-top: 1px solid var(--hairline); }
+.cst-year svg { display: block; width: 100%; overflow: visible; }
+.cst-y { fill: var(--text); font-size: 26px; font-weight: 800; letter-spacing: -.04em; font-family: var(--font); }
+.cst-ylab { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.cst-ylab b { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+.cst-ylab span { font-size: 12.5px; color: var(--muted); font-weight: 650; }
+.cd-f { fill: var(--c-ink); }
+.cd-r { fill: none; stroke: var(--c-prev); stroke-width: 1.5; }
+.cd-e { fill: none; stroke: var(--est-stroke); stroke-width: 1.3; stroke-dasharray: 2 2; opacity: .8; }
+.cd-m { animation: fadeIn .6s var(--ease) both; }
+/* Nuit polaire : chaque jour facturé devient une étoile (une seule ombre par mois, pas par point) */
+[data-theme="dark"] .cd-m { filter: drop-shadow(0 0 3px rgba(200, 192, 255, .45)); }
+.cst .g-hit:hover, .cst .g-hit:focus-visible { fill: var(--accent-soft); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1140px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cumul, .yearcard { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .kpis { gap: 12px; }
+  .kpi { padding: 16px; }
+  .kpi-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .kpi-value { font-size: 24px; margin-top: 10px; }
+  .kpi-label { font-size: 12.5px; }
+  .big-delta .v { font-size: 28px; }
+  .yc-head { flex-direction: column; align-items: stretch; }
+  .cst-head .legend { gap: 6px 14px; }
+}
+@media (forced-colors: active) {
+  .tracker span, .client-bar i { forced-color-adjust: none; }
+}

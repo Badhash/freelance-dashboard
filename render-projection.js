@@ -1,219 +1,252 @@
 // ============================================================
-// DASHBOARD — rendu de la projection éditable mois par mois
-// Tableau "Projection jusqu'à fin d'année" dans l'onglet Détail mensuel.
+// AURORA — projection jusqu'à fin d'année (#projection-widget).
+// Logique recopiée À L'IDENTIQUE de l'ancien render-projection.js
+// (lignes réalisées / projetées, overrides dashboard_proj_overrides_v1,
+// projectMonth, joursOuvres, PROJ_COEFFS). Seul l'affichage change :
+// titre-phrase, total à venir, tuiles, cumul perçu N vs N-1 (réalisé plein,
+// projeté pointillé), compteurs ± 0,5 j avec mini-barre par mois, tableau.
 // ============================================================
-function renderProjection() {
-  const widget = document.getElementById('projection-widget');
-  if (!widget) return;
 
-  // Détermine TJM actuel (TJM du dernier mois connu avec CA)
+let PROJ = null;
+
+function projModel() {
   let tjm = 0;
-  for (let i = AGG.months.length - 1; i >= 0; i--) {
-    if (AGG.months[i].tjm > 0) { tjm = AGG.months[i].tjm; break; }
-  }
-  if (tjm === 0) return;
-
-  // Dernier mois "réalisé" = dernier mois ayant une facturation > 0.
-  // Les mois sans CA (ex : avril 2026 avec uniquement de la cooptation) restent projetables.
+  for (let i = AGG.months.length - 1; i >= 0; i--) { if (AGG.months[i].tjm > 0) { tjm = AGG.months[i].tjm; break; } }
+  if (tjm === 0) return null;
   let lastBilledIdx = -1;
-  for (let i = AGG.months.length - 1; i >= 0; i--) {
-    if (AGG.months[i].facturation > 0) { lastBilledIdx = i; break; }
-  }
-  const lastBilledMois = lastBilledIdx >= 0 ? AGG.months[lastBilledIdx].mois : AGG.months[AGG.months.length - 1]?.mois;
-  if (!lastBilledMois) return;
+  for (let i = AGG.months.length - 1; i >= 0; i--) { if (AGG.months[i].facturation > 0) { lastBilledIdx = i; break; } }
+  const lastBilledMois = lastBilledIdx >= 0 ? AGG.months[lastBilledIdx].mois : (AGG.months[AGG.months.length - 1] || {}).mois;
+  if (!lastBilledMois) return null;
   const [lkM, lkY] = lastBilledMois.split('-').map(Number);
-
-  // Projection : du dernier mois facturé jusqu'à décembre de l'année en cours.
   const projYear = lkY;
-  const startMonth = lkM;
-  const endMonth = 12;
-
   const overrides = loadProjOverrides();
-
-  // Construction lignes : mois facturés (figés) + mois projetables (avec ou sans data partielle)
   const rows = [];
-  for (let mo = startMonth; mo <= endMonth; mo++) {
-    const moisKey = String(mo).padStart(2,'0') + '-' + projYear;
+  for (let mo = lkM; mo <= 12; mo++) {
+    const moisKey = String(mo).padStart(2, '0') + '-' + projYear;
     const realMonth = AGG.monthsByKey[moisKey];
-    // "Réalisé" = mois avec CA facturé. Cooptation seule ou frais seuls n'empêchent pas la projection.
     const isKnown = realMonth !== undefined && realMonth.facturation > 0;
     const jOuvres = joursOuvres(projYear, mo);
-
     let jours;
-    if (isKnown) {
-      jours = realMonth.jours_travailles;
-    } else if (overrides[moisKey] !== undefined) {
-      jours = overrides[moisKey];
-    } else {
-      jours = jOuvres; // défaut = max jours ouvrés
-    }
-
+    if (isKnown) jours = realMonth.jours_travailles;
+    else if (overrides[moisKey] !== undefined) jours = overrides[moisKey];
+    else jours = jOuvres;
     const proj = projectMonth(projYear, mo, jours, tjm);
-    rows.push({
-      ...proj,
-      moisKey,
-      isKnown,
-      joursOuvres: jOuvres,
-      realData: realMonth || null
-    });
+    const r = { ...proj, moisKey, isKnown, joursOuvres: jOuvres, realData: realMonth || null };
+    r.ca = isKnown ? realMonth.facturation : proj.ca;
+    r.sn = isKnown ? realMonth.salaire_net : proj.salaire_net;
+    r.ps = isKnown ? realMonth.profit_share_total : proj.profit_share;
+    r.tr = isKnown ? realMonth.tickets_resto : proj.tickets;
+    r.total = r.sn + r.ps + r.tr;
+    r.joursAff = isKnown ? realMonth.jours_travailles : r.jours;
+    r.conges = Math.max(0, r.joursOuvres - r.joursAff);
+    rows.push(r);
   }
-
-  // Rendu du tableau
-  const tbody = document.getElementById('projection-tbody');
-  tbody.innerHTML = rows.map((r, idx) => {
-    const cls = r.isKnown ? 'known' : 'future';
-    const monthName = monthNamesFull[r.month - 1];
-    const tag = r.isKnown
-      ? '<span class="proj-tag done">Réalisé</span>'
-      : '<span class="proj-tag future">À venir</span>';
-
-    // Pour mois connu : on affiche les valeurs réelles
-    // Pour mois futur : on affiche les valeurs projetées modifiables
-    const ca = r.isKnown ? r.realData.facturation : r.ca;
-    const sn = r.isKnown ? r.realData.salaire_net : r.salaire_net;
-    const ps = r.isKnown ? r.realData.profit_share_total : r.profit_share;
-    const tr = r.isKnown ? r.realData.tickets_resto : r.tickets;
-    const total = sn + ps + tr;
-    const joursAff = r.isKnown ? r.realData.jours_travailles : r.jours;
-    const congesAff = Math.max(0, r.joursOuvres - joursAff);
-
-    const joursCell = r.isKnown
-      ? `<span>${joursAff}</span>`
-      : `<div class="days-input-wrap">
-           <input type="number" class="days-input" min="0" max="${r.joursOuvres}" step="0.5" value="${joursAff}" data-mois="${r.moisKey}" />
-           <div class="days-steppers">
-             <button type="button" class="days-stepper" data-action="up" data-mois="${r.moisKey}" aria-label="Augmenter">
-               <svg viewBox="0 0 8 8"><path d="M4 1 L7 6 L1 6 Z"/></svg>
-             </button>
-             <button type="button" class="days-stepper" data-action="down" data-mois="${r.moisKey}" aria-label="Diminuer">
-               <svg viewBox="0 0 8 8"><path d="M4 7 L1 2 L7 2 Z"/></svg>
-             </button>
-           </div>
-         </div>`;
-
-    return `
-      <tr class="${cls}">
-        <td class="left">
-          <span class="mo-label">${monthName}</span><span class="mo-year">${r.year}</span>
-          ${tag}
-        </td>
-        <td data-label="Jours ouvrés">${r.joursOuvres}</td>
-        <td class="editable" data-label="Jours facturés">${joursCell}</td>
-        <td data-label="Congés">${congesAff}</td>
-        <td data-label="CA facturé">${fmtShort(ca)}</td>
-        <td data-label="Salaire net">${fmtShort(sn)}</td>
-        <td data-label="Profit share">${fmtShort(ps)}</td>
-        <td data-label="Tickets resto">${fmtShort(tr)}</td>
-        <td data-label="Total perçu"><strong>${fmtShort(total)}</strong></td>
-      </tr>
-    `;
-  }).join('');
-
-  // Totaux
-  const totals = rows.reduce((acc, r) => {
-    const ca = r.isKnown ? r.realData.facturation : r.ca;
-    const sn = r.isKnown ? r.realData.salaire_net : r.salaire_net;
-    const ps = r.isKnown ? r.realData.profit_share_total : r.profit_share;
-    const tr = r.isKnown ? r.realData.tickets_resto : r.tickets;
-    const jours = r.isKnown ? r.realData.jours_travailles : r.jours;
-    acc.jours += jours;
-    acc.joursOuvres += r.joursOuvres;
-    acc.conges += Math.max(0, r.joursOuvres - jours);
-    acc.ca += ca;
-    acc.sn += sn;
-    acc.ps += ps;
-    acc.tr += tr;
-    return acc;
-  }, { jours: 0, joursOuvres: 0, conges: 0, ca: 0, sn: 0, ps: 0, tr: 0 });
+  const totals = rows.reduce((a, r) => { a.jours += r.joursAff; a.joursOuvres += r.joursOuvres; a.conges += r.conges; a.ca += r.ca; a.sn += r.sn; a.ps += r.ps; a.tr += r.tr; return a; },
+    { jours: 0, joursOuvres: 0, conges: 0, ca: 0, sn: 0, ps: 0, tr: 0 });
   totals.total = totals.sn + totals.ps + totals.tr;
+  const fut = rows.filter((r) => !r.isKnown);
+  const ft = fut.reduce((a, r) => { a.ca += r.ca; a.sn += r.salaire_net; a.ps += r.profit_share; a.tr += r.tickets; a.jours += r.jours; return a; }, { ca: 0, sn: 0, ps: 0, tr: 0, jours: 0 });
+  ft.total = ft.sn + ft.ps + ft.tr;
+  // Cumul « perçu » par mois d'activité (même définition que la colonne Total perçu : salaire net + profit share + tickets).
+  const percu = (m) => (m ? m.salaire_net + m.profit_share_total + m.tickets_resto : 0);
+  const cur = [], prev = [];
+  let c = 0, p = 0;
+  const prevY = String(projYear - 1);
+  for (let mo = 1; mo <= 12; mo++) {
+    const row = rows.find((r) => r.month === mo);
+    c += row ? row.total : percu(AGG.monthsByKey[String(mo).padStart(2, '0') + '-' + projYear]);
+    cur.push({ mo, v: c, est: row ? !row.isKnown : false });
+    const pm = AGG.monthsByKey[String(mo).padStart(2, '0') + '-' + prevY];
+    p += percu(pm);
+    prev.push(pm ? p : null);
+  }
+  return { tjm, projYear, rows, totals, fut, ft, cur, prev, prevY: AGG.years.includes(prevY) ? prevY : null };
+}
 
-  document.getElementById('projection-tfoot').innerHTML = `
-    <tr>
-      <td class="left">Total ${projYear}</td>
-      <td data-label="Jours ouvrés">${totals.joursOuvres}</td>
-      <td data-label="Jours facturés">${totals.jours}</td>
-      <td data-label="Congés">${totals.conges}</td>
-      <td data-label="CA facturé">${fmtShort(totals.ca)}</td>
-      <td data-label="Salaire net">${fmtShort(totals.sn)}</td>
-      <td data-label="Profit share">${fmtShort(totals.ps)}</td>
-      <td data-label="Tickets resto">${fmtShort(totals.tr)}</td>
-      <td class="sum-highlight" data-label="Total perçu">${fmtShort(totals.total)}</td>
-    </tr>
-  `;
+function stepperHtml(r, compact) {
+  const name = UI.MF[r.month - 1].toLowerCase();
+  return `<span class="stepper">
+    <button type="button" data-step="down" data-mois="${r.moisKey}" aria-label="Retirer une demi-journée en ${name}">${icon('minus')}</button>
+    <input type="number" inputmode="decimal" min="0" max="${r.joursOuvres}" step="0.5" value="${r.jours}" data-mois="${r.moisKey}" aria-label="Jours facturés en ${name}">
+    ${compact ? '' : '<span class="u" aria-hidden="true">j</span>'}
+    <button type="button" data-step="up" data-mois="${r.moisKey}" aria-label="Ajouter une demi-journée en ${name}">${icon('plus')}</button>
+  </span>`;
+}
 
-  // Summary cards
-  const futurRows = rows.filter(r => !r.isKnown);
-  const futurTotals = futurRows.reduce((acc, r) => {
-    acc.ca += r.ca;
-    acc.sn += r.salaire_net;
-    acc.ps += r.profit_share;
-    acc.tr += r.tickets;
-    acc.jours += r.jours;
-    return acc;
-  }, { ca: 0, sn: 0, ps: 0, tr: 0, jours: 0 });
+function renderProjection(keepFocus) {
+  const host = document.getElementById('projection-widget');
+  PROJ = projModel();
+  if (!PROJ) { host.innerHTML = ''; return; }
+  const { rows, fut, ft, totals, tjm, projYear, cur } = PROJ;
+  const tableOpen = !!(document.getElementById('proj-table') && document.getElementById('proj-table').classList.contains('is-open'));
+  const yearTotal = cur[11].v;
+  const daysTxt = fut.map((r, i) => `${UI.num1(r.jours)} j en ${UI.MF[r.month - 1].toLowerCase()}`);
+  const daysSentence = daysTxt.length > 1 ? daysTxt.slice(0, -1).join(', ') + ' et ' + daysTxt[daysTxt.length - 1] : daysTxt.join('');
+  const known = rows.filter((r) => r.isKnown);
+  const maxRow = Math.max(1, ...rows.map((r) => r.total));
+  const bar = (r) => `<span class="pbar" aria-hidden="true" style="width:${r.total / maxRow * 100}%">${[['sn', 'var(--c-sal)'], ['ps', 'var(--c-ps)'], ['tr', 'var(--c-extra)']].filter(([k]) => r[k] > 0).map(([k, c]) => `<i style="flex:${r[k]} 1 0;background:${c}"></i>`).join('')}</span>`;
+  const dayRows = rows.map((r) => `
+    <div class="day-row${r.isKnown ? ' known' : ''}">
+      <span class="dn">${UI.MF[r.month - 1]}</span>
+      <span class="dh">${r.isKnown ? `${UI.num1(r.joursAff)} j facturés sur ${r.joursOuvres}` : `${r.joursOuvres} jours ouvrés · ${UI.num1(r.conges)} j de congés`}</span>
+      <span class="dr">${r.isKnown ? UI.pill('ok', 'Réalisé', 'check') : stepperHtml(r)}</span>
+      <span class="db">${bar(r)}<span class="dt tab">${r.isKnown ? '' : '≈ '}${UI.eur0(r.total)}</span></span>
+    </div>`).join('');
+  const tbody = rows.map((r) => `
+    <tr class="${r.isKnown ? 'known' : 'future'}">
+      <th scope="row"><span class="mo">${UI.MF[r.month - 1]}</span>${r.isKnown ? UI.pill('ok', 'Réalisé', 'check') : UI.pill('accent', 'À venir')}</th>
+      <td>${r.joursOuvres}</td>
+      <td>${r.isKnown ? UI.num1(r.joursAff) : stepperHtml(r, true)}</td>
+      <td>${UI.num1(r.conges)}</td>
+      <td>${UI.eur0z(r.ca)}</td><td>${UI.eur0z(r.sn)}</td><td>${UI.eur0z(r.ps)}</td><td>${UI.eur0z(r.tr)}</td>
+      <td class="hl">${UI.eur0(r.total)}</td>
+    </tr>`).join('');
+  const knownNoPs = known.find((r) => r.ca > 0 && !r.ps);
+  const ghost = knownNoPs && VM.ghosts.find((g) => g.mois === r2k(knownNoPs));
+  host.innerHTML = `
+    <header class="section-head">
+      <div>
+        <span class="eyebrow">${icon('sparkles')}Projection fin ${projYear}</span>
+        <h2 id="projection-title">D’ici le 31 décembre, encore <b>≈ ${UI.eur0(ft.total)}</b> pour toi.</h2>
+        <p>${fut.length ? `Avec ${daysSentence}, au TJM de ${UI.eur0(tjm)}. Ajuste tes jours : tout se recalcule aussitôt.` : 'Plus aucun mois à projeter cette année.'}</p>
+      </div>
+    </header>
+    <article class="card proj" aria-labelledby="projection-title">
+      <span class="edge" aria-hidden="true"></span>
+      <div class="proj-top">
+        <div class="proj-hero">
+          <span class="eyebrow">Total projeté à venir</span>
+          <div class="v" id="projection-total">${UI.money(ft.total)}</div>
+          <p>${fut.length} mois · salaire, profit share et tickets · ${UI.eur0(yearTotal)} sur toute l’année ${projYear}</p>
+        </div>
+        <div class="proj-tiles" id="projection-summary">
+          <div class="tile"><div class="tv tab">${UI.eur0(ft.sn)}</div><div class="tl"><span class="sw" style="background:var(--c-sal)"></span>Salaire net à venir</div><div class="th">${fut.length} × ${UI.eur0(PROJ_COEFFS.salaire_net_fixe)} env.</div></div>
+          <div class="tile"><div class="tv tab">${UI.eur0(ft.ps)}</div><div class="tl"><span class="sw" style="background:var(--c-ps)"></span>Profit share à venir</div><div class="th">${UI.num1(ft.jours)} jours × ${UI.eur0(tjm)}, moins les charges</div></div>
+          <div class="tile"><div class="tv tab">${UI.eur0(ft.ca)}</div><div class="tl"><span class="sw" style="background:var(--c-ink)"></span>CA à facturer</div><div class="th">Brut, d’ici fin ${projYear}</div></div>
+        </div>
+      </div>
+      <div class="proj-main">
+        <div class="proj-chart">
+          <header class="card-head"><div class="grow"><h3>Ce que tu auras perçu en ${projYear}</h3><p>Cumul salaire net + profit shares + tickets, par mois d’activité</p></div></header>
+          <div class="legend"><span><i class="lk" style="background:var(--c-ink)"></i>${projYear} réalisé</span><span><i class="lk dash" style="color:var(--c-ink)"></i>${projYear} projeté</span>${PROJ.prevY ? `<span><i class="lk" style="background:var(--c-prev)"></i>${PROJ.prevY}</span>` : ''}</div>
+          <div class="chart" id="chart-proj"></div>
+          ${knownNoPs ? `<p class="card-foot">${icon('info')}<span>${UI.MF[knownNoPs.month - 1]} ne compte que ${UI.eur0(knownNoPs.total)} : son profit share n’est pas encore émis${ghost ? ` (vers le ${UI.dShort(ghost.emit)})` : ''}, il s’ajoutera alors.</span></p>` : ''}
+        </div>
+        <div class="days">
+          <h3>Tes jours facturés</h3>
+          <p>Par défaut : tous les jours ouvrés. Mets tes jours réels attendus.</p>
+          <div class="day-legend legend" aria-hidden="true"><span><i class="lk box" style="background:var(--c-sal)"></i>Salaire</span><span><i class="lk box" style="background:var(--c-ps)"></i>Profit share</span><span><i class="lk box" style="background:var(--c-extra)"></i>Tickets</span></div>
+          ${dayRows}
+        </div>
+      </div>
+      <div class="proj-table-wrap">
+        <button class="link-btn" type="button" id="proj-table-btn" ${UI.toggleAttrs('proj-table', tableOpen)}>${icon('table')}Tableau détaillé${icon('chevron')}</button>
+        <div class="fold-body${tableOpen ? ' is-open' : ''}" id="proj-table"><div>
+          <div class="table-scroll" data-qa-scroll tabindex="0" role="region" aria-label="Tableau de projection, défilable horizontalement">
+            <table class="pt">
+              <thead><tr><th scope="col">Mois</th><th scope="col">Jours ouvrés</th><th scope="col">Jours facturés</th><th scope="col">Congés</th><th scope="col">CA facturé</th><th scope="col">Salaire net</th><th scope="col">Profit share</th><th scope="col">Tickets resto</th><th scope="col">Total perçu</th></tr></thead>
+              <tbody id="projection-tbody">${tbody}</tbody>
+              <tfoot id="projection-tfoot"><tr><th scope="row">Total ${UI.MS[rows[0].month - 1]}–${UI.MS[rows[rows.length - 1].month - 1]} ${projYear}</th><td>${totals.joursOuvres}</td><td>${UI.num1(totals.jours)}</td><td>${UI.num1(totals.conges)}</td><td>${UI.eur0(totals.ca)}</td><td>${UI.eur0(totals.sn)}</td><td>${UI.eur0(totals.ps)}</td><td>${UI.eur0(totals.tr)}</td><td class="ledger-total">${UI.eur0(totals.total)}</td></tr></tfoot>
+            </table>
+          </div>
+        </div></div>
+      </div>
+    </article>`;
+  bindProjection();
+  UI.chart('proj', drawProjCumul);
+  if (keepFocus) { const el = host.querySelector(keepFocus); if (el) el.focus({ preventScroll: true }); }
+}
+function r2k(r) { return r.moisKey; }
 
-  document.getElementById('projection-summary').innerHTML = `
-    <div class="proj-summary-card">
-      <div class="l">À venir · ${futurRows.length} mois</div>
-      <div class="v info">${fmtInt(futurTotals.sn + futurTotals.ps + futurTotals.tr)} <span style="font-size: 14px;">€</span></div>
-      <div class="sub">Total perçu projeté</div>
-    </div>
-    <div class="proj-summary-card">
-      <div class="l">Salaire net à venir</div>
-      <div class="v">${fmtInt(futurTotals.sn)} <span style="font-size: 14px;">€</span></div>
-      <div class="sub">${futurRows.length} × ${fmtInt(PROJ_COEFFS.salaire_net_fixe)} € env.</div>
-    </div>
-    <div class="proj-summary-card">
-      <div class="l">Profit share à venir</div>
-      <div class="v warn">${fmtInt(futurTotals.ps)} <span style="font-size: 14px;">€</span></div>
-      <div class="sub">${fmtInt(futurTotals.jours)} jours × ${tjm} €</div>
-    </div>
-    <div class="proj-summary-card">
-      <div class="l">CA à facturer</div>
-      <div class="v accent">${fmtInt(futurTotals.ca)} <span style="font-size: 14px;">€</span></div>
-      <div class="sub">Total brut ${projYear}</div>
-    </div>
-  `;
+function setProjDays(moisKey, v) {
+  const row = PROJ.rows.find((r) => r.moisKey === moisKey);
+  if (!row) return;
+  if (isNaN(v) || v < 0) v = 0;
+  if (v > row.joursOuvres) v = row.joursOuvres;
+  const ov = loadProjOverrides();
+  ov[moisKey] = v;
+  saveProjOverrides(ov);
+}
+function bindProjection() {
+  const host = document.getElementById('projection-widget');
+  UI.$$('[data-step]', host).forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    const k = b.dataset.mois;
+    const input = b.parentElement.querySelector(`input[data-mois="${k}"]`);
+    const cur = parseFloat(input.value) || 0;
+    setProjDays(k, b.dataset.step === 'up' ? cur + 0.5 : cur - 0.5);
+    renderProjection(`${b.closest('table') ? 'table ' : '.days '}[data-step="${b.dataset.step}"][data-mois="${k}"]`);
+  }));
+  UI.$$('input[data-mois]', host).forEach((inp) => inp.addEventListener('change', () => {
+    setProjDays(inp.dataset.mois, parseFloat(String(inp.value).replace(',', '.')));
+    renderProjection(`${inp.closest('table') ? 'table ' : '.days '}input[data-mois="${inp.dataset.mois}"]`);
+  }));
+}
 
-  // Mise à jour du header du widget (total visible quand collapsed)
-  document.getElementById('projection-total').innerHTML = `
-    <span class="lbl">Total projeté à venir</span>
-    <span class="big">${fmtInt(futurTotals.sn + futurTotals.ps + futurTotals.tr)} €</span>
-  `;
-
-  // Listener sur les inputs jours
-  tbody.querySelectorAll('input.days-input').forEach(input => {
-    input.addEventListener('input', (e) => {
-      const moisKey = e.target.dataset.mois;
-      let v = parseFloat(e.target.value);
-      if (isNaN(v) || v < 0) v = 0;
-      const max = parseFloat(e.target.max);
-      if (v > max) v = max;
-      const ov = loadProjOverrides();
-      ov[moisKey] = v;
-      saveProjOverrides(ov);
-      renderProjection();
-    });
-  });
-
-  // Listener sur les boutons stepper (+ / -)
-  tbody.querySelectorAll('.days-stepper').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const moisKey = btn.dataset.mois;
-      const action = btn.dataset.action;
-      const input = tbody.querySelector(`input.days-input[data-mois="${moisKey}"]`);
-      if (!input) return;
-      const current = parseFloat(input.value) || 0;
-      const max = parseFloat(input.max);
-      const step = 0.5;
-      let next = action === 'up' ? current + step : current - step;
-      if (next < 0) next = 0;
-      if (next > max) next = max;
-      const ov = loadProjOverrides();
-      ov[moisKey] = next;
-      saveProjOverrides(ov);
-      renderProjection();
-    });
+function drawProjCumul() {
+  const el = document.getElementById('chart-proj');
+  if (!el || !PROJ) return;
+  el.innerHTML = '';
+  const { cur, prev, projYear, prevY } = PROJ;
+  const W = Math.max(260, el.clientWidth);
+  const narrow = W < 480;
+  const H = Math.max(narrow ? 220 : 256, Math.min(420, el.clientHeight || 0));
+  const P = { l: 46, r: narrow ? 74 : 96, t: 22, b: 28 };
+  const max = Math.max(1, ...cur.map((c) => c.v), ...prev.filter((v) => v != null));
+  const { top, ticks } = UI.scaleY(max, 4);
+  const x = (i) => P.l + i / 11 * (W - P.l - P.r);
+  const y = (v) => P.t + (1 - v / top) * (H - P.t - P.b);
+  const firstEst = cur.findIndex((c) => c.est);
+  const lastReal = firstEst > 0 ? firstEst - 1 : (firstEst === -1 ? 11 : 0);
+  let g = '';
+  if (firstEst > 0) {
+    const xa = x(lastReal) + (x(firstEst) - x(lastReal)) / 2;
+    g += `<rect x="${xa}" y="${P.t - 8}" width="${W - P.r + 8 - xa}" height="${H - P.b - P.t + 8}" rx="10" style="fill:var(--accent-soft);opacity:.7"/>`;
+    g += `<text class="g-sub" x="${xa + 8}" y="${H - P.b - 10}">Projection</text>`;
+  }
+  g += `<g class="g-grid">${ticks.map((v) => `<line x1="${P.l}" x2="${W - P.r + 8}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>`;
+  g += ticks.map((v) => `<text class="g-tick" x="${P.l - 8}" y="${y(v) + 4}" text-anchor="end">${UI.esc(UI.kEur(v))}</text>`).join('');
+  for (let i = 0; i < 12; i += narrow ? 3 : 2) g += `<text class="g-tick" x="${x(i)}" y="${H - 8}" text-anchor="middle">${UI.MS[i]}</text>`;
+  const path = (arr, from, to) => { let d = ''; for (let i = from; i <= to; i++) { const v = arr[i]; if (v == null) continue; d += (d ? 'L' : 'M') + x(i) + ',' + y(v); } return d; };
+  const cv = cur.map((c) => c.v);
+  if (prevY) g += `<path class="g-line" d="${path(prev, 0, 11)}" style="stroke:var(--c-prev)"/>`;
+  g += `<path d="${path(cv, 0, lastReal)}L${x(lastReal)},${y(0)}L${x(0)},${y(0)}Z" style="fill:var(--c-ink-wash)"/>`;
+  g += `<path class="g-line g-draw" d="${path(cv, 0, lastReal)}" style="stroke:var(--c-ink)"/>`;
+  if (firstEst > 0) g += `<path class="g-line est" d="${path(cv, lastReal, 11)}" style="stroke:var(--c-ink)"/>`;
+  g += `<circle class="g-dot" cx="${x(lastReal)}" cy="${y(cv[lastReal])}" r="4.5" style="fill:var(--c-ink)"/>`;
+  g += `<circle cx="${x(11)}" cy="${y(cv[11])}" r="5" style="fill:var(--surface-solid);stroke:var(--c-ink);stroke-width:2"/>`;
+  const endP = prev[11];
+  const yCur = y(cv[11]), yPrev = endP != null ? y(endP) : null;
+  let dy1 = 0, dy2 = 0;
+  if (yPrev != null && Math.abs(yCur - yPrev) < 30) { if (yCur < yPrev) { dy1 = -10; dy2 = 10; } else { dy1 = 10; dy2 = -10; } }
+  g += `<text class="g-lbl halo" x="${x(11) + 10}" y="${yCur + dy1 - 2}">≈ ${UI.esc(UI.eur0(cv[11]))}</text><text class="g-sub halo" x="${x(11) + 10}" y="${yCur + dy1 + 12}">${projYear}</text>`;
+  if (endP != null) {
+    g += `<circle class="g-dot" cx="${x(11)}" cy="${yPrev}" r="4" style="fill:var(--c-prev)"/>`;
+    g += `<text class="g-lbl halo" x="${x(11) + 10}" y="${yPrev + dy2 + 10}" style="fill:var(--text-2)">${UI.esc(UI.eur0(endP))}</text><text class="g-sub halo" x="${x(11) + 10}" y="${yPrev + dy2 + 24}">${prevY}</text>`;
+  }
+  g += `<line class="g-cross" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" style="opacity:0"/>`;
+  g += `<rect class="g-hit" x="${P.l - 10}" y="${P.t}" width="${W - P.l - P.r + 20}" height="${H - P.t - P.b}" tabindex="0" aria-label="Lire le cumul perçu mois par mois : survol, ou flèches gauche et droite"/>`;
+  el.innerHTML = UI.svg(W, H, g, `Perçu cumulé ${projYear} : environ ${UI.eur0(cv[11])} fin décembre${endP != null ? `, contre ${UI.eur0(endP)} en ${prevY}` : ''}`)
+    + UI.srTable('Perçu cumulé par mois', ['Mois', `${projYear}`, 'Statut', prevY || ''], cur.map((c, i) => [UI.MF[i], UI.eur0(c.v), c.est ? 'projeté' : 'réalisé', prev[i] != null ? UI.eur0(prev[i]) : '—']));
+  const hit = el.querySelector('.g-hit'), cross = el.querySelector('.g-cross');
+  let idx = lastReal;
+  const show = (i, cx, cy) => {
+    idx = Math.max(0, Math.min(11, i));
+    cross.setAttribute('x1', x(idx)); cross.setAttribute('x2', x(idx)); cross.style.opacity = '1';
+    const row = PROJ.rows.find((r) => r.month === idx + 1);
+    let html = UI.ttTitle(`Fin ${UI.MF[idx].toLowerCase()} ${projYear}${cur[idx].est ? ' · projeté' : ''}`);
+    html += UI.ttRow('var(--c-ink)', projYear + (cur[idx].est ? ' (estimé)' : ''), (cur[idx].est ? '≈ ' : '') + UI.eur0(cur[idx].v));
+    if (prevY) html += UI.ttRow('var(--c-prev)', prevY, prev[idx] != null ? UI.eur0(prev[idx]) : '—');
+    if (row) html += UI.ttRow('', 'Dont ce mois', UI.eur0(row.total) + (row.isKnown ? '' : ' · ' + UI.num1(row.jours) + ' j'));
+    const r = el.getBoundingClientRect();
+    UI.ttShow(html, cx != null ? cx : r.left + x(idx) / W * r.width, cy != null ? cy : r.top + 40);
+  };
+  hit.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); const px = (e.clientX - r.left) / r.width * W; show(Math.round((px - P.l) / (W - P.l - P.r) * 11), e.clientX, e.clientY); });
+  hit.addEventListener('pointerleave', () => { UI.ttHide(); cross.style.opacity = '0'; });
+  hit.addEventListener('focus', () => show(idx));
+  hit.addEventListener('blur', () => { UI.ttHide(); cross.style.opacity = '0'; });
+  hit.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1); }
   });
 }
