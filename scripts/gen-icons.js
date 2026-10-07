@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // ============================================================
-// Génère les icônes PWA (PNG) à partir du motif de favicon.svg,
-// sans aucune dépendance externe : encodeur PNG maison + zlib natif.
+// Génère les icônes PWA (PNG) à partir du monogramme de favicon.svg
+// (« deux arcs d'aurore »), sans aucune dépendance externe : encodeur PNG
+// maison + zlib natif.
 // Lancer : node scripts/gen-icons.js
 // ============================================================
 const fs = require('fs');
@@ -55,43 +56,48 @@ function encodePNG(width, height, rgba) {
   ]);
 }
 
-// ---- Dessin ----
-function hexToRgb(h) {
-  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-}
-function makeCanvas(size, bg) {
-  const buf = Buffer.alloc(size * size * 4);
-  const [r, g, b] = hexToRgb(bg);
-  for (let i = 0; i < size * size; i++) {
-    buf[i * 4] = r; buf[i * 4 + 1] = g; buf[i * 4 + 2] = b; buf[i * 4 + 3] = 255;
+// ---- Dessin : monogramme « deux arcs d'aurore » de favicon.svg (repère 32 × 32) ----
+// Fond : dégradé diagonal #8F7BFF → #6C47FF (55 %) → #1AA0C4, du coin haut gauche au coin bas droit.
+// Deux arcs blancs à bouts ronds : l'extérieur plein (2,6), l'intérieur à 60 % d'opacité (2,2).
+const STOPS = [[0, [0x8F, 0x7B, 0xFF]], [0.55, [0x6C, 0x47, 0xFF]], [1, [0x1A, 0xA0, 0xC4]]];
+function gradientAt(t) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 1; i < STOPS.length; i++) {
+    const [t0, c0] = STOPS[i - 1], [t1, c1] = STOPS[i];
+    if (t <= t1) { const u = (t - t0) / (t1 - t0); return c0.map((v, k) => v + (c1[k] - v) * u); }
   }
-  return buf;
+  return STOPS[STOPS.length - 1][1];
 }
-// Remplit un rectangle arrondi (coordonnées flottantes), anti-aliasing simple par sur-échantillon.
-function fillRoundRect(buf, size, x, y, w, h, rx, color) {
-  const [cr, cg, cb] = hexToRgb(color);
-  const x0 = Math.max(0, Math.floor(x)), x1 = Math.min(size, Math.ceil(x + w));
-  const y0 = Math.max(0, Math.floor(y)), y1 = Math.min(size, Math.ceil(y + h));
-  const SS = 4; // super-sampling
-  for (let py = y0; py < y1; py++) {
-    for (let px = x0; px < x1; px++) {
-      let cover = 0;
-      for (let sy = 0; sy < SS; sy++) {
-        for (let sx = 0; sx < SS; sx++) {
-          const fx = px + (sx + 0.5) / SS;
-          const fy = py + (sy + 0.5) / SS;
-          if (insideRoundRect(fx, fy, x, y, w, h, rx)) cover++;
-        }
-      }
-      if (!cover) continue;
-      const a = cover / (SS * SS);
-      const idx = (py * size + px) * 4;
-      buf[idx]     = Math.round(buf[idx]     * (1 - a) + cr * a);
-      buf[idx + 1] = Math.round(buf[idx + 1] * (1 - a) + cg * a);
-      buf[idx + 2] = Math.round(buf[idx + 2] * (1 - a) + cb * a);
-      buf[idx + 3] = 255;
-    }
+// « M7 21c3-7 6-10 9-10s6 3 9 10 » et « M11 22.5c1.6-3.4 3.3-5 5-5s3.4 1.6 5 5 », en absolu
+// (le point de contrôle du « s » est le symétrique du précédent).
+const ARCS = [
+  { width: 2.6, opacity: 1, curves: [[[7, 21], [10, 14], [13, 11], [16, 11]], [[16, 11], [19, 11], [22, 14], [25, 21]]] },
+  { width: 2.2, opacity: 0.6, curves: [[[11, 22.5], [12.6, 19.1], [14.3, 17.5], [16, 17.5]], [[16, 17.5], [17.7, 17.5], [19.4, 19.1], [21, 22.5]]] },
+];
+function bezier(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
+}
+// Arc aplati en segments (repère de la toile) : la distance à cette polyligne donne le trait,
+// bouts et jonctions ronds compris.
+function flatten(arc, map) {
+  const pts = [];
+  arc.curves.forEach((c, ci) => { for (let i = ci ? 1 : 0; i <= 48; i++) pts.push(map(bezier(c[0], c[1], c[2], c[3], i / 48))); });
+  const segs = [];
+  for (let i = 1; i < pts.length; i++) segs.push([pts[i - 1], pts[i]]);
+  return segs;
+}
+function distToSegs(x, y, segs) {
+  let best = Infinity;
+  for (const [[ax, ay], [bx, by]] of segs) {
+    const dx = bx - ax, dy = by - ay;
+    const L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)) : 0;
+    const ex = ax + t * dx - x, ey = ay + t * dy - y;
+    const d = ex * ex + ey * ey;
+    if (d < best) best = d;
   }
+  return Math.sqrt(best);
 }
 function insideRoundRect(px, py, x, y, w, h, r) {
   if (px < x || px > x + w || py < y || py > y + h) return false;
@@ -105,32 +111,58 @@ function insideRoundRect(px, py, x, y, w, h, r) {
   return (px - cx) ** 2 + (py - cy) ** 2 <= r * r;
 }
 
-// Motif favicon en repère 32x32 : 3 barres.
-const BARS = [
-  { x: 4,  y: 19, w: 6, h: 9,  rx: 1.5, fill: '#9A824A' },
-  { x: 13, y: 13, w: 6, h: 15, rx: 1.5, fill: '#E4C068' },
-  { x: 22, y: 5,  w: 6, h: 23, rx: 1.5, fill: '#B18BE0' },
-];
-
-function drawIcon(size, { bg = '#0E0F13', contentScale = 0.64 } = {}) {
-  const buf = makeCanvas(size, bg);
-  // Le motif occupe `contentScale` de la toile, centré.
-  const art = size * contentScale;
-  const offset = (size - art) / 2;
-  const k = art / 32;
-  for (const b of BARS) {
-    fillRoundRect(buf, size, offset + b.x * k, offset + b.y * k, b.w * k, b.h * k, b.rx * k, b.fill);
+// rounded : coins arrondis transparents comme favicon.svg (rayon 9/32), sinon fond plein cadre
+// (iOS et les icônes maskable appliquent leur propre masque). art : part de la toile occupée par
+// le repère 32 × 32 du monogramme, centré.
+function drawIcon(size, { rounded = false, art = 1 } = {}) {
+  const buf = Buffer.alloc(size * size * 4);
+  const k = size * art / 32, off = (size - size * art) / 2;
+  const map = ([x, y]) => [off + x * k, off + y * k];
+  const arcs = ARCS.map((a) => ({ half: a.width * k / 2, opacity: a.opacity, segs: flatten(a, map) }));
+  const r = size * 9 / 32;
+  const SS = 4; // sur-échantillonnage 4 × 4 aux bords
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      // Couverture du fond (coins arrondis)
+      let bg = 1;
+      if (rounded) {
+        let n = 0;
+        for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) if (insideRoundRect(px + (sx + 0.5) / SS, py + (sy + 0.5) / SS, 0, 0, size, size, r)) n++;
+        bg = n / (SS * SS);
+      }
+      const idx = (py * size + px) * 4;
+      if (!bg) { buf[idx + 3] = 0; continue; }
+      let [cr, cg, cb] = gradientAt((px + 0.5 + py + 0.5) / (2 * size));
+      for (const a of arcs) {
+        // Couverture du trait : pleine ou nulle loin du bord, sur-échantillonnée à moins d'un pixel.
+        const d = distToSegs(px + 0.5, py + 0.5, a.segs);
+        let cov;
+        if (d <= a.half - 0.75) cov = 1;
+        else if (d >= a.half + 0.75) cov = 0;
+        else {
+          let n = 0;
+          for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) if (distToSegs(px + (sx + 0.5) / SS, py + (sy + 0.5) / SS, a.segs) <= a.half) n++;
+          cov = n / (SS * SS);
+        }
+        const al = cov * a.opacity;
+        cr += (255 - cr) * al; cg += (255 - cg) * al; cb += (255 - cb) * al;
+      }
+      buf[idx] = Math.round(cr); buf[idx + 1] = Math.round(cg); buf[idx + 2] = Math.round(cb);
+      buf[idx + 3] = Math.round(bg * 255);
+    }
   }
   return encodePNG(size, size, buf);
 }
 
 const ROOT = path.resolve(__dirname, '..');
 const outputs = [
-  { file: 'icon-192.png', size: 192, opts: { contentScale: 0.66 } },
-  { file: 'icon-512.png', size: 512, opts: { contentScale: 0.66 } },
-  // Maskable : marge de sécurité (zone safe iOS/Android ~ 80%), motif réduit.
-  { file: 'icon-512-maskable.png', size: 512, opts: { contentScale: 0.52 } },
-  { file: 'apple-touch-icon.png', size: 180, opts: { contentScale: 0.66 } },
+  { file: 'icon-192.png', size: 192, opts: { rounded: true } },
+  { file: 'icon-512.png', size: 512, opts: { rounded: true } },
+  // Maskable : fond plein cadre, monogramme réduit pour tenir dans la zone de sécurité
+  // (disque central de rayon 40 % : les arcs restent sous 30 % du centre).
+  { file: 'icon-512-maskable.png', size: 512, opts: { art: 0.8 } },
+  // iOS arrondit lui-même et noircit la transparence : fond plein cadre.
+  { file: 'apple-touch-icon.png', size: 180, opts: {} },
 ];
 for (const o of outputs) {
   const png = drawIcon(o.size, o.opts);

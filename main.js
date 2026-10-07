@@ -6,10 +6,24 @@
 
 // ---------------------------------------------------------------- import
 async function importFile(file) {
+  let parsed, merged;
   try {
     const text = await file.text();
-    const parsed = parseCSV(text);
+    parsed = parseCSV(text);
     if (parsed.length === 0) throw new Error('Aucune ligne valide trouvée dans le CSV');
+    // Un export de l'intranet n'a que des mois MM-AAAA : un fichier qui en contient d'autres
+    // (MOIS sert d'identifiant à l'affichage) est refusé en bloc, rien n'est modifié.
+    const bad = parsed.filter((r) => !isValidMois(r.mois));
+    if (bad.length) {
+      const n = bad.length, p = n > 1;
+      const ex = bad[0].mois.length > 24 ? bad[0].mois.slice(0, 24) + '…' : bad[0].mois;
+      showToast({
+        title: 'Import refusé',
+        body: `${n} ligne${p ? 's ont' : ' a'} un mois illisible (« ${ex} », format attendu MM-AAAA, par exemple 09-2026). Rien n’a été importé.`,
+        ok: false
+      });
+      return;
+    }
     // L'export est un état complet : une ligne connue localement mais absente de l'import,
     // sur un mois couvert, a été supprimée ou ré-émise à la source (facture corrigée).
     const obsoletes = supersededRows(DATASET, parsed);
@@ -22,23 +36,28 @@ async function importFile(file) {
       const reste = n > 5 ? `\n• … et ${n - 5} autre${n - 5 > 1 ? 's' : ''}` : '';
       dropMissing = await showConfirm({
         title: `${n} ligne${p ? 's' : ''} absente${p ? 's' : ''} de l’export`,
-        message: `${p ? 'Ces lignes sont' : 'Cette ligne est'} dans le dashboard mais plus dans le CSV, sur ${p ? 'des mois couverts' : 'un mois couvert'} par le CSV. C’est ce qui arrive quand une facture est corrigée ou ré-émise : si on ${p ? 'les' : 'la'} garde, l’ancienne version continue de se cumuler à la nouvelle et le CA du mois est faussé.\n\n${apercu}${reste}\n\n${p ? 'Les' : 'La'} supprimer ?`,
+        message: `${p ? 'Ces lignes sont' : 'Cette ligne est'} dans le dashboard mais plus dans le CSV, sur ${p ? 'des mois couverts' : 'un mois couvert'} par le CSV. C’est ce qui arrive quand une facture est corrigée ou ré-émise${UI.NBP}: si on ${p ? 'les' : 'la'} garde, l’ancienne version continue de se cumuler à la nouvelle et le CA du mois est faussé.\n\n${apercu}${reste}\n\n${p ? 'Les' : 'La'} supprimer${UI.NBP}?`,
         okLabel: 'Supprimer et importer',
         cancelLabel: 'Garder et importer',
         danger: true
       });
     }
-    const merged = mergeDatasets(DATASET, parsed, { dropMissing });
+    merged = mergeDatasets(DATASET, parsed, { dropMissing });
     DATASET = merged.rows;
     saveDataset(DATASET);
-    render();
-    // Un événement, un seul retour : le diff porte le message de succès ; sinon, un toast.
-    const opened = showImportDiff(file.name, merged.changes, { parsed: parsed.length, stats: merged.stats });
-    if (!opened) showToast({ title: 'Import réussi, rien de neuf', body: `${parsed.length} lignes traitées depuis ${file.name}`, stats: merged.stats, ok: true });
   } catch (err) {
     console.error(err);
     showToast({ title: 'Erreur d’import', body: err.message, ok: false });
+    return;
   }
+  // Données enregistrées : à partir d'ici, un incident d'affichage (journalisé, et déjà isolé
+  // section par section dans render()) ne se lit plus comme un échec de l'import.
+  try { render(); } catch (err) { console.error('Rendu après import :', err); }
+  // Un événement, un seul retour : le diff porte le message de succès ; sinon, un toast.
+  let opened = false, diffFailed = false;
+  try { opened = showImportDiff(file.name, merged.changes, { parsed: parsed.length, stats: merged.stats }); } catch (err) { diffFailed = true; console.error('Diff d’import :', err); }
+  const n = parsed.length, p = n > 1;
+  if (!opened) showToast({ title: diffFailed ? 'Import réussi' : 'Import réussi, rien de neuf', body: `${n} ligne${p ? 's' : ''} traitée${p ? 's' : ''} depuis ${file.name}`, stats: merged.stats, ok: true });
 }
 document.getElementById('csv-file-input').addEventListener('change', (e) => {
   const f = e.target.files[0];
@@ -120,4 +139,5 @@ if ('serviceWorker' in navigator) {
 UI.init();
 ModalCtl.init();
 hydrateIcons();
+watchAppbar();
 render();

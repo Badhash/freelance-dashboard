@@ -31,7 +31,9 @@
 /* ---------- Barre d'app ---------- */
 .appbar { position: sticky; top: 0; z-index: 60; background: var(--appbar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); border-bottom: 1px solid var(--hairline); }
 .appbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--c-ps) 30%, var(--c-sal) 55%, var(--c-extra) 75%, transparent); opacity: .45; }
-.appbar-in { max-width: var(--maxw); margin: 0 auto; padding: 12px var(--gutter); display: flex; align-items: center; gap: 16px; min-height: var(--appbar-h); }
+/* viewport-fit=cover + barre d'état translucide (PWA iOS) : la barre réserve la zone de l'heure
+   (env(safe-area-inset-top)) et les encoches latérales en paysage. Nul hors PWA. */
+.appbar-in { max-width: var(--maxw); margin: 0 auto; padding: calc(12px + env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right)) 12px max(var(--gutter), env(safe-area-inset-left)); display: flex; align-items: center; gap: 16px; min-height: calc(var(--appbar-h) + env(safe-area-inset-top)); }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; flex: 0 1 auto; }
 .brand-mark { width: 38px; height: 38px; flex: none; border-radius: 12px; box-shadow: 0 6px 16px -6px rgba(108, 71, 255, .7); }
 .brand-mark svg { width: 100%; height: 100%; display: block; }
@@ -79,8 +81,6 @@
 .act-audit .badge { margin-left: 2px; }
 .act-primary { background: var(--btn-primary); color: var(--on-accent); box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, .28); padding: 0 16px; }
 .act-primary:hover { background: var(--btn-primary); color: var(--on-accent); filter: brightness(1.06); }
-.act .badge-dot { display: none; }
-#csv-file-input:focus-visible + .appbar .act-primary { outline: 2px solid var(--accent); }
 
 /* ---------- Bascule de thème animée (View Transitions, sinon instantanée) ---------- */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
@@ -129,9 +129,22 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
   .secnav-d a .ic { display: none; }
   .secnav-d a { padding: 0 12px; }
 }
+/* Compaction progressive (render.js : fitAppbar), seulement quand l'info d'import se couperait :
+   libellés cloud, icônes de navigation, « CSV », info d'import courte, puis libellé « Vérifier ». */
+@media (min-width: 641px) {
+  .appbar.fit-1 #auth-btn .act-l, .appbar.fit-1 #save-btn .act-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .appbar.fit-1 #auth-btn, .appbar.fit-1 #save-btn { width: 40px; padding: 0; }
+  .appbar.fit-2 .secnav-d a .ic { display: none; }
+  .appbar.fit-2 .secnav-d a { padding: 0 12px; }
+  .appbar.fit-3 .act-primary .im-hide { display: none; }
+  .appbar.fit-4 .im-long { display: none; }
+  .appbar.fit-4 .im-short { display: inline; }
+  .appbar.fit-5 .act-audit { padding: 0 10px; gap: 4px; }
+  .appbar.fit-5 .act-audit .act-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 @media (max-width: 1140px) {
   .secnav-d { display: none; }
-  .secnav-m { display: flex; position: sticky; top: var(--appbar-h); z-index: 55; margin: 0 auto; padding: 10px var(--gutter); gap: 6px; background: var(--appbar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); border-bottom: 1px solid var(--hairline); }
+  .secnav-m { display: flex; position: sticky; top: calc(var(--appbar-h) + env(safe-area-inset-top)); z-index: 55; margin: 0 auto; padding: 10px max(var(--gutter), env(safe-area-inset-right)) 10px max(var(--gutter), env(safe-area-inset-left)); gap: 6px; background: var(--appbar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); border-bottom: 1px solid var(--hairline); }
   .secnav-m a { flex: 1; height: 40px; border-radius: 12px; }
   .theme-toggle { margin-left: auto; }
   .empty-hero { grid-template-columns: 1fr; padding: 40px 32px; }
@@ -147,23 +160,29 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
   /* backdrop-filter créerait un bloc conteneur pour le dock fixe : la barre mobile n'en a pas */
   .appbar { position: relative; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; }
   .appbar::after { display: none; }
-  .appbar-in { padding: 12px 16px; min-height: 64px; gap: 10px; }
+  .appbar-in { padding: calc(12px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); min-height: 64px; gap: 10px; }
+  .brand { min-height: 44px; }  /* cible tactile ≥ 44 px */
   .brand-mark { width: 36px; height: 36px; }
   .brand-meta { gap: 6px; }
   .theme-toggle.btn.icon { width: 44px; height: 44px; }
-  .secnav-m { top: 0; padding: 8px 16px; gap: 4px; }
+  /* La navigation colle sous la barre d'état, couverte d'un voile pour que rien ne défile sous
+     l'heure (hauteur nulle hors PWA iOS). */
+  .secnav-m { top: env(safe-area-inset-top); padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); gap: 4px; }
   .secnav-m a { height: 44px; font-size: 13px; padding: 0 4px; }
+  body::before { content: ""; position: fixed; z-index: 56; inset: 0 0 auto 0; height: env(safe-area-inset-top); background: var(--appbar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); pointer-events: none; }
 
   body:not(.is-empty) { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
-  .actions { position: fixed; z-index: 70; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 2px; padding: 6px; border-radius: 22px; background: var(--dock); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); border: 1px solid var(--border); box-shadow: var(--shadow-pop), var(--card-hi); }
+  .actions { position: fixed; z-index: 70; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 2px; padding: 6px; border-radius: 22px; background: var(--dock); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); border: 1px solid var(--border); box-shadow: var(--shadow-pop), var(--card-hi); }
   .is-empty .actions { display: none; }
   html.modal-open .actions { display: none; }
-  .act, #reset-btn, #auth-btn, #save-btn { flex: 1 1 0; min-width: 0; width: auto; height: 56px; padding: 0 2px; flex-direction: column; gap: 4px; border-radius: 16px; font-size: 11.5px; font-weight: 700; border: 0; box-shadow: none; background: transparent; color: var(--text-2); }
+  /* Largeurs égales tant que les libellés tiennent ; sinon le bouton s'élargit à son libellé
+     (min-content) et les autres se resserrent : un libellé n'est jamais coupé. */
+  .act, #reset-btn, #auth-btn, #save-btn { flex: 1 1 0; min-width: min-content; width: auto; height: 56px; padding: 0 2px; flex-direction: column; gap: 4px; border-radius: 16px; font-size: 11.5px; font-weight: 700; border: 0; box-shadow: none; background: transparent; color: var(--text-2); }
   .act .ic { width: 21px; height: 21px; }
-  .act .act-l, #reset-btn .act-l, #auth-btn .act-l, #save-btn .act-l { position: static; width: auto; height: auto; overflow: hidden; clip: auto; text-overflow: ellipsis; max-width: 100%; }
+  .act .act-l, #reset-btn .act-l, #auth-btn .act-l, #save-btn .act-l { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
   .act-audit, [data-theme="dark"] .act-audit, .act:hover, .act-audit:hover, [data-theme="dark"] .act-audit:hover { background: transparent; }
   .act:active { background: var(--surface-3); }
-  .act-audit .badge { position: absolute; top: 2px; left: calc(50% + 4px); margin: 0; box-shadow: 0 0 0 2px var(--surface-solid); }
+  .act-audit .badge { position: absolute; z-index: 1; top: 2px; left: calc(50% + 4px); margin: 0; box-shadow: 0 0 0 2px var(--surface-solid); }
   .act-primary { flex: 1.35 1 0; background: var(--btn-primary); color: var(--on-accent); box-shadow: var(--shadow-accent); }
   .act-primary:hover, .act-primary:active { background: var(--btn-primary); color: var(--on-accent); }
   .act-primary .act-l .im-hide { display: none; }
@@ -179,6 +198,25 @@ html.vt-theme::view-transition-new(root) { animation: vtReveal .7s var(--ease) b
   .step .n { grid-row: 1 / span 2; }
   .step h2, .step h3 { margin-top: 4px; font-size: 15px; }
   .step p { margin-top: 2px; font-size: 13px; }
+}
+/* Petits écrans (320–374 px) : 5 boutons (connecté, Sauvegarder affiché) doivent tenir, chacun ≥ 44 px */
+@media (max-width: 374px) {
+  .actions { padding: 4px; gap: 0; }
+  .act, #reset-btn, #auth-btn, #save-btn { font-size: 11px; letter-spacing: -.01em; }
+}
+
+/* Faible hauteur (téléphone en paysage, zoom 200 %) : la barre d'app et la navigation ne collent
+   plus (elles couvraient un tiers de la page), le dock se compacte (56 → 44 px). La barre garde
+   un positionnement relatif pour rester au-dessus du ciel d'aurore. */
+@media (max-height: 500px) {
+  .appbar, .secnav-m { position: relative; top: auto; }
+}
+@media (max-height: 500px) and (max-width: 640px) {
+  body:not(.is-empty) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .actions { padding: 4px; bottom: calc(6px + env(safe-area-inset-bottom)); border-radius: 18px; }
+  .act, #reset-btn, #auth-btn, #save-btn { height: 44px; gap: 2px; border-radius: 14px; font-size: 10.5px; }
+  .act .ic { width: 18px; height: 18px; }
+  .act-audit .badge { top: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

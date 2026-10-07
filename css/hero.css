@@ -21,6 +21,10 @@
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
 [data-theme="dark"] .edge { background: linear-gradient(135deg, rgba(155, 132, 255, .8), rgba(40, 190, 225, .35) 40%, rgba(232, 85, 143, 0) 65%, rgba(232, 85, 143, .5)); }
 .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Le haut du héros est posé sur les halos : surtitre en text-2 et, la nuit, puce sur un
+   voile sombre, pour rester au-dessus de 4,5:1 quel que soit le halo dessous. */
+.hero .eyebrow { color: var(--text-2); }
+[data-theme="dark"] .hero .chip { background: rgba(8, 8, 14, .55); color: var(--text); box-shadow: inset 0 0 0 1px var(--hairline); }
 .hero-title { font-size: 17px; font-weight: 650; color: var(--text-2); margin-top: 22px; letter-spacing: -.01em; }
 /* Chiffre héros : proportionnel, -0,03 em (lisible), dégradé d'encre ; décimales et € atténués */
 .hero-amount { margin-top: 4px; font-size: clamp(64px, 6.4vw, 96px); font-weight: 750; letter-spacing: -.03em; line-height: 1; white-space: nowrap; }
@@ -59,6 +63,11 @@
 .arr-next .pill { background: var(--surface-solid); }
 [data-theme="dark"] .arr-next .pill { background: rgba(255, 255, 255, .1); }
 .arrivals .chart { flex: 1; min-height: 190px; margin-top: 14px; }
+.arrivals .g-late { fill: var(--warn-text); }
+/* Sans date estimable (aucun profit share encore payé) : liste de ce qui est en attente */
+.arr-list { flex: 1; margin-top: 14px; }
+.arr-list .line:last-child { border-bottom: 1px solid var(--hairline); }
+.arr-more { align-self: flex-start; margin-top: 6px; }
 
 /* ---------- Détail du solde (repliable pleine largeur) ---------- */
 .fold { margin-top: 16px; padding: 0; border-radius: var(--r-xl); }
@@ -99,10 +108,12 @@
 .wf-name small { display: block; font-weight: 600; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .wf-track { position: relative; height: 30px; border-radius: 8px; background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%); }
 .wf-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 5px; transform-origin: left; animation: grow var(--dur-3) var(--ease) both; box-shadow: 0 0 0 1px var(--surface-solid); }
+/* Zéro de l'échelle, tracé seulement quand un palier passe sous zéro */
+.wf-zero { position: absolute; top: -3px; bottom: -3px; width: 0; margin-left: -1px; border-left: 2px solid var(--text-2); opacity: .6; pointer-events: none; }
 .wf-val { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14.5px; }
 .wf-row.is-total .wf-val { font-size: 17px; }
 .ledger-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 16px; }
-.lcol { border-radius: var(--r-md); border: 1px solid var(--hairline); padding: 14px 16px; background: var(--surface-2); }
+.lcol { min-width: 0; border-radius: var(--r-md); border: 1px solid var(--hairline); padding: 14px 16px; background: var(--surface-2); }
 .lcol h4 { margin: 0 0 6px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 750; display: flex; gap: 8px; align-items: center; }
 .lcol h4 .sw { width: 8px; height: 8px; }
 .sw.tri { background: linear-gradient(90deg, var(--c-sal) 0 33%, var(--c-ps) 33% 66%, var(--c-extra) 66%); }
@@ -113,22 +124,30 @@
 .lrow.tot span:last-child { font-weight: 800; }
 .ledger-final { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--r-md); background: var(--accent-soft); font-weight: 800; }
 .lf-eq { font-size: 13.5px; color: var(--text-2); font-weight: 650; }
-.lf-res { font-size: 20px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lf-res { font-size: 20px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.lf-res > span { white-space: nowrap; } /* libellé et montant insécables, mais le montant peut passer sous le libellé */
 .lf-l { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-text); vertical-align: middle; margin-right: 6px; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1140px) {
   .hero, .arrivals { grid-column: 1 / -1; }
   .arrivals .chart { min-height: 200px; }
+  /* Tête du détail du solde : les puces passent sous le titre, qui garde toute la largeur */
+  .fold-head { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 12px; }
+  .fold-sums { grid-column: 2 / -1; grid-row: 2; justify-content: flex-start; }
+  .fold-head .chev { grid-column: 3; grid-row: 1; }
 }
 @media (max-width: 860px) {
-  .solde-grid, .ledger-cols { grid-template-columns: 1fr; }
+  .solde-grid, .ledger-cols { grid-template-columns: minmax(0, 1fr); }
   .wf-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
   .wf-track { grid-column: 1 / -1; grid-row: 2; }
 }
 @media (max-width: 640px) {
   .hero-grid { margin-top: 16px; gap: 12px; }
   .hero { padding: 22px 20px 20px; border-radius: 26px; }
+  /* Halos ramenés à l'échelle de la carte : ils restent dans l'angle au lieu de couvrir le surtitre */
+  .hero::before { width: 400px; height: 340px; right: -140px; top: -190px; }
+  .hero::after { width: 300px; height: 260px; right: -40px; top: -170px; }
   .hero-title { margin-top: 16px; font-size: 15.5px; }
   .hero-amount { font-size: clamp(46px, 14.5vw, 60px); }
   .hero-note { font-size: 14.5px; }
@@ -136,8 +155,9 @@
   .split-legend { display: grid; grid-template-columns: 1fr; gap: 10px; }
   .hero .split-legend li { grid-template-columns: 10px minmax(0, 1fr) auto; }
   .hero .split-legend .v { grid-column: 3; grid-row: 1; text-align: right; font-size: 14.5px; }
-  .hero-solde { order: 1; margin-top: 18px !important; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t v" "t l"; padding: 14px; column-gap: 10px; }
-  .hero-split { order: 2; }
+  /* Solde avant la composition : nœud déplacé par render-balance.js (ordre de tabulation = ordre visuel) */
+  .hero-solde { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t v" "t l"; padding: 14px; column-gap: 10px; }
+  .hero-note + .hero-solde { margin-top: 18px; }
   .hero-solde .ic-tile { display: none; }
   .hs-h { display: none; }
   .hs-l { font-size: 13.5px; }
@@ -146,12 +166,11 @@
   .arr-big .v { font-size: 28px; }
   .arr-next { flex-wrap: wrap; }
   .fold { border-radius: 22px; }
-  .fold-head { grid-template-columns: auto minmax(0, 1fr) auto; padding: 16px; gap: 12px; }
-  .fold-sums { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; gap: 6px; }
+  .fold-head { padding: 16px; gap: 12px; }
+  .fold-sums { grid-column: 1 / -1; gap: 6px; }
   .sum-chip { padding: 5px 9px; font-size: 12px; gap: 5px; }
   .sum-chip b { font-size: 13px; }
   .fold-sub { display: none; }
-  .fold-head .chev { grid-column: 3; grid-row: 1; }
   .fold-inner { padding: 4px 16px 18px; }
   .equation .res { font-size: 18px; }
   .lf-res { font-size: 18px; }

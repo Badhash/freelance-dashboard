@@ -1,5 +1,5 @@
 // ============================================================
-// AURORA — surcouches (render-overlays.js en production) :
+// AURORA — surcouches :
 // contrôleur de modales (classe .visible), toast, confirmation, réinitialisation,
 // audit (règles inchangées, affichage regroupé), diff d'import.
 // Toutes les modales s'ouvrent en ajoutant .visible — y compris #auth-modal,
@@ -37,6 +37,28 @@ const ModalCtl = (() => {
       if (target && m.classList.contains('visible')) target.focus({ preventScroll: true });
     }, 40);
   }
+  // L'élément d'origine peut-il reprendre le focus ? Le panneau d'une modale encore ouverte, oui ;
+  // sinon il doit être visible et tabulable (l'input fichier sr-only / aria-hidden ne l'est pas).
+  function canTakeFocus(el) {
+    if (!el || !el.focus || el === document.body || !document.contains(el)) return false;
+    if (el.closest('.modal.visible')) return true;
+    return el.tabIndex >= 0 && !el.closest('[aria-hidden="true"], [hidden]') && el.getClientRects().length > 0;
+  }
+  // Repli : un autre bouton visible pour la même action — le label « Importer » de la barre, que
+  // l'origine soit l'input fichier masqué ou le label de l'état vide disparu après l'import —,
+  // sinon le titre du héros, rendu focalisable par script.
+  function focusFallback(el) {
+    const id = el && (el.tagName === 'LABEL' ? el.htmlFor : el.id);
+    const labels = id ? Array.from(document.querySelectorAll('label[for="' + id + '"]')) : [];
+    const label = labels.find(canTakeFocus);
+    if (label) return label;
+    const title = document.getElementById('hero-title');
+    if (title && title.getClientRects().length) {
+      if (!title.hasAttribute('tabindex')) title.setAttribute('tabindex', '-1');
+      return title;
+    }
+    return null;
+  }
   function onClose(m) {
     const i = stack.findIndex((s) => s.m === m);
     const entry = i >= 0 ? stack.splice(i, 1)[0] : null;
@@ -44,7 +66,9 @@ const ModalCtl = (() => {
       unlock();
       flushToast();
     }
-    if (entry && entry.focus && entry.focus.focus && document.contains(entry.focus)) entry.focus.focus({ preventScroll: true });
+    if (!entry) return;
+    const target = canTakeFocus(entry.focus) ? entry.focus : focusFallback(entry.focus);
+    if (target) target.focus({ preventScroll: true });
   }
   function init() {
     const mo = new MutationObserver((muts) => muts.forEach((mu) => {
@@ -73,12 +97,17 @@ const ModalCtl = (() => {
         return;
       }
       if (e.key === 'Tab') {
-        const f = Array.from(open.querySelectorAll('button, input, a[href], summary, [tabindex="0"]'))
+        const panel = open.querySelector('.modal-panel');
+        const f = Array.from(open.querySelectorAll('button, input, select, textarea, a[href], summary, [tabindex="0"]'))
           .filter((x) => !x.disabled && x.offsetParent !== null);
-        if (!f.length) return;
+        if (!f.length) { e.preventDefault(); return; }
         const first = f[0], last = f[f.length - 1];
-        if (e.shiftKey && (document.activeElement === first || !open.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        const cur = document.activeElement;
+        // Focus sur le panneau lui-même (posé à l'ouverture) ou hors de la modale : il précède
+        // toute la séquence, Tab va donc au premier élément et Maj+Tab au dernier.
+        const outside = cur === panel || !panel.contains(cur);
+        if (e.shiftKey && (outside || cur === first)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (outside || cur === last)) { e.preventDefault(); first.focus(); }
       }
     });
   }
@@ -110,8 +139,8 @@ function showConfirm({ title = 'Confirmation', message, okLabel = 'Confirmer', c
 
 async function resetData() {
   const confirmed = await showConfirm({
-    title: 'Réinitialiser le dashboard ?',
-    message: 'Toutes les données importées et les préférences seront supprimées :\n\n• Opérations importées\n• Projections personnalisées\n• Préférence de thème\n\nCette action est irréversible.',
+    title: `Réinitialiser le dashboard${UI.NBP}?`,
+    message: `Toutes les données importées et les préférences seront supprimées${UI.NBP}:\n\n• Opérations importées\n• Projections personnalisées\n• Préférence de thème\n\nCette action est irréversible.`,
     okLabel: 'Tout supprimer',
     cancelLabel: 'Annuler',
     danger: true
@@ -120,6 +149,7 @@ async function resetData() {
   ['dashboard_dataset_v1', 'dashboard_meta_v1', 'dashboard_proj_overrides_v1', 'dashboard_theme_v1', 'dashboard_client_rules_v1']
     .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
   DATASET = [];
+  CLIENT_RULES = []; // let de data.js, chargé une fois au démarrage : sinon le prochain import les appliquerait encore
   LAST_AUDIT = null;
   ['audit-modal', 'diff-modal'].forEach((id) => document.getElementById(id).classList.remove('visible'));
   const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
@@ -151,10 +181,8 @@ function showToast(opts) {
 function flushToast() { if (TOAST_QUEUE) { const q = TOAST_QUEUE; TOAST_QUEUE = null; setTimeout(() => showToast(q), 250); } }
 function hideToast() { document.getElementById('toast').classList.remove('visible'); }
 
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+// Alias global de UI.esc (null et undefined donnent '') : supabase-sync.js l'appelle par ce nom.
+const escapeHtml = UI.esc;
 
 // ============================================================
 // AUDIT — Vérification automatique des calculs portage
@@ -571,11 +599,23 @@ function updateAuditBadge(stats) {
     badge.textContent = n;
     badge.classList.toggle('danger', !!(stats && stats.danger));
   }
-  if (btn) btn.setAttribute('aria-label', n ? `Vérifier les calculs : ${n} point${n > 1 ? 's' : ''} d’attention` : 'Vérifier les calculs');
+  if (btn) btn.setAttribute('aria-label', n ? `Vérifier les calculs${UI.NBP}: ${n} point${n > 1 ? 's' : ''} d’attention` : 'Vérifier les calculs');
 }
 
+// Regroupement d'affichage (les règles ne changent pas). Le mois comptable « MM-AAAA » est un mot
+// isolé du titre, où qu'il soit (« Commission 09-2025 hors norme ») : jamais l'intérieur d'une
+// référence comme RC-2026-09-0070.
+const AUDIT_MONTH_RE = /(^|\s)((?:0[1-9]|1[0-2])-\d{4})(?=\s|$)/;
+// Règles mensuelles dont le titre porte aussi une valeur variable : libellé commun du groupe.
+const AUDIT_GROUP_LABELS = { volume: 'Plus de 23 jours facturés' };
+const auditMonth = (title) => (title.match(AUDIT_MONTH_RE) || [])[2] || null;
+const auditMonthKey = (mm) => mm.slice(3) + mm.slice(0, 2); // « 09-2025 » → « 202509 », pour trier
+const auditRuleLabel = (i) => AUDIT_GROUP_LABELS[i.category] || i.title.replace(AUDIT_MONTH_RE, '').replace(/\s{2,}/g, ' ').trim();
+
 function displayAuditResults(issues, stats) {
-  const esc = escapeHtml;
+  // Typographie française posée à l'affichage (insécable avant « : ; ? ! ») : les textes des
+  // règles restent ceux de l'ancien render.js.
+  const esc = (s) => escapeHtml(s).replace(/ ([:;?!])/g, UI.NBP + '$1');
   const total = stats.danger + stats.warn + stats.info;
   document.getElementById('audit-sub').textContent = total === 0
     ? `Aucune anomalie sur ${DATASET.length} opérations analysées`
@@ -594,7 +634,7 @@ function displayAuditResults(issues, stats) {
     // Regroupe les alertes répétées d'une même règle (ex. 20 écarts de clôture) en une seule entrée.
     const groups = [];
     list.forEach((i) => {
-      const base = i.title.replace(/\s\d{2}-\d{4}$/, '');
+      const base = auditRuleLabel(i);
       const g = groups.find((x) => x.base === base && x.cat === i.category);
       if (g) g.items.push(i); else groups.push({ base, cat: i.category, items: [i] });
     });
@@ -602,10 +642,17 @@ function displayAuditResults(issues, stats) {
     groups.forEach((g) => {
       const i = g.items[0];
       if (g.items.length >= 3) {
-        const months = g.items.map((x) => (x.title.match(/(\d{2}-\d{4})$/) || [])[1]).filter(Boolean);
-        html += `<div class="mitem ${sevCls[sev]}"><span class="bar"></span><div><div class="t">${esc(g.base)} · ${g.items.length} mois</div><div class="d">${esc(i.desc)}</div>
-          <div class="months">${months.map((mm) => `<span>${esc(mm)}</span>`).join('')}</div>
-          <details><summary>Voir le détail des ${g.items.length} cas</summary>${g.items.map((x) => `<div class="x">${esc(x.title)} · ${esc(x.detail)}</div>`).join('')}</details></div><span class="r">${esc(i.category)}</span></div>`;
+        // « N mois » seulement si chaque cas porte un mois (mois distincts, en puces) ; sinon « N cas ».
+        const n = g.items.length;
+        const found = g.items.map((x) => auditMonth(x.title));
+        const months = [...new Set(found.filter(Boolean))].sort((a, b) => auditMonthKey(a).localeCompare(auditMonthKey(b)));
+        const count = !found.every(Boolean) ? `${n} cas`
+          : months.length === n ? `${n} mois` : `${n} cas sur ${months.length} mois`;
+        // Détail : le titre seulement s'il apporte quelque chose (mois, valeur), puis le constat.
+        const detail = (x) => esc(x.title === g.base ? (x.detail || x.title) : [x.title, x.detail].filter(Boolean).join(' · '));
+        html += `<div class="mitem ${sevCls[sev]}"><span class="bar"></span><div><div class="t">${esc(g.base)} · ${count}</div><div class="d">${esc(i.desc)}</div>
+          ${months.length ? `<div class="months">${months.map((mm) => `<span>${esc(mm)}</span>`).join('')}</div>` : ''}
+          <details><summary>Voir le détail des ${n} cas</summary>${g.items.map((x) => `<div class="x">${detail(x)}</div>`).join('')}</details></div><span class="r">${esc(i.category)}</span></div>`;
       } else {
         g.items.forEach((x) => { html += `<div class="mitem ${sevCls[sev]}"><span class="bar"></span><div><div class="t">${esc(x.title)}</div><div class="d">${esc(x.desc)}</div>${x.detail ? `<div class="x">${esc(x.detail)}</div>` : ''}</div><span class="r">${esc(x.category)}</span></div>`; });
       }
@@ -655,7 +702,7 @@ function showImportDiff(fileName, changes, summary) {
   const banner = document.getElementById('diff-banner');
   if (summary) {
     banner.hidden = false;
-    banner.innerHTML = `${icon('check')}<span><b>Import réussi</b> · ${summary.parsed} lignes traitées, ${summary.stats.unchanged} déjà à jour${summary.stats.removed ? `, ${summary.stats.removed} supprimée${summary.stats.removed > 1 ? 's' : ''}` : ''}.</span>`;
+    banner.innerHTML = `${icon('check')}<span><b>Import réussi</b> · ${summary.parsed} ligne${summary.parsed > 1 ? 's' : ''} traitée${summary.parsed > 1 ? 's' : ''}, ${summary.stats.unchanged} déjà à jour${summary.stats.removed ? `, ${summary.stats.removed} supprimée${summary.stats.removed > 1 ? 's' : ''}` : ''}.</span>`;
   } else banner.hidden = true;
   document.getElementById('diff-summary').innerHTML = `
     <div class="msum ok"><div class="n">${encaisse > 0 ? UI.eur0(encaisse) : '—'}</div><div class="l">${icon('check')}Encaissé</div></div>
@@ -665,7 +712,7 @@ function showImportDiff(fileName, changes, summary) {
   const secs = [];
   if (removedRows.length) secs.push({ t: 'Lignes supprimées', sev: 'danger', tot: sum(removedRows), items: removedRows.map((r) => ({ a: r.montant, t: short(r.nature), d: r.description, r: r.mois, x: `Plus présente dans l’export${r.reference ? ' · ' + r.reference : ''}` })) });
   if (nowPaidIn.length) secs.push({ t: 'Encaissements', sev: 'ok', tot: encaisse, items: nowPaidIn.map(({ next }) => ({ a: next.montant, t: short(next.nature), d: next.description, r: next.datePaiement || 'Payé', x: `Mois ${next.mois}${next.reference ? ' · ' + next.reference : ''}` })) });
-  if (nowPaidCharges.length) secs.push({ t: 'Charges réglées par ton portage', sev: 'charge', note: 'Prélevées sur ton compte de portage : ce n’est pas de l’argent reçu.', tot: nowPaidCharges.reduce((s, { next }) => s + next.montant, 0), items: nowPaidCharges.map(({ next }) => ({ a: next.montant, t: short(next.nature), d: next.description, r: next.datePaiement || 'Payé', x: `Mois ${next.mois}${next.reference ? ' · ' + next.reference : ''}` })) });
+  if (nowPaidCharges.length) secs.push({ t: 'Charges réglées par ton portage', sev: 'charge', note: `Prélevées sur ton compte de portage${UI.NBP}: ce n’est pas de l’argent reçu.`, tot: nowPaidCharges.reduce((s, { next }) => s + next.montant, 0), items: nowPaidCharges.map(({ next }) => ({ a: next.montant, t: short(next.nature), d: next.description, r: next.datePaiement || 'Payé', x: `Mois ${next.mois}${next.reference ? ' · ' + next.reference : ''}` })) });
   if (newInvoices.length) secs.push({ t: 'Nouvelles factures', sev: 'accent', tot: newCa, items: newInvoices.map((r) => ({ a: r.montant, t: r.statut === 'Payé' ? 'Payée' : 'En attente', d: r.description, r: r.date, x: `Mois ${r.mois}${r.reference ? ' · ' + r.reference : ''}` })) });
   if (newProfitShares.length) secs.push({ t: 'Profit shares ajoutés', sev: 'accent', tot: sum(newProfitShares), items: newProfitShares.map((r) => ({ a: r.montant, t: r.statut === 'Payé' ? 'Payé' : 'En attente', d: r.description, r: r.date, x: `Mois ${r.mois}` })) });
   if (otherRevenus.length) secs.push({ t: 'Autres revenus', sev: 'accent', tot: sum(otherRevenus), items: otherRevenus.map((r) => ({ a: r.montant, t: short(r.nature), d: r.description, r: r.date, x: `Mois ${r.mois}` })) });

@@ -22,7 +22,8 @@ html.modal-open { overflow: hidden; }
 .modal-titles { flex: 1; min-width: 0; padding-top: 2px; }
 .modal-titles h2 { font-size: 21px; font-weight: 800; letter-spacing: -.025em; line-height: 1.2; }
 .modal-titles p { font-size: 13.5px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
-.modal-x { width: 44px; height: 44px; margin: -6px -6px 0 0; }
+.modal-x { margin: -6px -6px 0 0; }
+.btn.icon.modal-x { width: 44px; height: 44px; flex: none; } /* 44 px : l'emporte sur .btn.icon (40 px) */
 .mbanner { position: relative; display: flex; align-items: center; gap: 10px; margin: 10px 24px 0; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; font-weight: 600; background: var(--ok-soft); color: var(--ok-text); }
 .mbanner .ic { width: 18px; height: 18px; flex: none; stroke-width: 2.6; }
 .mbanner b { font-weight: 800; }
@@ -79,7 +80,7 @@ html.modal-open { overflow: hidden; }
 .auth-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft-2); }
 /* Code à 6 chiffres : UN seul champ (id et maxlength conservés pour supabase-sync.js), chiffres espacés */
 .auth-input.otp { height: 60px; text-align: center; font: 800 26px var(--font); font-variant-numeric: tabular-nums; letter-spacing: .5em; padding-left: .5em; }
-.auth-input.otp::placeholder { color: var(--border-strong); }
+.auth-input.otp::placeholder { color: var(--faint); }
 .auth-error { margin-top: 10px; font-size: 13px; color: var(--danger-text); font-weight: 650; min-height: 0; }
 .auth-error:empty { display: none; }
 .auth-submit { margin-top: 20px; width: 100%; height: 48px; border-radius: var(--r-sm); border: 0; background: var(--btn-primary); color: #fff; font: 700 15px var(--font); cursor: pointer; box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, .28); }
@@ -108,7 +109,7 @@ html.modal-open { overflow: hidden; }
 .toast.visible { display: grid; animation: toastIn .45s var(--ease) both; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(18px) scale(.97); } }
 .toast-ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--ok); color: #05210F; }
-.toast.error .toast-ic { background: var(--danger); color: #fff; }
+.toast.error .toast-ic { background: var(--danger-solid); color: #fff; }  /* blanc sur --danger-solid : 4,5:1 dans les deux thèmes */
 .toast-ic .ic { width: 18px; height: 18px; stroke-width: 2.6; }
 .toast-title { font-weight: 800; font-size: 14.5px; }
 .toast-body { font-size: 13px; color: var(--tt-muted); margin-top: 1px; }
@@ -138,11 +139,46 @@ html.modal-open { overflow: hidden; }
   .legend-inline { gap: 10px; }
   .mitem { grid-template-columns: 4px minmax(0, 1fr); }
   .mitem .r { grid-column: 2; text-align: left; }
-  .modal-sm .modal-panel { padding: 26px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .mitem summary { min-height: 44px; }
+  .modal-sm .modal-panel { width: 100%; padding: 26px 20px calc(20px + env(safe-area-inset-bottom)); }
   .confirm-actions { grid-template-columns: 1fr; }
   .confirm-actions .btn { height: 48px; }
   .confirm-actions #confirm-ok { order: -1; }
-  .toast { left: 12px; right: 12px; width: auto; top: 12px; bottom: auto; }
+  /* En haut d'écran : sous l'encoche et la barre d'état (PWA iOS) ; il descend de plus haut que ce
+     décalage pour ne jamais apparaître sous l'heure. */
+  .toast { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); width: auto; top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+  .toast.visible { animation-name: toastInTop; }
+  @keyframes toastInTop { from { opacity: 0; transform: translateY(calc(-100% - 12px - env(safe-area-inset-top))); } }
+}
+/* Téléphone étroit : 4 tuiles ne tiennent plus (« 232 400 € », « Modifiées ») → synthèse en 2 × 2 */
+@media (max-width: 420px) {
+  .modal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .msum { padding: 10px 12px; }
+  .msum .n { font-size: 17px; }
+}
+/* ---------- Faible hauteur (zoom 200 %, téléphone en paysage) : tout le panneau défile,
+   seules les actions restent collées en bas (pied des grandes modales, boutons de confirmation) ---------- */
+@media (max-height: 560px) {
+  .modal { padding: 8px; }
+  .modal-panel { display: block; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
+  .modal-head { padding-top: 16px; }
+  .modal-summary { padding-top: 10px; padding-bottom: 12px; }
+  .msum { padding: 8px 12px; }
+  .msum .n { font-size: 17px; }
+  .msum .l { margin-top: 2px; }
+  .modal-body { overflow: visible; }
+  .modal-foot { position: sticky; bottom: 0; z-index: 1; flex-wrap: nowrap; padding-top: 10px; padding-bottom: 10px; background: var(--surface-solid); }
+  .modal-foot .btn { flex: none; width: auto; height: 44px; order: 0; }
+  .confirm-modal .modal-panel { padding-bottom: 0; }
+  .confirm-msg { max-height: none; overflow: visible; }
+  .confirm-actions { position: sticky; bottom: 0; z-index: 1; margin: 16px -28px 0; padding: 12px 28px 16px; background: var(--surface-solid); }
+}
+@media (max-height: 560px) and (max-width: 640px) {
+  .modal { padding: 8px 0 0; }
+  .modal-panel { max-height: calc(100vh - 8px); max-height: calc(100dvh - 8px); }
+  .modal-foot { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .confirm-actions { grid-template-columns: 1fr 1fr; margin: 16px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); }
+  .confirm-actions #confirm-ok { order: 0; }
 }
 @media (forced-colors: active) {
   .mitem .bar, .ldot { forced-color-adjust: none; }

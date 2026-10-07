@@ -43,10 +43,14 @@
 .trk-over { background: var(--danger); border-radius: 2px 6px 6px 2px; animation-delay: .35s; }
 .trk-eta { position: absolute; top: 6px; width: 14px; height: 14px; margin-left: -7px; transform: rotate(45deg); border-radius: 3px; background: var(--surface-solid); border: 2px solid var(--c-ps); }
 .trk-eta.client { border-color: var(--c-ink); }
-.trk-eta.ghost { border: 2px dashed var(--est-stroke); }
+/* Losange du fantôme : trait plein en couleur d'estimation (le pointillé est porté par la piste) */
+.trk-eta.ghost { border-color: var(--est-stroke); }
 .trk-row.late .trk-eta { border-color: var(--danger); }
-.trk-clip { position: absolute; left: -4px; top: 3px; width: 20px; height: 20px; display: grid; place-items: center; color: var(--danger-text); transform: rotate(180deg); }
-.trk-clip .ic { width: 14px; height: 14px; stroke-width: 2.6; }
+/* Émission seule (fantôme sans délai médian connu) */
+.trk-emit { position: absolute; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--surface-solid); border: 2px solid var(--est-stroke); }
+/* Chevron de troncature : pastille de surface au-dessus de la barre (sinon recouvert par l'écoulé ou le dépassement) */
+.trk-clip { position: absolute; z-index: 2; left: -4px; top: 3px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-solid); box-shadow: 0 0 0 1px var(--border-strong); color: var(--text-2); transform: rotate(180deg); }
+.trk-clip .ic { width: 13px; height: 13px; stroke-width: 2.6; }
 .trk-row.ghost .trk-n { color: var(--text-2); }
 .trk-legend { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline); }
 .lk.est-box { background: transparent !important; border: 1.5px dashed var(--c-ps); }
@@ -84,7 +88,8 @@
 .mhead .chev { width: 32px; height: 32px; justify-self: end; }
 @media (min-width: 861px) { .mhead .mcol .k { display: none; } }
 .mname { font-size: 16px; font-weight: 750; letter-spacing: -.015em; }
-.mname small { font-weight: 600; color: var(--muted); font-size: 12.5px; margin-left: 4px; }
+.m-n { min-width: 0; }
+.mname small { font-weight: 600; color: var(--muted); font-size: 12.5px; }
 .mdays { display: block; font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 1px; font-variant-numeric: tabular-nums; }
 .mcol .k { display: block; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); font-weight: 750; }
 .mcol .x { display: block; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 15px; white-space: nowrap; }
@@ -98,6 +103,7 @@
 .vy.warn { background: var(--warn-soft); color: var(--warn-text); }
 .vy.none { color: var(--faint); }
 .vy.none .ic { width: 18px; height: 18px; stroke-width: 2; }
+.vy.bad { background: var(--danger-soft); color: var(--danger-text); }
 .mini-split { display: flex; gap: 2px; height: 8px; border-radius: 999px; overflow: hidden; }
 .mini-split span { display: block; height: 100%; min-width: 3px; border-radius: 2px; }
 .mini-split span.est { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--est-stroke); border-radius: 2px 999px 999px 2px; }
@@ -126,7 +132,15 @@
 .casc-r.est .c-bar i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--est-stroke); }
 .c-v { text-align: right; font-weight: 750; white-space: nowrap; }
 .casc-r.est .c-v { color: var(--text-2); font-weight: 650; }
+.casc-r.est.neg .c-bar i { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.casc-r.est.neg .c-v { color: var(--danger-text); }
 .c-pct { text-align: right; font-size: 12px; color: var(--muted); font-weight: 650; }
+.c-meta { font-size: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Sous-lignes : un versement par ligne quand une nature en compte plusieurs */
+.casc-r.sub { min-height: 0; padding: 0 0 6px; border-top: 0; font-size: 12.5px; }
+.casc-r.sub .c-k { margin-left: 4px; padding-left: 12px; border-left: 2px solid var(--hairline); }
+.casc-r.sub .c-bar { background: none; }
+.casc-r.sub .c-v { font-weight: 650; color: var(--text-2); }
 
 .md-side { display: grid; gap: 10px; }
 .md-tile { padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-solid); border: 1px solid var(--hairline); display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: baseline; }
@@ -142,8 +156,12 @@
 .md-ghost { padding: 12px 14px; border-radius: var(--r-md); border: 1.5px dashed var(--est-stroke); }
 .md-ghost .mt-l { color: var(--text-2); }
 .md-ghost .mt-h b { color: var(--text); }
+.md-ghost.bad { border-color: var(--danger); }
+.md-ghost.bad .mt-l { color: var(--danger-text); }
+.md-ghost .text-link { margin-top: 2px; }
 .md-extra { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); padding: 4px 2px; }
 .md-extra b { font-variant-numeric: tabular-nums; }
+.md-v { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1140px) {
@@ -170,13 +188,15 @@
   .trk-now { font-size: 10.5px; padding: 2px 6px; }
   .trk-val .v { font-size: 14px; }
   .trk-h2 { display: none; }
-  .trk-ticks span:nth-child(odd):not(:first-child) { }
   .trk-val .pill { height: 24px; font-size: 11.5px; }
   .m-legend { gap: 6px 16px; font-size: 12px; }
-  .year-head { gap: 8px 10px; padding: 6px 2px 10px; }
-  .year-head .y { font-size: 26px; }
-  .year-head .ym { margin-left: 0; order: 3; width: calc(100% - 50px); }
-  .year-head .chev { margin-left: auto; order: 2; }
+  /* Tête d'année en grille : chevron toujours en haut à droite, synthèse puis « Voir les N mois » dessous */
+  .year-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "y chip chev" "ym ym ym"; gap: 8px 10px; padding: 6px 2px 10px; }
+  .year-head .y { grid-area: y; font-size: 26px; }
+  .year-head .chip { grid-area: chip; justify-self: start; }
+  .year-head .chev { grid-area: chev; }
+  .year-head .ym { grid-area: ym; margin-left: 0; }
+  .yh-more { grid-column: 1 / -1; }
   .mlist { padding: 4px; border-radius: 22px; }
   .mhead { padding: 12px; gap: 10px 10px; min-height: 64px; }
   .md-in { padding: 2px 12px 14px; }
@@ -187,6 +207,16 @@
   .casc-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "k v" "bar bar"; gap: 6px 10px; padding: 10px 0; }
   .casc-r .text-link { min-height: 44px; }
   .casc-r .c-k { grid-area: k; } .casc-r .c-v { grid-area: v; } .casc-r .c-bar { grid-area: bar; height: 6px; } .casc-r .c-pct { display: none; }
+  .casc-r.sub { grid-template-areas: "k v"; } .casc-r.sub .c-bar { display: none; }
+}
+@media (max-width: 400px) {
+  /* Ligne fantôme : pas de montant, et l'aide dit déjà « Pas encore émis » : le libellé prend toute la largeur */
+  .trk-row.ghost { grid-template-areas: "lab lab" "lane lane"; }
+  .trk-row.ghost .trk-val { display: none; }
+}
+@media (max-width: 374px) {
+  /* Très étroit : le nom du mois prend la place des voyants, qui passent devant la micro-barre */
+  .mhead { grid-template-areas: "n n v c" "vy s s s"; }
 }
 @media (forced-colors: active) {
   .trk-done, .trk-over, .c-bar i, .mini-split span, .vy { forced-color-adjust: none; }

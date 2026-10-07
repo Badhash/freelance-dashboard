@@ -15,6 +15,9 @@ const UI = (() => {
   // fr-FR sépare les milliers par U+202F (espace fine). Avec Manrope serré elle
   // disparaît presque : on la remplace par l'espace insécable U+00A0.
   const NB = ' ';
+  // Typographie française : espace insécable avant « : ; ? ! » (jamais de retour à la ligne
+  // devant le signe). U+00A0 plutôt que l'espace fine U+202F, pour la même raison que NB.
+  const NBP = '\u00A0';
   const mkNF = (o) => { const f = new Intl.NumberFormat('fr-FR', o); return (n) => f.format(n).replace(/ /g, NB); };
   const nf0 = mkNF({ maximumFractionDigits: 0 });
   const nf1 = mkNF({ minimumFractionDigits: 0, maximumFractionDigits: 1 });
@@ -25,7 +28,6 @@ const UI = (() => {
   const eur0 = (n) => int(n) + NB + '€';
   const eur2 = (n) => nf2(n || 0) + NB + '€';
   const eur0z = (n) => (Math.abs(n) < 0.5 ? '—' : eur0(n));
-  const eur2z = (n) => (Math.abs(n) < 0.005 ? '—' : eur2(n));
   const signed2 = (n, sign) => (Math.abs(n) < 0.005 ? '—' : sign + eur2(Math.abs(n)));
   const pct0 = (n) => nf0(r0(n)) + NB + '%';
   const pct1 = (n) => nf1(Math.round(n * 10) / 10 || 0) + NB + '%';
@@ -53,7 +55,6 @@ const UI = (() => {
   const monthLabel = (mois) => { const { m, y } = mk(mois); return MF[m - 1] + ' ' + y; };
   const monthLower = (mois) => { const { m, y } = mk(mois); return MF[m - 1].toLowerCase() + ' ' + y; };
   const endDot = (s) => (/\.$/.test(s) ? s : s + '.');
-  const deMois = (m) => (/^[aeiou]/i.test(MF[m - 1]) ? 'd’' : 'de ') + MF[m - 1].toLowerCase();
 
   // ---------------------------------------------------------------- composants HTML
   const pill = (kind, text, ic) => `<span class="pill ${kind}">${ic ? icon(ic) : ''}${esc(text)}</span>`;
@@ -68,15 +69,27 @@ const UI = (() => {
   };
   // Barre 100 % : segs = [{ label, v, c (couleur CSS), est (contour pointillé) }]
   const splitBar = (segs, label, cls) => `<div class="split${cls ? ' ' + cls : ''}" role="img" aria-label="${esc(label)}">${segs.map((s, i) =>
-    `<span tabindex="0" data-seg="${i}" class="${s.est ? 'est' : ''}" style="flex:${Math.max(s.v, 0)} 1 0;background:${s.c};animation-delay:${i * 80}ms" aria-label="${esc(s.label)} : ${esc(eur2(s.v))}"></span>`).join('')}</div>`;
+    `<span tabindex="0" data-seg="${i}" class="${s.est ? 'est' : ''}" style="flex:${Math.max(s.v, 0)} 1 0;background:${s.c};animation-delay:${i * 80}ms" aria-label="${esc(s.label)}${NBP}: ${esc(eur2(s.v))}"></span>`).join('')}</div>`;
   const bindSplit = (root, segs, total, title) => {
     $$('.split > span[data-seg]', root).forEach((el) => {
       const s = segs[+el.dataset.seg];
       bindTip(el, () => ttTitle(title) + `<div class="tt-big">${esc(eur2(s.v))}</div>` + ttRow(s.est ? '' : s.c, s.label, pct1(s.v / (total || 1) * 100)));
     });
   };
-  const legendList = (segs, total) => `<ul class="split-legend">${segs.map((s) =>
-    `<li><span class="sw${s.est ? ' est' : ''}" style="background:${s.c}"></span><span>${esc(s.label)}</span><span class="v">${esc(eur0(s.v))}<small>${esc(pct0(s.v / (total || 1) * 100))}</small></span></li>`).join('')}</ul>`;
+  // Parts entières arrondies par la méthode du plus fort reste : la somme affichée est celle des
+  // parts exactes (100 % quand les segments font le total), jamais 99 ou 101 %.
+  const shares = (vals, total) => {
+    const exact = vals.map((v) => Math.max(v, 0) / (total || 1) * 100);
+    const out = exact.map(Math.floor);
+    let rest = Math.round(sum(exact)) - sum(out);
+    exact.map((x, i) => [x - out[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { out[i]++; rest--; } });
+    return out;
+  };
+  const legendList = (segs, total) => {
+    const pc = shares(segs.map((s) => s.v), total);
+    return `<ul class="split-legend">${segs.map((s, i) =>
+      `<li><span class="sw${s.est ? ' est' : ''}" style="background:${s.c}"></span><span>${esc(s.label)}</span><span class="v">${esc(eur0(s.v))}<small>${esc(pct0(pc[i]))}</small></span></li>`).join('')}</ul>`;
+  };
 
   // ---------------------------------------------------------------- SVG
   const niceStep = (raw) => {
@@ -165,11 +178,13 @@ const UI = (() => {
       rt = setTimeout(() => { if (innerWidth !== lastW) { lastW = innerWidth; redraw(); } }, 120);
     });
     addEventListener('scroll', ttHide, { passive: true });
+    // Échap masque l'infobulle sans déplacer le focus (WCAG 1.4.13)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ttHide(); });
   }
 
   return {
-    $, $$, NB, int, num1, eur0, eur2, eur0z, eur2z, signed2, pct0, pct1, kEur, esc, sum, money,
-    MS, MF, DAY, mk, key, byMois, addDays, daysDiff, dShort, dLong, monthLabel, monthLower, deMois, endDot,
+    $, $$, NB, NBP, int, num1, eur0, eur2, eur0z, signed2, pct0, pct1, kEur, esc, sum, money,
+    MS, MF, DAY, mk, key, byMois, addDays, daysDiff, dShort, dLong, monthLabel, monthLower, endDot,
     pill, statusPill, delta, deltaPill, splitBar, bindSplit, legendList,
     niceStep, scaleY, svg, rtop, uid, srTable,
     ttShow, ttHide, bindTip, ttRow, ttTitle,

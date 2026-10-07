@@ -2,15 +2,18 @@
 // Service Worker — Pilotage Freelance (PWA app-shell)
 //
 // Stratégies :
-//  - Navigations (HTML)        -> network-first + fallback cache
-//  - Assets statiques (origine) -> stale-while-revalidate
-//  - Polices Google (gstatic)   -> cache-on-fetch (runtime)
-//  - Tout autre cross-origin    -> laissé passer, jamais intercepté
-//                                  (Supabase, API Google Fonts, CDN…)
+//  - Navigations (HTML)                 -> network-first + fallback cache
+//  - Assets statiques (origine)         -> stale-while-revalidate
+//  - Feuille Google Fonts (googleapis)  -> stale-while-revalidate (cache des polices)
+//  - Polices Google (gstatic)           -> cache-on-fetch (cache des polices)
+//  - Tout autre cross-origin            -> laissé passer, jamais intercepté
+//                                          (Supabase, CDN…)
 // ============================================================
 
 const CACHE = 'pilotage-v6';
-const FONT_CACHE = 'pilotage-fonts-v1';
+// Versionné avec les polices : v2 = Manrope + Geist Mono (v1 = Fraunces, Inter Tight, JetBrains Mono,
+// purgées à l'activation).
+const FONT_CACHE = 'pilotage-fonts-v2';
 
 // App-shell même origine pré-cachée à l'installation.
 const APP_SHELL = [
@@ -88,13 +91,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Feuille Google Fonts : sans elle, @font-face n'est pas déclaré hors ligne et les
+  // .woff2 en cache ne servent à rien. Requête no-cors : réponse opaque acceptée.
+  if (url.host === 'fonts.googleapis.com') {
+    event.respondWith(staleWhileRevalidate(req, FONT_CACHE));
+    return;
+  }
+
   // Polices Google (fichiers .woff2 sur gstatic) -> cache-on-fetch runtime.
   if (url.host === 'fonts.gstatic.com') {
     event.respondWith(cacheOnFetch(req, FONT_CACHE));
     return;
   }
 
-  // Tout autre cross-origin (Supabase, API fonts.googleapis, CDN jsdelivr…)
+  // Tout autre cross-origin (Supabase, CDN jsdelivr…)
   // : on ne l'intercepte pas — laisser le réseau gérer normalement.
 });
 
@@ -110,12 +120,12 @@ function networkFirst(req) {
     );
 }
 
-function staleWhileRevalidate(req) {
-  return caches.open(CACHE).then((cache) =>
+function staleWhileRevalidate(req, cacheName = CACHE) {
+  return caches.open(cacheName).then((cache) =>
     cache.match(req).then((cached) => {
       const network = fetch(req)
         .then((res) => {
-          if (res && res.status === 200) cache.put(req, res.clone());
+          if (res && (res.status === 200 || res.type === 'opaque')) cache.put(req, res.clone());
           return res;
         })
         .catch(() => cached);

@@ -1,7 +1,8 @@
 // ============================================================
-// AURORA — orchestration du rendu (render.js en production).
-// render() : bascule état vide / contenu, en-tête, pied, modèle de vue VM,
-// audit silencieux (badge), puis délègue à chaque section :
+// AURORA — orchestration du rendu.
+// render() : écarte les lignes au mois illisible, bascule état vide / contenu,
+// en-tête, pied, modèle de vue VM, audit silencieux (badge), puis délègue à
+// chaque section :
 //   render-balance.js    -> renderBalanceWidget()   #hero #arrivals #balance-widget
 //   render-stats.js      -> renderActivityStats()   #kpis #activity-widget
 //   render-months.js     -> renderPendingTrack()    #pending
@@ -12,6 +13,37 @@
 
 // Modèle de vue partagé, recalculé à chaque render(). Lecture seule pour les sections.
 let VM = null;
+
+// ---------------------------------------------------------------- validation du mois
+// MOIS (MM-AAAA) sert d'identifiant dans les gabarits (id, aria-controls, data-*) et l'année qui
+// en dérive dans les titres : une valeur hors format n'est jamais rendue. Contrôlé à l'import
+// (main.js) et avant chaque rendu, quelle que soit la provenance (stockage local, cloud).
+const MOIS_RE = /^(0[1-9]|1[0-2])-\d{4}$/;
+const isValidMois = (m) => typeof m === 'string' && MOIS_RE.test(m);
+
+// Écarte les lignes au mois illisible, persiste le nettoyage (sans changer la date du dernier
+// import) et le signale. Renvoie le nombre de lignes retirées.
+function dropInvalidRows() {
+  if (!Array.isArray(DATASET)) return 0;
+  const keep = DATASET.filter((r) => r && isValidMois(r.mois));
+  const n = DATASET.length - keep.length;
+  if (!n) return 0;
+  const meta = loadMeta();
+  DATASET = keep;
+  try {
+    saveDataset(DATASET);
+    if (meta) localStorage.setItem(META_KEY, JSON.stringify({ ...meta, count: keep.length }));
+  } catch (e) { console.warn('Nettoyage non enregistré :', e); }
+  if (typeof showToast === 'function') {
+    const p = n > 1;
+    showToast({
+      title: p ? `${n} lignes ignorées` : '1 ligne ignorée',
+      body: `Mois illisible (format attendu MM-AAAA)${UI.NBP}: ${p ? 'ces lignes ont été retirées' : 'cette ligne a été retirée'} des données.`,
+      ok: false
+    });
+  }
+  return n;
+}
 
 function buildViewModel() {
   const t = AGG.totals;
@@ -64,20 +96,40 @@ function buildViewModel() {
     return { mois: r.mois, montant: r.montant, date: r.date, reference: r.reference, emit, eta, waited, late: eta ? UI.daysDiff(eta, today) : null };
   }).sort((a, b) => (a.emit || 0) - (b.emit || 0));
 
+  // Année affichée : la dernière qui compte au moins un mois facturé. En janvier, tant que la
+  // première facture n'est pas émise, la nouvelle année n'a que des lignes annexes : on reste sur N.
   const years = AGG.years;
-  const curY = years[years.length - 1];
-  const prevY = years.length > 1 ? years[years.length - 2] : null;
-  const billedCur = AGG.months.filter((m) => m.mois.endsWith('-' + curY) && m.facturation > 0);
+  const billed = (y) => AGG.months.filter((m) => m.mois.endsWith('-' + y) && m.facturation > 0);
+  const billedYears = years.filter((y) => billed(y).length);
+  const curY = billedYears.length ? billedYears[billedYears.length - 1] : years[years.length - 1];
+  const prevY = years[years.indexOf(curY) - 1] || null;
+  const billedCur = billed(curY);
   const lastM = billedCur.length ? Math.max(...billedCur.map((m) => UI.mk(m.mois).m)) : 12;
-  const ytd = (y) => AGG.months.filter((m) => m.mois.endsWith('-' + y) && UI.mk(m.mois).m <= lastM);
+  const cumul = (y, from, f) => UI.sum(AGG.months.filter((m) => {
+    const k = UI.mk(m.mois);
+    return k.y === +y && k.m >= from && k.m <= lastM;
+  }), f);
   const sy = Object.fromEntries(AGG.statsByYear.map((s) => [s.year, s]));
+
+  // Comparaison « même période » : uniquement sur les mois que l'historique couvre dans les deux
+  // années. Une première année partielle (portage commencé en juin) ne se compare que de juin à
+  // lastM ; si l'historique commence après lastM, aucune comparaison n'est possible (cmp = null).
+  const start = UI.mk(AGG.months[0].mois);
+  const from = !prevY ? null : +prevY > start.y ? 1 : start.m;
+  const cmp = from && from <= lastM ? {
+    from, to: lastM, full: from === 1,
+    caCur: cumul(curY, from, 'facturation'), caPrev: cumul(prevY, from, 'facturation'),
+    jCur: cumul(curY, from, 'jours_travailles'), jPrev: cumul(prevY, from, 'jours_travailles')
+  } : null;
 
   return {
     t, today, soldeFacture, soldeEncaisse, creditsEncaisses, chargesPayees, versementsRecus,
     psPending, psSum, provRest, provMois, provPer, coopPending, coopRest, tjm, med, medCA,
     arrivals, ghosts, clientPending, curY, prevY, lastM, sy,
-    caCur: UI.sum(ytd(curY), 'facturation'), caPrev: prevY ? UI.sum(ytd(prevY), 'facturation') : 0,
-    jCur: UI.sum(ytd(curY), 'jours_travailles'), jPrev: prevY ? UI.sum(ytd(prevY), 'jours_travailles') : 0
+    // Cumuls de janvier à lastM (chiffres affichés) ; les deltas N / N-1 se lisent dans cmp.
+    caCur: cumul(curY, 1, 'facturation'), caPrev: prevY ? cumul(prevY, 1, 'facturation') : 0,
+    jCur: cumul(curY, 1, 'jours_travailles'), jPrev: prevY ? cumul(prevY, 1, 'jours_travailles') : 0,
+    cmp, since: UI.monthLower(AGG.months[0].mois)
   };
 }
 
@@ -94,8 +146,39 @@ function renderChrome(meta) {
     if (foot) foot.textContent = `${UI.int(meta.count)} opérations analysées · dernière synchronisation le ${UI.dLong(d)} à ${hh}`;
   } else {
     if (info) info.textContent = 'Aucun import pour l’instant';
-    if (foot) foot.textContent = 'Aucune donnée : importe un CSV pour démarrer';
+    if (foot) foot.textContent = `Aucune donnée${UI.NBP}: importe un CSV pour démarrer`;
   }
+  fitAppbar();
+}
+
+// ---------------------------------------------------------------- barre d'app : compaction progressive
+// La barre est plafonnée à --maxw : selon l'état cloud (Sauvegarder affiché, libellés au-delà de
+// 1480 px), la longueur du TJM ou le badge d'audit, la marque peut manquer de place et l'info
+// d'import se couper. On retire alors, dans l'ordre et seulement tant qu'il le faut : les libellés
+// cloud, les icônes de navigation, « CSV » du bouton d'import, l'info d'import longue, puis le
+// libellé « Vérifier » (icône et badge restent, nom accessible conservé).
+const BAR_FIT = ['fit-1', 'fit-2', 'fit-3', 'fit-4', 'fit-5'];
+function fitAppbar() {
+  const bar = document.getElementById('appbar');
+  const info = document.getElementById('last-import-info');
+  if (!bar || !info) return;
+  bar.classList.remove(...BAR_FIT);
+  for (const c of BAR_FIT) {
+    if (info.scrollWidth <= info.clientWidth) return;
+    bar.classList.add(c);
+  }
+}
+// Réajuste avant l'affichage quand la place change : redimensionnement, chargement des polices,
+// actions modifiées (bouton cloud et son libellé posés par supabase-sync, Sauvegarder, badge
+// d'audit). Les classes vivent sur #appbar, hors du sous-arbre observé : pas de boucle.
+let BAR_WATCHED = false;
+function watchAppbar() {
+  if (BAR_WATCHED) return;
+  BAR_WATCHED = true;
+  addEventListener('resize', fitAppbar);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitAppbar);
+  const acts = document.querySelector('.actions');
+  if (acts) new MutationObserver(fitAppbar).observe(acts, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
 }
 
 function renderFooterAudit(result) {
@@ -105,8 +188,9 @@ function renderFooterAudit(result) {
   const s = result.stats;
   const n = s.danger + s.warn;
   b.hidden = false;
-  b.innerHTML = `<i class="ldot" style="background:${s.danger ? 'var(--danger)' : n ? 'var(--warn)' : 'var(--ok)'}"></i>Audit : ${s.danger} critique${s.danger > 1 ? 's' : ''} · ${s.warn} point${s.warn > 1 ? 's' : ''} d’attention`;
-  b.setAttribute('aria-label', `Ouvrir l’audit : ${s.danger} critique, ${s.warn} points d’attention`);
+  const txt = `${s.danger} critique${s.danger > 1 ? 's' : ''} · ${s.warn} point${s.warn > 1 ? 's' : ''} d’attention`;
+  b.innerHTML = `<i class="ldot" style="background:${s.danger ? 'var(--danger)' : n ? 'var(--warn)' : 'var(--ok)'}"></i>Audit${UI.NBP}: ${txt}`;
+  b.setAttribute('aria-label', `Ouvrir l’audit${UI.NBP}: ${txt.replace(' · ', ', ')}`);
 }
 
 // ---------------------------------------------------------------- navigation de sections (scroll-spy)
@@ -125,6 +209,7 @@ function setupSpy() {
 
 // ---------------------------------------------------------------- rendu principal
 function render() {
+  dropInvalidRows();
   const meta = loadMeta();
   const hasData = Array.isArray(DATASET) && DATASET.length > 0;
   document.body.classList.toggle('is-empty', !hasData);
@@ -149,15 +234,22 @@ function render() {
   refreshProjCoeffs();
   VM = buildViewModel();
   renderChrome(meta);
-  const audit = typeof runAudit === 'function' ? runAudit({ silent: true }) : null;
+  let audit = null;
+  safeRender('audit', () => { audit = typeof runAudit === 'function' ? runAudit({ silent: true }) : null; });
 
-  renderBalanceWidget();
-  renderActivityStats();
-  renderPendingTrack();
-  renderProjection();
-  renderMonthsLists();
+  safeRender('solde', renderBalanceWidget);
+  safeRender('activité', renderActivityStats);
+  safeRender('en attente', renderPendingTrack);
+  safeRender('projection', () => renderProjection());
+  safeRender('mois par mois', renderMonthsLists);
   renderFooterAudit(audit);
 
   hydrateIcons();
   setupSpy();
+}
+
+// Défense en profondeur : une section en échec est journalisée et n'emporte ni les suivantes,
+// ni le pied d'audit, ni l'appelant (un import déjà enregistré reste un import réussi).
+function safeRender(name, fn) {
+  try { fn(); } catch (e) { console.error(`Section « ${name} » non rendue :`, e); }
 }

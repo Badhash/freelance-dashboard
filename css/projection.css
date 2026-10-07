@@ -28,6 +28,7 @@
 .pbar i { display: block; height: 100%; border-radius: 2px; transform-origin: left; animation: grow .7s var(--ease) both; }
 .pbar i:first-child { border-radius: 999px 2px 2px 999px; }
 .pbar i:last-child { border-radius: 2px 999px 999px 2px; }
+.pbar.still i { animation: none; } /* recalcul par un compteur : pas de ré-animation */
 .day-row:not(.known) .pbar { opacity: .82; outline: 1.5px dashed var(--est-stroke); outline-offset: 2px; }
 .day-row .dt { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .day-row.known .dt { color: var(--text-2); }
@@ -36,13 +37,21 @@
 .stepper button:hover { background: var(--surface-solid); color: var(--accent-text); }
 [data-theme="dark"] .stepper button:hover { background: rgba(255, 255, 255, .1); }
 .stepper button .ic { width: 16px; height: 16px; stroke-width: 2.4; }
-.stepper input { width: 52px; height: 36px; border: 0; background: transparent; text-align: center; font: 800 15px var(--font); font-variant-numeric: tabular-nums; color: var(--text); -moz-appearance: textfield; appearance: textfield; border-radius: 8px; }
-.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input { width: 52px; height: 36px; border: 0; background: transparent; text-align: center; font: 800 15px var(--font); font-variant-numeric: tabular-nums; color: var(--text); -webkit-appearance: none; appearance: none; border-radius: 8px; }
 .stepper input:focus-visible { outline: 2px solid var(--accent); }
 .stepper .u { font-size: 12px; color: var(--muted); font-weight: 700; margin-right: 6px; }
 
 .proj-table-wrap { margin-top: 16px; }
-.table-scroll { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--hairline); margin-top: 12px; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+/* Indices de défilement (classes et --pt-stick posés par tableHint) : ombre intérieure à droite
+   tant que des colonnes restent cachées, ombre au bord de la colonne Mois collante une fois défilé
+   (calque du cadre : Chromium ne peint pas box-shadow sur les cellules en border-collapse). */
+.pt-frame { position: relative; margin-top: 12px; --pt-shade: rgba(30, 20, 90, .18); }
+[data-theme="dark"] .pt-frame { --pt-shade: rgba(0, 0, 0, .8); }
+.pt-frame::before, .pt-frame::after { content: ""; position: absolute; z-index: 2; top: 1px; bottom: 1px; pointer-events: none; opacity: 0; }
+.pt-frame::before { left: var(--pt-stick, 1px); width: 14px; background: linear-gradient(to right, var(--pt-shade), transparent); }
+.pt-frame::after { right: 1px; width: 36px; border-radius: 0 calc(var(--r-md) - 1px) calc(var(--r-md) - 1px) 0; background: linear-gradient(to left, var(--pt-shade), transparent); }
+.pt-frame.more-left::before, .pt-frame.more-right::after { opacity: 1; }
+.table-scroll { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--hairline); -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 table.pt { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 880px; }
 .pt thead th { text-align: right; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 750; padding: 12px 14px; background: var(--surface-2); border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .pt td, .pt tbody th, .pt tfoot th { text-align: right; padding: 10px 14px; border-bottom: 1px solid var(--hairline); font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
@@ -76,6 +85,12 @@ table.pt { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width:
   .proj-chart, .days { padding: 14px; }
   .stepper button, .pt .stepper button { width: 44px; height: 44px; }
   .stepper input, .pt .stepper input { height: 44px; width: 48px; }
+}
+/* Très petit écran : le compteur (≈ 150 px) écraserait le libellé (« 22 jours ouvrés · 0 j de congés »
+   sur 4 lignes) : il passe sur sa propre rangée, sous le libellé. */
+@media (max-width: 359px) {
+  .day-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "n" "h" "r" "b"; }
+  .day-row .dr { margin-top: 8px; }
 }
 @media (pointer: coarse) {
   .stepper button { width: 44px; height: 44px; }

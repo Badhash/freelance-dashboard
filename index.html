@@ -65,7 +65,7 @@
       <button class="act needs-data" type="button" id="reset-btn" title="Réinitialiser le dashboard" hidden><span class="act-ic"><i data-icon="rotate"></i></span><span class="act-l">Réinitialiser</span></button>
       <button class="act" type="button" id="auth-btn" title="Connecte-toi pour synchroniser tes données (cloud)" style="display:none"><span class="act-ic"><i data-icon="cloud"></i><span class="act-dot" aria-hidden="true"></span></span><span class="act-l" id="auth-btn-label">Se connecter</span></button>
       <button class="act" type="button" id="save-btn" title="Sauvegarder dans le cloud (chiffré)" style="display:none"><span class="act-ic"><i data-icon="cloudUpload"></i></span><span class="act-l">Sauvegarder</span></button>
-      <button class="act act-audit needs-data" type="button" id="audit-btn" hidden><span class="act-ic"><i data-icon="shield"></i></span><span class="act-l">Vérifier</span><span class="badge" id="audit-badge" hidden></span></button>
+      <button class="act act-audit needs-data" type="button" id="audit-btn" title="Vérifier les calculs (audit)" hidden><span class="act-ic"><i data-icon="shield"></i></span><span class="act-l">Vérifier</span><span class="badge" id="audit-badge" hidden></span></button>
       <label class="act act-primary" for="csv-file-input" role="button" tabindex="0"><span class="act-ic"><i data-icon="upload"></i></span><span class="act-l">Importer<span class="im-hide"> CSV</span></span></label>
     </div>
   </div>
@@ -87,11 +87,11 @@
       <div>
         <span class="eyebrow"><span class="live-dot" aria-hidden="true"></span>Bienvenue</span>
         <h1 id="empty-title">Ton portage, enfin <span>en pleine lumière.</span></h1>
-        <p class="lead">Importe l’export CSV de l’intranet de ton portage : tu verras aussitôt ce qu’il te doit, ce qui arrive et quand, et ce que tu toucheras d’ici la fin de l’année.</p>
+        <p class="lead">Importe l’export CSV de l’intranet de ton portage&nbsp;: tu verras aussitôt ce qu’il te doit, ce qui arrive et quand, et ce que tu toucheras d’ici la fin de l’année.</p>
         <div class="empty-ctas">
           <label class="btn primary" for="csv-file-input" role="button" tabindex="0"><i data-icon="upload"></i>Importer mon premier CSV</label>
           <button class="btn secondary" type="button" data-act="cloud" data-needs-cloud><i data-icon="cloud"></i>Restaurer depuis le cloud</button>
-          <a class="btn ghost" href="#steps"><i data-icon="info"></i>Comment exporter ?</a>
+          <a class="btn ghost" href="#steps"><i data-icon="info"></i>Comment exporter&nbsp;?</a>
         </div>
         <div class="drop" id="drop"><i data-icon="file"></i><span>Ou glisse ton fichier ici. Tu pourras réimporter un CSV plus récent à tout moment, sans doublon.</span></div>
       </div>
@@ -130,8 +130,8 @@
     </div>
     <div class="steps" id="steps">
       <div class="card step"><span class="n">1</span><h2 class="h3">Exporte depuis l’intranet</h2><p>Sur la page des opérations de ton compte d’activité, clique « Exporter CSV » (script fourni avec le dashboard). Sans filtre ni recherche active.</p></div>
-      <div class="card step"><span class="n">2</span><h2 class="h3">Importe le fichier</h2><p>Les lignes sont fusionnées sans doublon. Une facture corrigée entre deux exports ? On te propose de retirer l’ancienne version.</p></div>
-      <div class="card step"><span class="n">3</span><h2 class="h3">Pilote</h2><p>Ce qu’on te doit, les profit shares en route, ton activité, ta projection jusqu’à décembre : tout se calcule tout seul.</p></div>
+      <div class="card step"><span class="n">2</span><h2 class="h3">Importe le fichier</h2><p>Les lignes sont fusionnées sans doublon. Une facture corrigée entre deux exports&nbsp;? On te propose de retirer l’ancienne version.</p></div>
+      <div class="card step"><span class="n">3</span><h2 class="h3">Pilote</h2><p>Ce qu’on te doit, les profit shares en route, ton activité, ta projection jusqu’à décembre&nbsp;: tout se calcule tout seul.</p></div>
     </div>
     <div class="card privacy"><i data-icon="lock"></i><span>Tes données restent dans ce navigateur. La synchronisation cloud est optionnelle et chiffrée avant l’envoi.</span></div>
   </section>
@@ -151,7 +151,7 @@
   </div>
 
   <footer class="foot" id="footer">
-    <span><i data-icon="file"></i><span id="footer-text">Aucune donnée : importe un CSV pour démarrer</span></span>
+    <span><i data-icon="file"></i><span id="footer-text">Aucune donnée&nbsp;: importe un CSV pour démarrer</span></span>
     <button class="foot-audit" id="footer-audit" type="button" hidden></button>
     <span><i data-icon="lock"></i>Données stockées dans ce navigateur · synchro cloud chiffrée en option</span>
   </footer>
@@ -230,7 +230,7 @@
       <h3>Activer le 2e facteur</h3>
       <div class="auth-sub">Scanne ce QR code avec ton application d’authentification (Google Authenticator, Authy, 1Password…), puis saisis le code à 6 chiffres.</div>
       <div class="auth-qr" id="auth-qr"></div>
-      <div class="auth-secret">Clé manuelle : <code id="auth-secret"></code></div>
+      <div class="auth-secret">Clé manuelle&nbsp;: <code id="auth-secret"></code></div>
       <label class="auth-label" for="auth-enroll-code">Code à 6 chiffres</label>
       <input type="text" inputmode="numeric" maxlength="6" id="auth-enroll-code" class="auth-input otp" autocomplete="one-time-code" placeholder="000000">
       <div class="auth-error" id="auth-enroll-error" role="alert"></div>
@@ -260,7 +260,7 @@
     <div class="auth-view" id="auth-view-unlock" style="display:none;">
       <span class="auth-orb" aria-hidden="true"><i data-icon="key"></i></span>
       <h3>Déverrouiller le cloud</h3>
-      <div class="auth-sub">Saisis ton mot de passe pour déchiffrer tes données cloud. La clé n’est jamais stockée : elle est redérivée à chaque session. Le dashboard reste utilisable sans déverrouillage.</div>
+      <div class="auth-sub">Saisis ton mot de passe pour déchiffrer tes données cloud. La clé n’est jamais stockée&nbsp;: elle est redérivée à chaque session. Le dashboard reste utilisable sans déverrouillage.</div>
       <label class="auth-label" for="auth-unlock-password">Mot de passe</label>
       <input type="password" id="auth-unlock-password" class="auth-input" autocomplete="current-password" placeholder="Ton mot de passe">
       <div class="auth-error" id="auth-unlock-error" role="alert"></div>

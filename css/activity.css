@@ -14,10 +14,18 @@
 .kpi-sub { margin-top: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 .kpi-viz { margin-top: auto; padding-top: 14px; }
 .kpi-viz .chart { margin: 0; }
+/* Les cartes d'une même rangée partagent leurs 4 lignes (tête, valeur, aide, mini-visuel) :
+   une tête sur deux lignes ou sans pastille ne décale plus la valeur des cartes voisines. */
+@supports (grid-template-rows: subgrid) {
+  .kpi { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; }
+  .kpi-head { align-self: start; }
+}
 .tracker { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
 .tracker span { height: 26px; border-radius: 6px; background: var(--surface-3); transition: transform .15s var(--ease); }
 .tracker span[tabindex]:hover, .tracker span[tabindex]:focus-visible { transform: translateY(-2px); }
 .tracker span.future { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+/* Avant l'historique : simple trait de base, comme les mois sans facture des colonnes du CA */
+.tracker span.out { background: linear-gradient(var(--border-strong), var(--border-strong)) center bottom / 100% 2px no-repeat; border-radius: 1px; }
 .tracker-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--faint); font-weight: 650; }
 
 /* ---------- Grille Activité ---------- */
@@ -67,7 +75,8 @@
 .cd-m { animation: fadeIn .6s var(--ease) both; }
 /* Nuit polaire : chaque jour facturé devient une étoile (une seule ombre par mois, pas par point) */
 [data-theme="dark"] .cd-m { filter: drop-shadow(0 0 3px rgba(200, 192, 255, .45)); }
-.cst .g-hit:hover, .cst .g-hit:focus-visible { fill: var(--accent-soft); }
+/* Survol et focus d'un mois : contour .g-focus (base.css) dessiné autour, jamais un aplat
+   par-dessus les points */
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1140px) {
@@ -78,7 +87,9 @@
   .kpis { gap: 12px; }
   .kpi { padding: 16px; }
   .kpi-head { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .kpi-value { font-size: 24px; margin-top: 10px; }
+  /* Rétrécit sous ~390 px pour qu'un montant à 7 chiffres tienne dans la carte (320 px) */
+  .kpi-value { font-size: clamp(18px, 6.2vw, 24px); margin-top: 10px; }
+  .yearcard .tile .tv { font-size: clamp(16px, 5.2vw, 21px); }
   .kpi-label { font-size: 12.5px; }
   .big-delta .v { font-size: 28px; }
   .yc-head { flex-direction: column; align-items: stretch; }
