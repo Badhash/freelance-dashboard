@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name         Reecho — Export CSV Dashboard
 // @namespace    https://github.com/naderhassan/reecho-dashboard
-// @version      2.0.0
+// @version      2.1.0
 // @description  Ajoute un bouton pour exporter toutes les opérations du compte d'activité en CSV (format du dashboard)
-// @match        https://*.reecho.fr/*
-// @match        https://reecho.fr/*
+// @match        https://intranet.reecho.eu/*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -19,6 +18,12 @@
 //     outil signe du point de vue du compte : crédits « + », charges et
 //     revenus versés « − ») ;
 //   - « — » (pas de date de paiement) exporté vide.
+//
+// v2.1 : intranet.reecho.eu (le script ne se chargeait pas ailleurs) ; colonne
+// « Statut » (anciennement « Encaissé/Payé ») ; pagination « Pagination des
+// opérations / Page suivante » ; nature lue dans l'attribut title (le tableau
+// affiche « Facturation… » sans le préfixe « Crédit - ») ; libellés renommés
+// ramenés aux libellés historiques que connaît le dashboard (NATURE_ALIASES).
 
 (function () {
     'use strict';
@@ -35,17 +40,39 @@
         'DATE PAIEMENT arrow_drop_up arrow_drop_down'
     ];
 
-    // En-tête normalisé du tableau Opérations -> champ exporté (même ordre que ci-dessus).
+    // Intitulés normalisés du tableau Opérations (le premier trouvé gagne) -> champ exporté,
+    // dans l'ordre de DASHBOARD_HEADERS.
     const COLUMNS = [
-        ['date', 'date'],
-        ['mois', 'mois'],
-        ['reference', 'reference'],
-        ['description', 'description'],
-        ['nature', 'nature'],
-        ['montant ht', 'montant'],
-        ['encaisse/paye', 'statut'],
-        ['date paiement', 'datePaiement']
+        [['date'], 'date'],
+        [['mois'], 'mois'],
+        [['reference'], 'reference'],
+        [['description'], 'description'],
+        [['nature'], 'nature'],
+        [['montant ht', 'montant'], 'montant'],
+        [['statut', 'encaisse/paye'], 'statut'],
+        [['date paiement'], 'datePaiement']
     ];
+
+    // Le dashboard ne reconnaît que les libellés historiques (data.js les compare à
+    // l'identique). L'intranet en a renommé certains : on les ramène ici, sans toucher
+    // au dashboard. Clés comparées sans accents ni casse. Toute autre nature inconnue
+    // est exportée telle quelle et signalée à la fin de l'export.
+    const NATURE_ALIASES = {
+        'Crédit - Facturation uu': 'Crédit - Facturation',
+        'Charges - Charges et frais structure': 'Charges - Salaire',
+        'Charges - Frais LLP': 'Charges - Profit Share'
+    };
+
+    // Natures et statuts que data.js sait interpréter.
+    const KNOWN_NATURES = [
+        'Crédit - Facturation', 'Crédit - Cooptation', 'Crédit - Refacturation Client',
+        'Charges - Commission Portage', 'Charges - Charges', 'Charges - Salaire',
+        'Charges - Impot France', 'Charges - Profit Share',
+        'Revenu - Salaire NET (Après impot)', 'Revenu - Provision Congés',
+        'Revenu - Note de frais', 'Revenu - Note de frais (Refacturation Client)',
+        'Revenu - Ticket Restaurant', 'Revenu - Profit Share', 'Revenu - Dividendes - Cooptation'
+    ];
+    const KNOWN_STATUTS = ['Payé', 'Non payé'];
 
     const BOM = String.fromCharCode(0xFEFF);
 
@@ -80,9 +107,10 @@
             font-family: -apple-system, sans-serif; font-size: 13px; line-height: 1.45;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             opacity: 0; transform: translateY(20px); pointer-events: none;
-            transition: all 0.3s; max-width: 360px;
+            transition: all 0.3s; max-width: 420px; white-space: pre-line;
         }
         #reecho-export-toast.visible { opacity: 1; transform: translateY(0); }
+        #reecho-export-toast.warn { border-left-color: #E4C068; }
         #reecho-export-toast.error { border-left-color: #EF5A5A; }
     `;
     document.head.appendChild(style);
@@ -102,12 +130,14 @@
     toast.id = 'reecho-export-toast';
     document.body.appendChild(toast);
 
-    function showToast(msg, isError = false) {
+    // kind : '' (succès), 'warn' (export fait, à vérifier) ou 'error' (export annulé).
+    function showToast(msg, kind = '') {
         toast.textContent = msg;
-        toast.classList.toggle('error', isError);
+        toast.classList.toggle('warn', kind === 'warn');
+        toast.classList.toggle('error', kind === 'error');
         toast.classList.add('visible');
         clearTimeout(toast._t);
-        toast._t = setTimeout(() => toast.classList.remove('visible'), isError ? 9000 : 5000);
+        toast._t = setTimeout(() => toast.classList.remove('visible'), kind ? 12000 : 5000);
     }
 
     function setLoading(loading, text) {
@@ -135,6 +165,27 @@
 
     const cellText = (el) => (el.textContent || '').replace(/\s+/g, ' ').trim();
 
+    // Le tableau raccourcit certaines cellules à l'écran (la nature perd son préfixe
+    // « Crédit - », « Charges - »...) ; l'attribut title porte le libellé complet.
+    function fullText(td) {
+        const text = cellText(td);
+        const title = (td.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+        return title && norm(title).includes(norm(text)) ? title : text;
+    }
+
+    const NATURE_BY_KEY = new Map(Object.entries(NATURE_ALIASES).map(([from, to]) => [norm(from), to]));
+    const KNOWN_NATURE_KEYS = new Set(KNOWN_NATURES.map(norm));
+    const KNOWN_STATUT_KEYS = new Set(KNOWN_STATUTS.map(norm));
+
+    // Libellé de nature tel que le dashboard le connaît.
+    const dashboardNature = (nature) => NATURE_BY_KEY.get(norm(nature)) || nature;
+
+    // Portée de la lecture : l'onglet Opérations (les autres onglets ont leurs propres compteurs).
+    function operationsScope() {
+        const found = findOperationsTable();
+        return (found && found.table.closest('[role="tabpanel"]')) || document;
+    }
+
     function findOperationsTab() {
         const tabs = [...document.querySelectorAll('[role="tab"]')];
         return tabs.find(t => /-trigger-operations$/.test(t.id)) ||
@@ -144,7 +195,7 @@
     function findOperationsTable() {
         for (const table of document.querySelectorAll('table')) {
             const heads = [...table.querySelectorAll('thead th')].map(th => norm(th.textContent));
-            if (heads.includes('nature') && heads.includes('montant ht')) return { table, heads };
+            if (heads.includes('nature') && (heads.includes('montant ht') || heads.includes('montant'))) return { table, heads };
         }
         return null;
     }
@@ -152,9 +203,9 @@
     function columnIndexes(heads) {
         const idx = {};
         const missing = [];
-        for (const [label, field] of COLUMNS) {
-            const i = heads.indexOf(label);
-            if (i === -1) missing.push(label);
+        for (const [labels, field] of COLUMNS) {
+            const i = labels.map(l => heads.indexOf(l)).find(n => n !== -1);
+            if (i === undefined) missing.push(labels[0]);
             idx[field] = i;
         }
         if (missing.length) throw new Error('Colonnes introuvables dans le tableau : ' + missing.join(', '));
@@ -172,14 +223,14 @@
             // Ligne de détail dépliée ou état vide (colspan) : pas une opération.
             if (cells.length !== found.heads.length) continue;
             const raw = {};
-            for (const field in idx) raw[field] = cellText(cells[idx[field]]);
+            for (const field in idx) raw[field] = fullText(cells[idx[field]]);
             if (!raw.nature || !raw.mois) continue;
             out.push([
                 toFrDate(raw.date),
                 toDashboardMonth(raw.mois),
                 raw.reference,
                 raw.description,
-                raw.nature,
+                dashboardNature(raw.nature),
                 formatAmount(toNaturalAmount(parseDisplayedAmount(raw.montant), raw.nature)),
                 raw.statut,
                 toFrDate(raw.datePaiement)
@@ -263,33 +314,34 @@
 
     // "239 / 239 opération(s)" : un écart veut dire recherche ou filtre actif.
     function getFilterCounter() {
-        for (const el of document.querySelectorAll('span')) {
+        for (const el of operationsScope().querySelectorAll('span')) {
             const m = cellText(el).match(/^(\d+)\s*\/\s*(\d+)\s+op/i);
             if (m) return { shown: +m[1], total: +m[2] };
         }
         return null;
     }
 
-    // "1-100 sur 239 opérations"
+    // "1–25 sur 239 opérations"
     function getRangeInfo() {
-        for (const el of document.querySelectorAll('span')) {
+        for (const el of operationsScope().querySelectorAll('span')) {
             const m = cellText(el).match(/^(\d+)\s*[^\d\s]\s*(\d+)\s+sur\s+(\d+)\s+op/i);
             if (m) return { from: +m[1], to: +m[2], total: +m[3], text: m[0] };
         }
         return null;
     }
 
+    // « Pagination des opérations » (ou « pagination » pour le composant shadcn par défaut).
     function paginationNav() {
-        return document.querySelector('nav[aria-label="pagination"]');
+        return operationsScope().querySelector('nav[aria-label*="pagination" i]');
     }
 
+    // Boutons « Page suivante » / « Page précédente » : icône seule, donc repérés par aria-label.
     function findPagerLink(kind) {
         const nav = paginationNav();
         if (!nav) return null;
-        const label = kind === 'next' ? 'Go to next page' : 'Go to previous page';
-        return nav.querySelector(`[aria-label="${label}"]`) ||
-            [...nav.querySelectorAll('a, button')].find(a =>
-                (kind === 'next' ? /next|suivant/i : /previous|pr[eé]c[eé]dent/i).test(a.textContent)) || null;
+        const re = kind === 'next' ? /suivant|next/i : /pr[eé]c[eé]dent|previous/i;
+        return [...nav.querySelectorAll('a, button')].find(a =>
+            re.test(a.getAttribute('aria-label') || '') || re.test(a.textContent)) || null;
     }
 
     function findPageLink(n) {
@@ -328,6 +380,24 @@
             if (isDisabled(target)) return;
             await clickAndWaitForPage(target, '1');
         }
+    }
+
+    // Valeurs que data.js ignorerait (nature) ou compterait comme non payées (statut) :
+    // mieux vaut le dire que laisser un total faux sans explication.
+    function unknownValues(rows) {
+        const tally = (col, known) => {
+            const counts = new Map();
+            for (const r of rows) {
+                if (r[col] && !known.has(norm(r[col]))) counts.set(r[col], (counts.get(r[col]) || 0) + 1);
+            }
+            return [...counts].map(([v, n]) => `« ${v} » (${n})`).join(', ');
+        };
+        const lines = [];
+        const natures = tally(4, KNOWN_NATURE_KEYS);
+        if (natures) lines.push(`Natures inconnues du dashboard (lignes ignorées dans ses totaux) : ${natures}.`);
+        const statuts = tally(6, KNOWN_STATUT_KEYS);
+        if (statuts) lines.push(`Statuts inconnus (comptés comme non payés) : ${statuts}.`);
+        return lines;
     }
 
     function downloadCSV(rows) {
@@ -371,9 +441,11 @@
             // ne crée pas de doublon, et aucune ligne légitime n'est dédupliquée.
             const pages = new Map();
             let expected = null;
+            let pageSize = null;
             for (let guard = 0; guard < 500; guard++) {
                 const range = getRangeInfo();
                 if (range) expected = range.total;
+                if (range && pageSize === null) pageSize = range.to - range.from + 1;
                 pages.set(range ? range.from : guard + 1, readPageRows());
                 const read = [...pages.values()].reduce((n, r) => n + r.length, 0);
                 setLoading(true, expected ? `${read}/${expected}...` : `${read} lignes...`);
@@ -391,17 +463,19 @@
             }
 
             downloadCSV(rows);
-            showToast(`${rows.length} lignes exportées`);
+            const warnings = unknownValues(rows);
+            showToast([`${rows.length} lignes exportées.`, ...warnings].join('\n'), warnings.length ? 'warn' : '');
 
-            // Retour sur la page de départ, sans bloquer.
-            if (startRange && startRange.from > 1) {
-                const page = Math.floor((startRange.from - 1) / Math.max(1, startRange.to - startRange.from + 1)) + 1;
-                const link = findPageLink(page);
+            // Retour sur la page de départ (la lecture s'arrête sur la dernière), sans bloquer.
+            if (startRange && pageSize) {
+                const page = Math.floor((startRange.from - 1) / pageSize) + 1;
+                const here = getRangeInfo();
+                const link = here && here.from === startRange.from ? null : findPageLink(page);
                 if (link) clickAndWaitForPage(link, String(page)).catch(() => {});
             }
         } catch (err) {
             console.error('[Reecho Export] Erreur :', err);
-            showToast(err.message, true);
+            showToast(err.message, 'error');
         } finally {
             setLoading(false);
             exporting = false;
