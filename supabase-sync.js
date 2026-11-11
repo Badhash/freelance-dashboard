@@ -432,15 +432,26 @@
     if (!/^\d{6}$/.test(code)) { setError('auth-challenge-error', 'Saisis le code à 6 chiffres.'); return; }
 
     const factors = await listFactors();
-    const factor = factors.find(f => f.status === 'verified') || factors[0];
-    if (!factor) { setError('auth-challenge-error', 'Aucun facteur trouvé. Reconnecte-toi.'); return; }
+    // Tous les facteurs vérifiés sont essayés tour à tour : seul le premier
+    // l'était, si bien que le code d'un authenticator de secours était toujours
+    // refusé (cloud inaccessible si le téléphone principal est perdu).
+    const verified = factors.filter(f => f.status === 'verified');
+    const candidates = verified.length ? verified : factors.slice(0, 1);
+    if (!candidates.length) { setError('auth-challenge-error', 'Aucun facteur trouvé. Reconnecte-toi.'); return; }
 
     setBusy('auth-challenge-submit', true);
     try {
-      const ch = await client.auth.mfa.challenge({ factorId: factor.id });
-      if (ch.error) { setError('auth-challenge-error', traduireErreur(ch.error)); return; }
-      const ver = await client.auth.mfa.verify({ factorId: factor.id, challengeId: ch.data.id, code });
-      if (ver.error) { setError('auth-challenge-error', traduireErreur(ver.error)); return; }
+      let lastError = null;
+      let ok = false;
+      for (const factor of candidates) {
+        const ch = await client.auth.mfa.challenge({ factorId: factor.id });
+        if (ch.error) { lastError = ch.error; continue; }
+        const ver = await client.auth.mfa.verify({ factorId: factor.id, challengeId: ch.data.id, code });
+        if (ver.error) { lastError = ver.error; continue; }
+        ok = true;
+        break;
+      }
+      if (!ok) { setError('auth-challenge-error', traduireErreur(lastError)); return; }
       aal2 = true;
       await afterAuthenticated();
     } catch (e) {
