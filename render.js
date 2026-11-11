@@ -87,7 +87,8 @@ function buildViewModel() {
     const raw = parseDate(ps.date_emission);
     const emit = raw && raw < usual ? usual : raw;
     const eta = emit && med ? UI.addDays(emit, med) : null;
-    return { ...ps, emit, eta, waited: emit ? UI.daysDiff(emit, today) : null, left: eta ? UI.daysDiff(today, eta) : null };
+    // Émission retenue possiblement dans le futur (date habituelle) : pas de « -5 j écoulés ».
+    return { ...ps, emit, eta, waited: emit ? Math.max(0, UI.daysDiff(emit, today)) : null, left: eta ? UI.daysDiff(today, eta) : null };
   }).sort((a, b) => (a.eta || 0) - (b.eta || 0));
 
   // Profit shares pas encore émis : mois facturés sans aucune ligne de PS, émission
