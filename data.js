@@ -271,8 +271,11 @@ function mergeDatasets(existing, incoming, options = {}) {
     const k = rowKey(r);
     if (map.has(k)) {
       const prev = map.get(k);
-      // Mise à jour si statut ou date paiement différents
-      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement) {
+      // Mise à jour si statut, date de paiement, date d'émission ou mois diffèrent
+      // (une date ou un mois corrigés à la source étaient ignorés : l'arrivée
+      // estimée et l'audit des délais restaient sur l'ancienne valeur).
+      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement
+          || prev.date !== r.date || prev.mois !== r.mois) {
         map.set(k, r);
         updatedRows.push({ prev: { ...prev }, next: r });
       } else {
