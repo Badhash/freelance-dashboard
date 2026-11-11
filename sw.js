@@ -115,8 +115,12 @@ self.addEventListener('fetch', (event) => {
 function networkFirst(req) {
   return fetch(req)
     .then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      // Seule une réponse valide est mise en cache : une 404 ou une erreur
+      // serveur restait servie hors ligne à la place de l'app.
+      if (res && res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      }
       return res;
     })
     .catch(() =>
