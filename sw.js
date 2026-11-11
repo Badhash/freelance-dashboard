@@ -10,7 +10,7 @@
 //                                          (Supabase, CDN…)
 // ============================================================
 
-const CACHE = 'pilotage-v7';
+const CACHE = 'pilotage-v8';
 // Versionné avec les polices : v2 = Manrope + Geist Mono (v1 = Fraunces, Inter Tight, JetBrains Mono,
 // purgées à l'activation).
 const FONT_CACHE = 'pilotage-fonts-v2';
@@ -19,27 +19,28 @@ const FONT_CACHE = 'pilotage-fonts-v2';
 const APP_SHELL = [
   '.',
   'index.html',
-  'css/tokens.css?v=7',
-  'css/base.css?v=7',
-  'css/shell.css?v=7',
-  'css/hero.css?v=7',
-  'css/activity.css?v=7',
-  'css/months.css?v=7',
-  'css/projection.css?v=7',
-  'css/overlays.css?v=7',
-  'data.js?v=7',
-  'icons.js?v=7',
-  'charts.js?v=7',
-  'render-balance.js?v=7',
-  'render-stats.js?v=7',
-  'render-months.js?v=7',
-  'render-projection.js?v=7',
-  'render-overlays.js?v=7',
-  'render.js?v=7',
-  'supabase-config.js?v=7',
-  'supabase-crypto.js?v=7',
-  'supabase-sync.js?v=7',
-  'main.js?v=7',
+  'css/tokens.css?v=8',
+  'css/base.css?v=8',
+  'css/shell.css?v=8',
+  'css/hero.css?v=8',
+  'css/activity.css?v=8',
+  'css/months.css?v=8',
+  'css/projection.css?v=8',
+  'css/overlays.css?v=8',
+  'data.js?v=8',
+  'icons.js?v=8',
+  'charts.js?v=8',
+  'render-balance.js?v=8',
+  'render-stats.js?v=8',
+  'render-months.js?v=8',
+  'render-projection.js?v=8',
+  'render-overlays.js?v=8',
+  'render.js?v=8',
+  'supabase-config.js?v=8',
+  'supabase-crypto.js?v=8',
+  'supabase-sync.js?v=8',
+  'main.js?v=8',
+  'vendor/supabase-js-2.118.0.js',
   'favicon.svg',
   'manifest.json',
   'icon-192.png',
@@ -64,7 +65,10 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== CACHE && k !== FONT_CACHE)
+          // Uniquement NOS anciens caches : Cache Storage est partagé par toute
+          // l'origine (toutes les pages <compte>.github.io), la purge sans
+          // préfixe effaçait aussi les caches des autres applications.
+          .filter((k) => k.startsWith('pilotage-') && k !== CACHE && k !== FONT_CACHE)
           .map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
@@ -104,15 +108,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Tout autre cross-origin (Supabase, CDN jsdelivr…)
+  // Tout autre cross-origin (Supabase…)
   // : on ne l'intercepte pas — laisser le réseau gérer normalement.
 });
 
 function networkFirst(req) {
   return fetch(req)
     .then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      // Seule une réponse valide est mise en cache : une 404 ou une erreur
+      // serveur restait servie hors ligne à la place de l'app.
+      if (res && res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      }
       return res;
     })
     .catch(() =>

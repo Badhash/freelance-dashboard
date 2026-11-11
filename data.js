@@ -58,10 +58,16 @@ const fmtMonth = (mois) => {
 //   resetClientRules()
 // ============================================================
 const CLIENT_RULES_KEY = 'dashboard_client_rules_v1';
+// Garde uniquement des règles bien formées : une valeur corrompue en localStorage
+// ({}, null, [null]…) faisait planter aggregate() et laissait la page vide.
+function sanitizeClientRules(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((r) => r && typeof r.match === 'string' && typeof r.label === 'string');
+}
 function loadClientRules() {
   try {
     const raw = localStorage.getItem(CLIENT_RULES_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return sanitizeClientRules(JSON.parse(raw));
   } catch (e) {}
   return [];
 }
@@ -91,7 +97,11 @@ const META_KEY = 'dashboard_meta_v1';
 function loadDataset() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    // Un contenu qui n'est pas un tableau de lignes (null, objet) bloquait tout
+    // import (« Cannot read properties of null ») sans moyen de réinitialiser.
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((r) => r && typeof r === 'object' && typeof r.montant === 'number' && Number.isFinite(r.montant));
   } catch (e) {
     console.error('Load error', e);
     return [];
@@ -192,9 +202,22 @@ function parseCSV(text) {
   return rows;
 }
 
+// Montant d'une cellule CSV. Accepte les formats français et anglais :
+//   "1 234,56"  "1.234,56"  "1,234.56"  "-805,20"  "−805,20" (signe moins typographique)
+// Quand point ET virgule sont présents, le DERNIER est le séparateur décimal,
+// l'autre un séparateur de milliers. Auparavant « 1.234,56 » valait 1,234 et
+// « −805,20 » valait 0, sans aucune alerte.
 function parseAmount(s) {
   if (typeof s === 'number') return s;
-  return parseFloat(String(s).replace(/\s/g, '').replace(/\u00a0/g, '').replace(',', '.')) || 0;
+  let t = String(s).replace(/[\s\u00a0\u202f€]/g, '').replace(/\u2212/g, '-');
+  const lastComma = t.lastIndexOf(',');
+  const lastDot = t.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    t = lastComma > lastDot ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (lastComma !== -1) {
+    t = t.replace(',', '.');
+  }
+  return parseFloat(t) || 0;
 }
 
 // ============================================================
@@ -248,8 +271,11 @@ function mergeDatasets(existing, incoming, options = {}) {
     const k = rowKey(r);
     if (map.has(k)) {
       const prev = map.get(k);
-      // Mise à jour si statut ou date paiement différents
-      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement) {
+      // Mise à jour si statut, date de paiement, date d'émission ou mois diffèrent
+      // (une date ou un mois corrigés à la source étaient ignorés : l'arrivée
+      // estimée et l'audit des délais restaient sur l'ancienne valeur).
+      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement
+          || prev.date !== r.date || prev.mois !== r.mois) {
         map.set(k, r);
         updatedRows.push({ prev: { ...prev }, next: r });
       } else {
@@ -280,6 +306,7 @@ function aggregate() {
   let totals = {
     ca: 0, ca_paye: 0, ca_non_paye: 0,
     salaire_net: 0,
+    salaire_net_paye: 0, notes_frais_paye: 0, tickets_resto_paye: 0,
     profit_share_total: 0, profit_share_paye: 0, profit_share_non_paye: 0,
     provision_conges_total: 0, provision_conges_payee: 0,
     cooptation_revenu_total: 0, cooptation_revenu_paye: 0,
@@ -359,6 +386,7 @@ function aggregate() {
       case 'Charges - Charges': d.charges_diverses += r.montant; if (isPaid) totals.charges_diverses_paye += r.montant; break;
       case 'Revenu - Salaire NET (Après impot)':
         d.salaire_net += r.montant; totals.salaire_net += r.montant;
+        if (isPaid) totals.salaire_net_paye += r.montant;
         d.details_salaire.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Charges - Salaire': d.charges_salaire += r.montant; totals.charges_salaire += r.montant; if (isPaid) totals.charges_salaire_paye += r.montant; break;
@@ -371,10 +399,12 @@ function aggregate() {
       case 'Revenu - Note de frais':
       case 'Revenu - Note de frais (Refacturation Client)':
         d.notes_frais += r.montant; totals.notes_frais += r.montant;
+        if (isPaid) totals.notes_frais_paye += r.montant;
         d.details_notes_frais.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Revenu - Ticket Restaurant':
         d.tickets_resto += r.montant; totals.tickets_resto += r.montant;
+        if (isPaid) totals.tickets_resto_paye += r.montant;
         d.details_tickets_resto.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Charges - Profit Share':

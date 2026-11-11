@@ -53,7 +53,11 @@ function buildViewModel() {
     + (t.cooptation_revenu_total - t.cooptation_revenu_paye);
   const creditsEncaisses = t.ca_paye + t.cooptation_credit_paye + t.refacturation_paye;
   const chargesPayees = t.commission_paye + t.charges_diverses_paye + t.impot_france + t.charges_ps_paye + t.charges_salaire_paye;
-  const versementsRecus = t.salaire_net + t.notes_frais + t.tickets_resto + t.profit_share_paye + t.cooptation_revenu_paye;
+  // Versements REÇUS : uniquement ce qui est payé. Salaire, notes de frais et
+  // tickets restaurant émis mais « Non payé » étaient soustraits quand même, ce
+  // qui minorait le solde sur encaissé d'autant (ils figurent « en attente »
+  // dans la vue mensuelle).
+  const versementsRecus = t.salaire_net_paye + t.notes_frais_paye + t.tickets_resto_paye + t.profit_share_paye + t.cooptation_revenu_paye;
   const soldeEncaisse = creditsEncaisses - chargesPayees - versementsRecus;
 
   const psPending = [];
@@ -83,7 +87,8 @@ function buildViewModel() {
     const raw = parseDate(ps.date_emission);
     const emit = raw && raw < usual ? usual : raw;
     const eta = emit && med ? UI.addDays(emit, med) : null;
-    return { ...ps, emit, eta, waited: emit ? UI.daysDiff(emit, today) : null, left: eta ? UI.daysDiff(today, eta) : null };
+    // Émission retenue possiblement dans le futur (date habituelle) : pas de « -5 j écoulés ».
+    return { ...ps, emit, eta, waited: emit ? Math.max(0, UI.daysDiff(emit, today)) : null, left: eta ? UI.daysDiff(today, eta) : null };
   }).sort((a, b) => (a.eta || 0) - (b.eta || 0));
 
   // Profit shares pas encore émis : mois facturés sans aucune ligne de PS, émission

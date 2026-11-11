@@ -13,7 +13,7 @@
 // loadAEConfig) et AVANT main.js. Scripts en fin de <body> → le DOM existe déjà.
 //
 // Dépendances globales (script scope partagé) :
-//   - window.supabase           (SDK chargé via CDN)
+//   - window.supabase           (SDK auto-hébergé : vendor/supabase-js-2.118.0.js)
 //   - window.SUPABASE_CONFIG     (supabase-config.js)
 //   - window.SupabaseCrypto      (supabase-crypto.js — chiffrement E2E, chargé AVANT)
 //   - DATASET / CLIENT_RULES     (let de data.js, réassignables ici)
@@ -432,15 +432,26 @@
     if (!/^\d{6}$/.test(code)) { setError('auth-challenge-error', 'Saisis le code à 6 chiffres.'); return; }
 
     const factors = await listFactors();
-    const factor = factors.find(f => f.status === 'verified') || factors[0];
-    if (!factor) { setError('auth-challenge-error', 'Aucun facteur trouvé. Reconnecte-toi.'); return; }
+    // Tous les facteurs vérifiés sont essayés tour à tour : seul le premier
+    // l'était, si bien que le code d'un authenticator de secours était toujours
+    // refusé (cloud inaccessible si le téléphone principal est perdu).
+    const verified = factors.filter(f => f.status === 'verified');
+    const candidates = verified.length ? verified : factors.slice(0, 1);
+    if (!candidates.length) { setError('auth-challenge-error', 'Aucun facteur trouvé. Reconnecte-toi.'); return; }
 
     setBusy('auth-challenge-submit', true);
     try {
-      const ch = await client.auth.mfa.challenge({ factorId: factor.id });
-      if (ch.error) { setError('auth-challenge-error', traduireErreur(ch.error)); return; }
-      const ver = await client.auth.mfa.verify({ factorId: factor.id, challengeId: ch.data.id, code });
-      if (ver.error) { setError('auth-challenge-error', traduireErreur(ver.error)); return; }
+      let lastError = null;
+      let ok = false;
+      for (const factor of candidates) {
+        const ch = await client.auth.mfa.challenge({ factorId: factor.id });
+        if (ch.error) { lastError = ch.error; continue; }
+        const ver = await client.auth.mfa.verify({ factorId: factor.id, challengeId: ch.data.id, code });
+        if (ver.error) { lastError = ver.error; continue; }
+        ok = true;
+        break;
+      }
+      if (!ok) { setError('auth-challenge-error', traduireErreur(lastError)); return; }
       aal2 = true;
       await afterAuthenticated();
     } catch (e) {
@@ -525,6 +536,12 @@
     // --- Sel existant : dériver la clé ---
     const saltBytes = SC.b64decode(saltRow.value.salt);
     const iters = saltRow.value.iterations || PBKDF2_ITERS;
+    // Les paramètres de dérivation viennent du serveur : on refuse un sel ou un
+    // nombre d'itérations affaiblis (une valeur à 1 diviserait par 600 000 le
+    // coût d'une attaque hors ligne sur le mot de passe).
+    if (!(iters >= PBKDF2_ITERS) || saltBytes.length < 16) {
+      throw new Error('Paramètres de chiffrement invalides côté cloud.');
+    }
     const key = await SC.deriveKey(pw, saltBytes, iters);
 
     // Vérificateur manquant (état partiel, ex. mutation manuelle de la table).
@@ -618,8 +635,17 @@
     const SC = window.SupabaseCrypto;
     if (!SC || !SC.hasKey()) return;   // pas de clé → on ne déchiffre rien (dashboard reste local)
     try {
-      const { data: rows, error } = await client.from('transactions').select('payload');
-      if (error) throw error;
+      // Lecture paginée : PostgREST plafonne une réponse à 1000 lignes. Au-delà,
+      // le cloud revenait tronqué sans erreur et l'accepter amputait le jeu local.
+      const rows = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data: page, error } = await client.from('transactions')
+          .select('payload').order('id', { ascending: true }).range(from, from + PAGE - 1);
+        if (error) throw error;
+        rows.push(...(page || []));
+        if (!page || page.length < PAGE) break;
+      }
 
       // Déchiffrer TOUTES les lignes AVANT toute comparaison/écrasement :
       // un échec partiel ne doit jamais écraser le local avec un cloud tronqué.
@@ -693,9 +719,15 @@
             ? await SC.decryptSettingValue(row.value)
             : row.value;
         } catch (e) { console.warn('Déchiffrement réglage ' + row.key, e); continue; } // skip-one
+        // Règles client : forme validée avant d'écrire (une valeur malformée
+        // venue du cloud faisait planter le rendu à chaque ouverture).
+        if (row.key === 'client_rules') {
+          if (!Array.isArray(plain)) continue;
+          plain = sanitizeClientRules(plain);
+        }
         try { localStorage.setItem(map.ls, JSON.stringify(plain)); } catch (e) {}
         // CLIENT_RULES est mis en cache (let de data.js) → réassignation explicite.
-        if (row.key === 'client_rules' && Array.isArray(plain)) {
+        if (row.key === 'client_rules') {
           try { CLIENT_RULES = plain; } catch (e) {}
         }
       }
