@@ -719,9 +719,15 @@
             ? await SC.decryptSettingValue(row.value)
             : row.value;
         } catch (e) { console.warn('Déchiffrement réglage ' + row.key, e); continue; } // skip-one
+        // Règles client : forme validée avant d'écrire (une valeur malformée
+        // venue du cloud faisait planter le rendu à chaque ouverture).
+        if (row.key === 'client_rules') {
+          if (!Array.isArray(plain)) continue;
+          plain = sanitizeClientRules(plain);
+        }
         try { localStorage.setItem(map.ls, JSON.stringify(plain)); } catch (e) {}
         // CLIENT_RULES est mis en cache (let de data.js) → réassignation explicite.
-        if (row.key === 'client_rules' && Array.isArray(plain)) {
+        if (row.key === 'client_rules') {
           try { CLIENT_RULES = plain; } catch (e) {}
         }
       }

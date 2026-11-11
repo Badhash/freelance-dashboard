@@ -58,10 +58,16 @@ const fmtMonth = (mois) => {
 //   resetClientRules()
 // ============================================================
 const CLIENT_RULES_KEY = 'dashboard_client_rules_v1';
+// Garde uniquement des règles bien formées : une valeur corrompue en localStorage
+// ({}, null, [null]…) faisait planter aggregate() et laissait la page vide.
+function sanitizeClientRules(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((r) => r && typeof r.match === 'string' && typeof r.label === 'string');
+}
 function loadClientRules() {
   try {
     const raw = localStorage.getItem(CLIENT_RULES_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return sanitizeClientRules(JSON.parse(raw));
   } catch (e) {}
   return [];
 }
