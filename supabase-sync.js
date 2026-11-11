@@ -635,8 +635,17 @@
     const SC = window.SupabaseCrypto;
     if (!SC || !SC.hasKey()) return;   // pas de clé → on ne déchiffre rien (dashboard reste local)
     try {
-      const { data: rows, error } = await client.from('transactions').select('payload');
-      if (error) throw error;
+      // Lecture paginée : PostgREST plafonne une réponse à 1000 lignes. Au-delà,
+      // le cloud revenait tronqué sans erreur et l'accepter amputait le jeu local.
+      const rows = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data: page, error } = await client.from('transactions')
+          .select('payload').order('id', { ascending: true }).range(from, from + PAGE - 1);
+        if (error) throw error;
+        rows.push(...(page || []));
+        if (!page || page.length < PAGE) break;
+      }
 
       // Déchiffrer TOUTES les lignes AVANT toute comparaison/écrasement :
       // un échec partiel ne doit jamais écraser le local avec un cloud tronqué.
