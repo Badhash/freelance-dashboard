@@ -67,9 +67,12 @@ un export comme l'état complet des mois qu'il couvre.
 - La synchronisation cloud est **optionnelle** (Supabase) : connexion email et mot de passe
   avec second facteur TOTP obligatoire, données et réglages **chiffrés dans le navigateur**
   avant l'envoi (AES-GCM 256, clé dérivée du mot de passe par PBKDF2, jamais stockée).
-  Le serveur ne voit que du texte chiffré, protégé en plus par RLS.
-- La page charge les polices Google Fonts et, pour le cloud, la bibliothèque Supabase depuis
-  le CDN jsDelivr.
+  La base ne contient que du texte chiffré, protégé en plus par RLS : une fuite de la base
+  ne révèle rien. Limite à connaître : la clé dérive du mot de passe de connexion, que le
+  service d'authentification Supabase reçoit à chaque connexion. Ce n'est donc pas un
+  chiffrement de bout en bout face au fournisseur lui-même.
+- La page charge les polices Google Fonts. La bibliothèque Supabase est servie par l'app
+  elle-même (`vendor/supabase-js-2.118.0.js`, version figée), plus par un CDN.
 
 Pour activer le cloud sur ton propre projet : exécute `supabase_setup.sql` dans l'éditeur SQL
 de Supabase, puis renseigne l'URL du projet et la clé publique (« anon ») dans
