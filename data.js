@@ -202,9 +202,22 @@ function parseCSV(text) {
   return rows;
 }
 
+// Montant d'une cellule CSV. Accepte les formats français et anglais :
+//   "1 234,56"  "1.234,56"  "1,234.56"  "-805,20"  "−805,20" (signe moins typographique)
+// Quand point ET virgule sont présents, le DERNIER est le séparateur décimal,
+// l'autre un séparateur de milliers. Auparavant « 1.234,56 » valait 1,234 et
+// « −805,20 » valait 0, sans aucune alerte.
 function parseAmount(s) {
   if (typeof s === 'number') return s;
-  return parseFloat(String(s).replace(/\s/g, '').replace(/\u00a0/g, '').replace(',', '.')) || 0;
+  let t = String(s).replace(/[\s\u00a0\u202f€]/g, '').replace(/\u2212/g, '-');
+  const lastComma = t.lastIndexOf(',');
+  const lastDot = t.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    t = lastComma > lastDot ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (lastComma !== -1) {
+    t = t.replace(',', '.');
+  }
+  return parseFloat(t) || 0;
 }
 
 // ============================================================
