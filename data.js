@@ -306,6 +306,7 @@ function aggregate() {
   let totals = {
     ca: 0, ca_paye: 0, ca_non_paye: 0,
     salaire_net: 0,
+    salaire_net_paye: 0, notes_frais_paye: 0, tickets_resto_paye: 0,
     profit_share_total: 0, profit_share_paye: 0, profit_share_non_paye: 0,
     provision_conges_total: 0, provision_conges_payee: 0,
     cooptation_revenu_total: 0, cooptation_revenu_paye: 0,
@@ -385,6 +386,7 @@ function aggregate() {
       case 'Charges - Charges': d.charges_diverses += r.montant; if (isPaid) totals.charges_diverses_paye += r.montant; break;
       case 'Revenu - Salaire NET (Après impot)':
         d.salaire_net += r.montant; totals.salaire_net += r.montant;
+        if (isPaid) totals.salaire_net_paye += r.montant;
         d.details_salaire.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Charges - Salaire': d.charges_salaire += r.montant; totals.charges_salaire += r.montant; if (isPaid) totals.charges_salaire_paye += r.montant; break;
@@ -397,10 +399,12 @@ function aggregate() {
       case 'Revenu - Note de frais':
       case 'Revenu - Note de frais (Refacturation Client)':
         d.notes_frais += r.montant; totals.notes_frais += r.montant;
+        if (isPaid) totals.notes_frais_paye += r.montant;
         d.details_notes_frais.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Revenu - Ticket Restaurant':
         d.tickets_resto += r.montant; totals.tickets_resto += r.montant;
+        if (isPaid) totals.tickets_resto_paye += r.montant;
         d.details_tickets_resto.push({ montant: r.montant, date_emission: r.date, date_paiement: r.datePaiement, statut: r.statut });
         break;
       case 'Charges - Profit Share':
