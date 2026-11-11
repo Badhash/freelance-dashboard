@@ -65,7 +65,10 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== CACHE && k !== FONT_CACHE)
+          // Uniquement NOS anciens caches : Cache Storage est partagé par toute
+          // l'origine (toutes les pages <compte>.github.io), la purge sans
+          // préfixe effaçait aussi les caches des autres applications.
+          .filter((k) => k.startsWith('pilotage-') && k !== CACHE && k !== FONT_CACHE)
           .map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
