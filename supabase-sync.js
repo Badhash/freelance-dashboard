@@ -536,6 +536,12 @@
     // --- Sel existant : dériver la clé ---
     const saltBytes = SC.b64decode(saltRow.value.salt);
     const iters = saltRow.value.iterations || PBKDF2_ITERS;
+    // Les paramètres de dérivation viennent du serveur : on refuse un sel ou un
+    // nombre d'itérations affaiblis (une valeur à 1 diviserait par 600 000 le
+    // coût d'une attaque hors ligne sur le mot de passe).
+    if (!(iters >= PBKDF2_ITERS) || saltBytes.length < 16) {
+      throw new Error('Paramètres de chiffrement invalides côté cloud.');
+    }
     const key = await SC.deriveKey(pw, saltBytes, iters);
 
     // Vérificateur manquant (état partiel, ex. mutation manuelle de la table).
