@@ -97,7 +97,11 @@ const META_KEY = 'dashboard_meta_v1';
 function loadDataset() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    // Un contenu qui n'est pas un tableau de lignes (null, objet) bloquait tout
+    // import (« Cannot read properties of null ») sans moyen de réinitialiser.
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((r) => r && typeof r === 'object' && typeof r.montant === 'number' && Number.isFinite(r.montant));
   } catch (e) {
     console.error('Load error', e);
     return [];
