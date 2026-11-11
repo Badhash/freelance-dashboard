@@ -13,7 +13,7 @@
 // loadAEConfig) et AVANT main.js. Scripts en fin de <body> → le DOM existe déjà.
 //
 // Dépendances globales (script scope partagé) :
-//   - window.supabase           (SDK chargé via CDN)
+//   - window.supabase           (SDK auto-hébergé : vendor/supabase-js-2.118.0.js)
 //   - window.SUPABASE_CONFIG     (supabase-config.js)
 //   - window.SupabaseCrypto      (supabase-crypto.js — chiffrement E2E, chargé AVANT)
 //   - DATASET / CLIENT_RULES     (let de data.js, réassignables ici)

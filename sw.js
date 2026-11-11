@@ -40,6 +40,7 @@ const APP_SHELL = [
   'supabase-crypto.js?v=7',
   'supabase-sync.js?v=7',
   'main.js?v=7',
+  'vendor/supabase-js-2.118.0.js',
   'favicon.svg',
   'manifest.json',
   'icon-192.png',
@@ -104,7 +105,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Tout autre cross-origin (Supabase, CDN jsdelivr…)
+  // Tout autre cross-origin (Supabase…)
   // : on ne l'intercepte pas — laisser le réseau gérer normalement.
 });
 

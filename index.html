@@ -284,7 +284,10 @@
 <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
 
 <!-- Supabase (couche optionnelle) : SDK via CDN + config isolée, AVANT data.js -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SDK Supabase auto-hébergé, version figée (2.118.0, build UMD du paquet npm).
+     Il était chargé depuis jsDelivr en version flottante (@2), sans contrôle
+     d'intégrité, dans la page où sont saisis le mot de passe et le code TOTP. -->
+<script src="vendor/supabase-js-2.118.0.js"></script>
 <script src="supabase-config.js?v=7"></script>
 <script src="data.js?v=7"></script>
 <script src="icons.js?v=7"></script>
