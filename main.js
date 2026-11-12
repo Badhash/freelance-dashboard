@@ -9,6 +9,22 @@ async function importFile(file) {
   let parsed, merged;
   try {
     const text = await file.text();
+    // U+FFFD (caractère de remplacement) : le fichier a été ré-encodé, typiquement ouvert puis
+    // enregistré dans un tableur. « Crédit - Facturation » devient « Cr�dit - Facturation »,
+    // « Payé » « Pay� » : ces lignes seraient ignorées des totaux ou comptées non payées, sans
+    // rien signaler. Refus en bloc, rien n'est modifié.
+    const garbled = text.split(/\r\n|\n|\r/).filter((l) => l.includes('�'));
+    if (garbled.length) {
+      const n = garbled.length, p = n > 1;
+      const field = garbled[0].split(',').find((f) => f.includes('�')).replace(/^"|"$/g, '').trim();
+      const ex = field.length > 40 ? field.slice(0, 40) + '…' : field;
+      showToast({
+        title: 'Import refusé',
+        body: `${n} ligne${p ? 's' : ''} du fichier contien${p ? 'nent' : 't'} des caractères illisibles, par exemple «${UI.NBP}${ex}${UI.NBP}». Le fichier a sans doute été ré-encodé (ouvert puis enregistré dans un tableur)${UI.NBP}: exporte-le à nouveau depuis l’intranet et importe-le sans l’ouvrir. Rien n’a été importé.`,
+        ok: false
+      });
+      return;
+    }
     parsed = parseCSV(text);
     if (parsed.length === 0) throw new Error('Aucune ligne valide trouvée dans le CSV');
     // Un export de l'intranet n'a que des mois MM-AAAA : un fichier qui en contient d'autres
@@ -23,6 +39,34 @@ async function importFile(file) {
         ok: false
       });
       return;
+    }
+    // Nature inconnue (ligne gardée mais comptée nulle part) ou statut ni « Payé » ni « Non payé »
+    // (compté non payé) : l'import réussissait en silence. On le dit, avec un exemple, avant d'importer.
+    const unknown = unknownNatureRows(parsed);
+    const oddStatut = unexpectedStatutRows(parsed);
+    if (unknown.length || oddStatut.length) {
+      const q = (s) => `«${UI.NBP}${s.length > 48 ? s.slice(0, 48) + '…' : s}${UI.NBP}»`;
+      const lines = [];
+      if (unknown.length) {
+        const n = unknown.length, p = n > 1, r = unknown[0];
+        const kinds = new Set(unknown.map((x) => x.nature)).size;
+        lines.push(`• ${n} ligne${p ? 's ont' : ' a'} une nature inconnue, par exemple ${q(r.nature || 'vide')} (${r.mois}, ${UI.eur2(r.montant)})${kinds > 1 ? `, ${kinds} natures différentes` : ''}${UI.NBP}: ${p ? 'elles seront enregistrées' : 'elle sera enregistrée'} mais n’${p ? 'entreront' : 'entrera'} dans aucun total.`);
+      }
+      if (oddStatut.length) {
+        const n = oddStatut.length, p = n > 1, r = oddStatut[0];
+        lines.push(`• ${n} ligne${p ? 's ont' : ' a'} un statut ni «${UI.NBP}Payé${UI.NBP}» ni «${UI.NBP}Non payé${UI.NBP}», par exemple ${r.statut ? q(r.statut) : 'un statut vide'} (${r.mois}, ${r.nature || 'nature vide'})${UI.NBP}: ${p ? 'elles seront comptées comme non payées' : 'elle sera comptée comme non payée'}.`);
+      }
+      const go = await showConfirm({
+        title: 'Lignes à vérifier avant l’import',
+        message: `${lines.join('\n')}\n\nLe format de l’export a peut-être changé. Importer quand même${UI.NBP}?`,
+        okLabel: 'Importer quand même',
+        cancelLabel: 'Annuler l’import',
+        danger: false
+      });
+      if (!go) {
+        showToast({ title: 'Import annulé', body: 'Rien n’a été importé.', ok: true });
+        return;
+      }
     }
     // L'export est un état complet : une ligne connue localement mais absente de l'import,
     // sur un mois couvert, a été supprimée ou ré-émise à la source (facture corrigée).

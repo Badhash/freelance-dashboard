@@ -340,6 +340,23 @@ function mergeDatasets(existing, incoming, options = {}) {
 }
 
 // ============================================================
+// CONTRÔLES D'IMPORT
+// ============================================================
+// Natures que aggregate() sait compter : toute autre ligne est gardée mais n'entre
+// dans aucun total. Statuts attendus : tout ce qui n'est pas « Payé » compte non payé.
+const KNOWN_NATURES = new Set([
+  'Crédit - Facturation', 'Crédit - Cooptation', 'Crédit - Refacturation Client',
+  'Charges - Commission Portage', 'Charges - Charges', 'Charges - Salaire',
+  'Charges - Impot France', 'Charges - Profit Share',
+  'Revenu - Salaire NET (Après impot)', 'Revenu - Provision Congés',
+  'Revenu - Note de frais', 'Revenu - Note de frais (Refacturation Client)',
+  'Revenu - Ticket Restaurant', 'Revenu - Profit Share', 'Revenu - Dividendes - Cooptation'
+]);
+const KNOWN_STATUTS = new Set(['Payé', 'Non payé']);
+const unknownNatureRows = (rows) => rows.filter(r => !KNOWN_NATURES.has(r.nature));
+const unexpectedStatutRows = (rows) => rows.filter(r => !KNOWN_STATUTS.has(r.statut));
+
+// ============================================================
 // AGRÉGATIONS (toutes dérivées du DATASET)
 // ============================================================
 function aggregate() {

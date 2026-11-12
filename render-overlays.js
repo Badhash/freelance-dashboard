@@ -1,7 +1,7 @@
 // ============================================================
 // AURORA — surcouches :
 // contrôleur de modales (classe .visible), toast, confirmation, réinitialisation,
-// audit (règles inchangées, affichage regroupé), diff d'import.
+// audit (règles de l'ancien render.js + natures ignorées, affichage regroupé), diff d'import.
 // Toutes les modales s'ouvrent en ajoutant .visible — y compris #auth-modal,
 // ouverte par supabase-sync.js : un MutationObserver applique alors le même
 // verrou de défilement, le focus sur le panneau, le piège de Tab et Échap.
@@ -207,7 +207,8 @@ const AUDIT_RULES = {
 };
 
 // opts.silent : calcule et met à jour le badge sans ouvrir la modale (appelé par render()).
-// Les règles ci-dessous sont recopiées SANS MODIFICATION de l'ancien render.js.
+// Les règles 1 à 14 sont recopiées de l'ancien render.js (la 10 tolère les lignes identiques
+// venues de l'export) ; la 15 signale les natures que aggregate() ne compte pas.
 function runAudit(opts) {
   const silent = !!(opts && opts.silent === true);
   if (!AGG || DATASET.length === 0) {
@@ -575,6 +576,23 @@ function runAudit(opts) {
         `Max théorique : 23 jours ouvrés/mois · ${v.refs.size} référence${v.refs.size > 1 ? 's' : ''} de facturation`);
     }
   });
+
+  // === 15. NATURES IGNORÉES ===
+  // Une ligne dont la nature n'est pas reconnue est gardée mais n'entre dans aucun total
+  // (CA, salaire, solde…) : libellé changé côté intranet, ou nature nouvelle.
+  const ignored = unknownNatureRows(DATASET);
+  if (ignored.length) {
+    const byNature = {};
+    ignored.forEach(r => {
+      if (!byNature[r.nature]) byNature[r.nature] = { n: 0, total: 0, mois: new Set() };
+      byNature[r.nature].n++;
+      byNature[r.nature].total += r.montant;
+      byNature[r.nature].mois.add(r.mois);
+    });
+    addIssue('warn', 'nature', `Natures ignorées`,
+      `${ignored.length} ligne${ignored.length > 1 ? 's ont' : ' a'} une nature que le dashboard ne reconnaît pas : ${ignored.length > 1 ? 'elles n’entrent' : 'elle n’entre'} dans aucun total. Le libellé a peut-être changé côté intranet.`,
+      Object.entries(byNature).map(([nature, v]) => `« ${nature || 'vide'} » · ${v.n} ligne${v.n > 1 ? 's' : ''} · ${fmt(v.total)} · ${[...v.mois].sort((a, b) => auditMonthKey(a).localeCompare(auditMonthKey(b))).slice(0, 4).join(', ')}${v.mois.size > 4 ? '…' : ''}`).join('  |  '));
+  }
 
   // === RÉSUMÉ ===
   const stats = { danger: 0, warn: 0, info: 0, ok: 0 };

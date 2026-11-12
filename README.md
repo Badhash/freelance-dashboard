@@ -27,11 +27,13 @@ publiée sur GitHub Pages et installable comme application (PWA).
 - **Mois par mois** : répartition du facturé (prélevé, salaire, petits plus, profit share),
   statuts de paiement et récit détaillé de chaque mois.
 - **Audit** : vérification automatique de l'historique (commission, tickets restaurant,
-  délais des profit shares, salaire, charges, provision congés, écarts de clôture).
+  délais des profit shares, salaire, charges, provision congés, écarts de clôture,
+  natures ignorées).
 - **Import sans doublon** : les lignes déjà connues sont reconnues, les nouveautés sont
   résumées après chaque import (encaissements, charges réglées par le portage, nouvelles
   factures…). Une facture corrigée ou ré-émise à la source est détectée et son ancienne
-  version peut être retirée.
+  version peut être retirée. Une nature inconnue ou un statut inattendu sont signalés
+  avant l'import ; un fichier ré-encodé (caractères illisibles) est refusé.
 - **Interface** : thèmes clair et sombre (préférence système par défaut), mise en page
   bureau, tablette et mobile (dock d'actions au pouce), fonctionnement hors ligne une fois
   installée, respect de `prefers-reduced-motion`.
