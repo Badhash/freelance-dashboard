@@ -35,9 +35,9 @@ un commit : chacune s'annule seule avec `git revert <commit>`.
   révision de synchro et la réinitialisation du chiffrement n'ont été exercées que contre
   un faux client.
 - Le parcours de connexion avec deux facteurs TOTP (pas de compte de test).
-- L'intranet source du userscript (`tools/reecho-export.user.js`) : les statuts et le
-  format des montants réellement affichés. Une valeur inattendue arrête maintenant
-  l'export avec un message qui la cite.
+- L'intranet source du userscript (`tools/reecho-export.user.js`) : le format des
+  montants réellement affiché. Un montant inattendu arrête l'export avec un message qui
+  le cite ; un statut inconnu est exporté et signalé.
 
 ## 2. À faire de ton côté
 
@@ -78,7 +78,7 @@ Sévérité : H haute, M moyenne, B basse.
 | FD-OPT-01 | B | Une réponse 404 était mise en cache ; version écrite à la main à 43 endroits | corrigé pour la 404 ; la version reste manuelle |
 | FD-OPT-02 | B | Script du CDN synchrone et bloquant, non pré-caché | corrigé (SDK local) |
 | FD-OPT-03 | B | Synchro ligne à ligne : 69 Ko par synchro contre 1,8 Ko pour un blob compressé et chiffré | ouvert |
-| FD-ROB-03 | B | Userscript : statut exporté tel qu'affiché, format de montant supposé, `@namespace` personnel | corrigé : statut ramené à « Payé » / « Non payé », montant `1 234,56` exigé, export annulé sinon ; `@namespace` neutre |
+| FD-ROB-03 | B | Userscript : statut exporté tel qu'affiché, format de montant supposé, `@namespace` personnel | corrigé : statut ramené à « Payé » / « Non payé » (une autre valeur est exportée et signalée), montant `1 234,56` exigé (export annulé sinon), `@namespace` neutre ; fusionné avec l'adaptation à `intranet.reecho.eu` (colonne « Statut », nature lue dans `title`, libellés renommés) |
 | FD-BUG-10 | B | Userscript : arrêt au chargement (ReferenceError) si un tableau ou des onglets étaient déjà affichés, bouton jamais visible | corrigé |
 | — | B | Le README affirmait « le serveur ne voit que du texte chiffré » | corrigé |
 
