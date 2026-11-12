@@ -107,10 +107,12 @@ function loadDataset() {
     return [];
   }
 }
-function saveDataset(rows) {
+// lastImport : date de l'import d'où viennent les lignes (par défaut maintenant). Un chargement
+// depuis le cloud la conserve : elle passait à l'heure du chargement.
+function saveDataset(rows, lastImport) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
   localStorage.setItem(META_KEY, JSON.stringify({
-    lastImport: new Date().toISOString(),
+    lastImport: lastImport || new Date().toISOString(),
     count: rows.length
   }));
 }

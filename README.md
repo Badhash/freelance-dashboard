@@ -73,6 +73,10 @@ un export comme l'état complet des mois qu'il couvre.
   ne révèle rien. Limite à connaître : la clé dérive du mot de passe de connexion, que le
   service d'authentification Supabase reçoit à chaque connexion. Ce n'est donc pas un
   chiffrement de bout en bout face au fournisseur lui-même.
+- Une sauvegarde remplace tout le contenu du cloud. Si un autre appareil a sauvegardé
+  depuis ton dernier chargement, elle est refusée et l'app propose de recharger le cloud
+  et de le fusionner avec tes données locales. Des réglages locaux différents de ceux du
+  cloud ne sont remplacés qu'après confirmation.
 - La page charge les polices Google Fonts. La bibliothèque Supabase est servie par l'app
   elle-même (`vendor/supabase-js-2.118.0.js`, version figée), plus par un CDN.
 

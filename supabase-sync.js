@@ -2,7 +2,8 @@
 // SUPABASE — SYNC (module dédié, couche optionnelle)
 // ============================================================
 // Auth email/mot de passe + MFA TOTP (2e facteur), sauvegarde "miroir"
-// du dataset + réglages vers la BDD, et chargement auto au login.
+// du dataset + réglages vers la BDD (refusée si le cloud a changé depuis le
+// dernier chargement, voir readRevision), et chargement auto au login.
 //
 // Couche STRICTEMENT optionnelle posée par-dessus le flux localStorage :
 //   - non configuré (placeholders) ou non connecté → comportement actuel inchangé ;
@@ -54,6 +55,7 @@
   // Clés méta de chiffrement dans app_settings (EN CLAIR, exclues de la synchro)
   const CRYPTO_SALT_KEY = 'crypto_salt';   // { salt: base64, iterations, v }
   const CRYPTO_CHECK_KEY = 'crypto_check'; // { enc } — vérificateur de mot de passe
+  const SYNC_REV_KEY = 'sync_rev';         // { enc } — révision de la dernière sauvegarde (voir readRevision)
   const PBKDF2_ITERS = 600000;
 
   // --- État interne du module ----------------------------------------------
@@ -63,6 +65,7 @@
   let enrollMode = 'primary';    // 'primary' | 'backup'
   let pendingEnroll = null;      // { factorId } pendant un enrôlement
   let pendingPassword = null;    // mot de passe en attente (login → dérivation clé post-aal2)
+  let knownRev;                  // révision du cloud vue en dernier (voir readRevision)
 
   // Clé de chiffrement prête ? (vit en mémoire dans SupabaseCrypto, jamais persistée)
   function hasCryptoKey() { return !!(window.SupabaseCrypto && window.SupabaseCrypto.hasKey()); }
@@ -637,40 +640,101 @@
   }
 
   // ============================================================
+  // RÉVISION DE LA SAUVEGARDE (détection d'un cloud modifié ailleurs)
+  // ============================================================
+  // La sauvegarde est un miroir : elle remplace tout le cloud. Sans version, un appareil en
+  // retard écrasait sans alerte ce qu'un autre venait d'envoyer. Chaque sauvegarde écrit donc
+  // une révision aléatoire, chiffrée comme les réglages, dans app_settings (clé sync_rev) ;
+  // l'appareil retient celle qu'il a vue en dernier (chargement ou sauvegarde) et refuse de
+  // sauvegarder si le cloud en porte une autre. Une révision absente (données antérieures à ce
+  // mécanisme) ne bloque rien.
+  //   knownRev : undefined = cloud pas encore lu dans cette session ; null = lu, sans révision.
+  async function readRevision() {
+    const SC = window.SupabaseCrypto;
+    const { data, error } = await client.from('app_settings').select('key,value').in('key', [SYNC_REV_KEY]);
+    if (error) throw error;
+    const row = (data || []).find(r => r.key === SYNC_REV_KEY);
+    if (!row || row.value == null) return null;
+    try {
+      if (typeof row.value.enc !== 'string') throw new Error('révision non chiffrée');
+      const p = await SC.decryptSettingValue(row.value);
+      if (p && typeof p.rev === 'string' && p.rev) {
+        const at = typeof p.lastImport === 'string' && !isNaN(Date.parse(p.lastImport)) ? p.lastImport : null;
+        return { id: p.rev, lastImport: at };
+      }
+    } catch (e) { console.warn('Révision cloud illisible', e); }
+    // Illisible (autre clé, valeur en clair, forme inattendue) : identifiée par son contenu brut,
+    // elle ne correspond à aucune révision connue, donc une sauvegarde passe d'abord par un rechargement.
+    return { id: 'brut:' + JSON.stringify(row.value), lastImport: null };
+  }
+  async function revisionRow() {
+    const SC = window.SupabaseCrypto;
+    const meta = loadMeta();
+    const rev = SC.b64encode(SC.randomBytes(16));
+    const value = await SC.encryptSettingValue({
+      rev, savedAt: new Date().toISOString(),
+      lastImport: meta && typeof meta.lastImport === 'string' ? meta.lastImport : null,
+      count: Array.isArray(DATASET) ? DATASET.length : 0
+    });
+    return { rev, row: { user_id: currentUser ? currentUser.id : undefined, key: SYNC_REV_KEY, value } };
+  }
+  // null : sauvegarde possible ; sinon la révision du cloud, différente de la dernière vue.
+  async function cloudChangedSinceLoad() {
+    const cur = await readRevision();
+    if (!cur) return null;
+    return cur.id === knownRev ? null : cur;
+  }
+  const laterIso = (a, b) => (!a ? b || null : !b ? a : a > b ? a : b);
+
+  // ============================================================
   // CHARGEMENT AUTO DEPUIS LE CLOUD (miroir : cloud fait autorité)
   // ============================================================
+  // Lit et déchiffre TOUT le cloud. Lève une erreur marquée decrypt si une ligne ne se déchiffre pas.
+  async function fetchCloudRows() {
+    const SC = window.SupabaseCrypto;
+    // Lecture paginée : PostgREST plafonne une réponse à 1000 lignes. Au-delà,
+    // le cloud revenait tronqué sans erreur et l'accepter amputait le jeu local.
+    const rows = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data: page, error } = await client.from('transactions')
+        .select('payload').order('id', { ascending: true }).range(from, from + PAGE - 1);
+      if (error) throw error;
+      rows.push(...(page || []));
+      if (!page || page.length < PAGE) break;
+    }
+    // Déchiffrer TOUTES les lignes AVANT toute comparaison/écrasement :
+    // un échec partiel ne doit jamais écraser le local avec un cloud tronqué.
+    try {
+      const cloudRows = [];
+      for (const row of rows) cloudRows.push(dbRowToApp(await SC.decryptRow(row.payload)));
+      return cloudRows;
+    } catch (decErr) {
+      console.error('Déchiffrement cloud', decErr);
+      const err = new Error('decrypt');
+      err.decrypt = true;
+      throw err;
+    }
+  }
+  function toastDecryptError() {
+    showToast({ title: 'Erreur de déchiffrement', body: 'Impossible de déchiffrer les données cloud (clé incorrecte ?). Tes données locales sont intactes.', ok: false });
+  }
+
   async function autoLoadFromCloud(opts) {
     opts = opts || {};
     const SC = window.SupabaseCrypto;
     if (!SC || !SC.hasKey()) return;   // pas de clé → on ne déchiffre rien (dashboard reste local)
     try {
-      // Lecture paginée : PostgREST plafonne une réponse à 1000 lignes. Au-delà,
-      // le cloud revenait tronqué sans erreur et l'accepter amputait le jeu local.
-      const rows = [];
-      const PAGE = 1000;
-      for (let from = 0; ; from += PAGE) {
-        const { data: page, error } = await client.from('transactions')
-          .select('payload').order('id', { ascending: true }).range(from, from + PAGE - 1);
-        if (error) throw error;
-        rows.push(...(page || []));
-        if (!page || page.length < PAGE) break;
-      }
-
-      // Déchiffrer TOUTES les lignes AVANT toute comparaison/écrasement :
-      // un échec partiel ne doit jamais écraser le local avec un cloud tronqué.
+      // Révision lue AVANT les lignes : si une sauvegarde s'intercale, la révision retenue est
+      // l'ancienne et la prochaine sauvegarde d'ici demandera un rechargement (jamais l'inverse).
+      const rev = await readRevision();
       let cloudRows;
-      try {
-        cloudRows = [];
-        for (const row of (rows || [])) {
-          cloudRows.push(dbRowToApp(await SC.decryptRow(row.payload)));
-        }
-      } catch (decErr) {
-        console.error('Déchiffrement cloud', decErr);
-        showToast({ title: 'Erreur de déchiffrement', body: 'Impossible de déchiffrer les données cloud (clé incorrecte ?). Tes données locales sont intactes.', ok: false });
-        return;
-      }
+      try { cloudRows = await fetchCloudRows(); }
+      catch (e) { if (e && e.decrypt) { toastDecryptError(); return; } throw e; }
 
       const localRows = Array.isArray(DATASET) ? DATASET : [];
+      // Le cloud a été vu tel qu'il est : chargé ou non, une sauvegarde d'ici le remplacera en connaissance de cause.
+      knownRev = rev ? rev.id : null;
 
       if (cloudRows.length === 0) {
         await loadSettingsFromCloud();
@@ -700,8 +764,11 @@
         }
       }
 
+      // Date du dernier import : celle enregistrée avec la sauvegarde, sinon celle de cet appareil
+      // (elle passait à l'heure du chargement, comme si un CSV venait d'être importé).
+      const meta = loadMeta();
       DATASET = cloudRows;
-      saveDataset(DATASET);
+      saveDataset(DATASET, (rev && rev.lastImport) || (meta && meta.lastImport));
       await loadSettingsFromCloud();
       render();
       showToast({ title: 'Données chargées', body: cloudRows.length + ' opérations chargées depuis le cloud.', ok: true });
@@ -711,11 +778,56 @@
     }
   }
 
+  // Après un refus de sauvegarde (cloud modifié ailleurs) : recharge le cloud et le fusionne avec
+  // le local, sans retirer aucune ligne. Sur une ligne présente des deux côtés, la version issue
+  // de l'import le plus récent l'emporte (statut, dates). Rien n'est envoyé : l'utilisateur vérifie
+  // puis sauvegarde.
+  async function reloadAndMerge() {
+    try {
+      const rev = await readRevision();
+      let cloudRows;
+      try { cloudRows = await fetchCloudRows(); }
+      catch (e) { if (e && e.decrypt) { toastDecryptError(); return; } throw e; }
+      const localRows = Array.isArray(DATASET) ? DATASET : [];
+      const meta = loadMeta();
+      const localAt = meta && typeof meta.lastImport === 'string' ? meta.lastImport : null;
+      const cloudAt = rev ? rev.lastImport : null;
+      const localNewer = !!localAt && (!cloudAt || localAt > cloudAt);
+      const merged = localNewer
+        ? mergeDatasets(cloudRows, localRows, { dropMissing: false })
+        : mergeDatasets(localRows, cloudRows, { dropMissing: false });
+      DATASET = merged.rows;
+      saveDataset(DATASET, laterIso(localAt, cloudAt));
+      knownRev = rev ? rev.id : null;
+      await loadSettingsFromCloud();
+      render();
+      showToast({ title: 'Cloud rechargé et fusionné',
+        body: DATASET.length + ' opérations après fusion (' + cloudRows.length + ' dans le cloud, ' + localRows.length + ' sur cet appareil). Vérifie puis clique « Sauvegarder ».', ok: true });
+    } catch (e) {
+      console.error(e);
+      showToast({ title: 'Erreur de chargement', body: traduireErreur(e) + ' — tes données locales sont intactes.', ok: false });
+    }
+  }
+
+  // Libellés des réglages, pour la confirmation avant d'écraser ceux de l'appareil.
+  const SETTINGS_LABELS = {
+    fiscal_config: 'réglages fiscaux', checklist: 'checklist fiscale', ae_config: 'réglages auto-entrepreneur',
+    proj_overrides: 'jours saisis dans la projection', client_rules: 'règles de détection des clients'
+  };
+  // Comparaison indépendante de l'ordre des clés.
+  function canonical(v) {
+    if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+    if (isPlainObject(v)) return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+    return JSON.stringify(v);
+  }
+  const isEmptySetting = (v) => v == null || (Array.isArray(v) ? !v.length : isPlainObject(v) && !Object.keys(v).length);
+
   async function loadSettingsFromCloud() {
     const SC = window.SupabaseCrypto;
     try {
       const { data, error } = await client.from('app_settings').select('key,value');
       if (error) { console.warn('app_settings', error); return; }
+      const incoming = [];
       for (const row of (data || [])) {
         // Clés méta de chiffrement : jamais écrites en localStorage, jamais déchiffrées ici.
         if (row.key === CRYPTO_SALT_KEY || row.key === CRYPTO_CHECK_KEY) continue;
@@ -733,10 +845,32 @@
         // planter le rendu à chaque ouverture).
         plain = map.sanitize(plain);
         if (plain === undefined) { console.warn('Réglage ' + row.key + ' ignoré : forme inattendue'); continue; }
-        try { localStorage.setItem(map.ls, JSON.stringify(plain)); } catch (e) {}
+        incoming.push({ map, plain });
+      }
+      // Réglages de l'appareil différents de ceux du cloud : ils étaient écrasés sans un mot.
+      // Un réglage absent ou vide sur l'appareil est simplement complété.
+      const differs = incoming.filter(({ map, plain }) => {
+        const local = readLocalJSON(map.ls);
+        return !isEmptySetting(local) && canonical(local) !== canonical(plain);
+      });
+      let replace = true;
+      if (differs.length) {
+        replace = await showConfirm({
+          title: 'Réglages différents dans le cloud',
+          message: 'Le cloud contient d\'autres réglages que cet appareil :\n\n'
+                 + differs.map(({ map }) => '• ' + (SETTINGS_LABELS[map.key] || map.key)).join('\n')
+                 + '\n\nRemplacer les réglages de cet appareil par ceux du cloud ?',
+          okLabel: 'Prendre ceux du cloud',
+          cancelLabel: 'Garder ceux-ci',
+          danger: false
+        });
+      }
+      for (const item of incoming) {
+        if (!replace && differs.includes(item)) continue;
+        try { localStorage.setItem(item.map.ls, JSON.stringify(item.plain)); } catch (e) {}
         // CLIENT_RULES est mis en cache (let de data.js) → réassignation explicite.
-        if (row.key === 'client_rules') {
-          try { CLIENT_RULES = plain; } catch (e) {}
+        if (item.map.key === 'client_rules') {
+          try { CLIENT_RULES = item.plain; } catch (e) {}
         }
       }
     } catch (e) { console.warn('loadSettings', e); }
@@ -750,10 +884,65 @@
     catch (e) { return null; }
   }
 
+  // Refus d'une sauvegarde qui écraserait une version plus récente : propose de recharger et fusionner.
+  async function refuseStaleSave() {
+    const reload = await showConfirm({
+      title: 'Le cloud a changé',
+      message: 'Une sauvegarde a été faite depuis un autre appareil (ou un autre onglet) après ton dernier chargement. Sauvegarder maintenant l\'écraserait.\n\n'
+             + 'Recharge d\'abord le cloud : tes données locales seront fusionnées avec les siennes (aucune ligne retirée). Vérifie ensuite, puis sauvegarde.',
+      okLabel: 'Recharger et fusionner',
+      cancelLabel: 'Annuler',
+      danger: false
+    });
+    if (reload) await reloadAndMerge();
+    else showToast({ title: 'Sauvegarde annulée', body: 'Le cloud n\'a pas été modifié. Tes données locales sont intactes.', ok: true });
+  }
+
+  // Écrit l'état local complet, chiffré avec la clé en mémoire : révision provisoire, lignes,
+  // réglages et révision finale. Encadrer les lignes par deux révisions garantit qu'un autre
+  // appareil qui lit pendant l'écriture, ou après un échec partiel, voit une révision qu'il ne
+  // connaît pas : il devra recharger avant de sauvegarder.
+  async function writeSnapshot() {
+    const SC = window.SupabaseCrypto;
+    const first = await revisionRow();
+    const { error: e0 } = await client.from('app_settings').upsert([first.row], { onConflict: 'user_id,key' });
+    if (e0) throw e0;
+    knownRev = first.rev;
+
+    // 1) Transactions — chiffrées ligne par ligne, remplacement atomique serveur
+    const payload = [];
+    for (const r of (Array.isArray(DATASET) ? DATASET : [])) {
+      payload.push({ payload: await SC.encryptRow(appRowToDb(r)) });
+    }
+    const { error: e1 } = await client.rpc('replace_transactions', { p_rows: payload });
+    if (e1) throw e1;
+
+    // 2) Réglages — valeur CHIFFRÉE { enc } (jamais null grâce aux fallbacks) + révision finale
+    const uid = currentUser ? currentUser.id : undefined;
+    const settingsRows = [];
+    for (const s of SETTINGS_KEYS) {
+      let value = readLocalJSON(s.ls);
+      if (value == null) value = s.fallback();
+      settingsRows.push({ user_id: uid, key: s.key, value: await SC.encryptSettingValue(value) });
+    }
+    const last = await revisionRow();
+    settingsRows.push(last.row);
+    const { error: e2 } = await client.from('app_settings').upsert(settingsRows, { onConflict: 'user_id,key' });
+    if (e2) throw e2;
+    knownRev = last.rev;
+  }
+
   async function doSave() {
     const SC = window.SupabaseCrypto;
     if (!aal2 || !client || !currentUser || !SC || !SC.hasKey()) return;
     const count = Array.isArray(DATASET) ? DATASET.length : 0;
+    try {
+      if (await cloudChangedSinceLoad()) { await refuseStaleSave(); return; }
+    } catch (e) {
+      console.error(e);
+      showToast({ title: 'Échec de la sauvegarde', body: traduireErreur(e) + ' — tes données locales sont intactes.', ok: false });
+      return;
+    }
     const ok = await showConfirm({
       title: 'Sauvegarder dans le cloud ?',
       message: 'L\'état actuel du dashboard va être CHIFFRÉ puis REMPLACER le contenu du cloud (instantané miroir) :\n\n'
@@ -767,25 +956,9 @@
 
     setBusy('save-btn', true);
     try {
-      // 1) Transactions — chiffrées ligne par ligne, remplacement atomique serveur
-      const payload = [];
-      for (const r of (Array.isArray(DATASET) ? DATASET : [])) {
-        payload.push({ payload: await SC.encryptRow(appRowToDb(r)) });
-      }
-      const { error: e1 } = await client.rpc('replace_transactions', { p_rows: payload });
-      if (e1) throw e1;
-
-      // 2) Réglages — valeur CHIFFRÉE { enc } (jamais null grâce aux fallbacks)
-      const uid = currentUser ? currentUser.id : undefined;
-      const settingsRows = [];
-      for (const s of SETTINGS_KEYS) {
-        let value = readLocalJSON(s.ls);
-        if (value == null) value = s.fallback();
-        settingsRows.push({ user_id: uid, key: s.key, value: await SC.encryptSettingValue(value) });
-      }
-      const { error: e2 } = await client.from('app_settings').upsert(settingsRows, { onConflict: 'user_id,key' });
-      if (e2) throw e2;
-
+      // Revérifiée juste avant d'écrire : la confirmation a pu rester ouverte longtemps.
+      if (await cloudChangedSinceLoad()) { await refuseStaleSave(); return; }
+      await writeSnapshot();
       showToast({ title: 'Sauvegardé (chiffré)', body: count + ' opérations + réglages chiffrés enregistrés dans le cloud.', ok: true });
     } catch (e) {
       console.error(e);
@@ -804,6 +977,7 @@
     aal2 = false;
     pendingEnroll = null;
     pendingPassword = null;
+    knownRev = undefined;
     if (window.SupabaseCrypto) window.SupabaseCrypto.clearKey();  // la clé ne survit pas à la déconnexion
     showSaveButton(false);
     updateAuthButton();
