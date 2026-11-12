@@ -444,10 +444,11 @@ function runAudit(opts) {
   }
 
   // === 10. DOUBLONS ET FACTURES RÉ-ÉMISES ===
-  // Un doublon EXACT ne peut pas exister : mergeDatasets déduplique sur exactement
-  // cette clé (reference + nature + description + montant). Ce qu'on cherche ici,
-  // c'est le QUASI-doublon — la même facture présente deux fois avec un libellé ou
-  // une ventilation TJM/jours différents, qui double le CA et les jours du mois.
+  // Un doublon EXACT (reference + nature + description + montant) ne subsiste que
+  // s'il figure tel quel dans l'export : mergeDatasets apparie les lignes occurrence
+  // par occurrence (deux notes de frais identiques sont deux dépenses). Ce qu'on
+  // cherche ici, c'est le QUASI-doublon — la même facture présente deux fois avec un
+  // libellé ou une ventilation TJM/jours différents, qui double le CA et les jours du mois.
   const byRefNature = {};
   DATASET.forEach(r => {
     const k = `${r.reference}|${r.nature}`;
@@ -466,7 +467,9 @@ function runAudit(opts) {
       parMontant[cle].push(r);
     });
     Object.entries(parMontant).forEach(([montant, dupes]) => {
-      if (dupes.length < 2) return;
+      // Lignes toutes identiques : présentes ainsi dans l'export, un réimport ne les
+      // retirerait pas (une facture doublée reste signalée par les règles 1 et 14).
+      if (dupes.length < 2 || new Set(dupes.map(d => d.description)).size < 2) return;
       addIssue('danger', 'duplicate', `Ligne en double ${dupes[0].mois}`,
         `${dupes.length} lignes de même montant sur la même référence et la même nature. C'est la signature d'une facture ré-émise dont l'ancienne version est restée : réimporte le CSV et accepte les suppressions proposées.`,
         `${nature} · ${fmt(parseFloat(montant))} · réf ${ref} · ${dupes.map(d => d.description || '—').join('  |  ')}`);

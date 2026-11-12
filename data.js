@@ -223,10 +223,50 @@ function parseAmount(s) {
 // ============================================================
 // MERGE INTELLIGENT
 // ============================================================
-// Clé unique = reference + nature + description + montant
+// Clé de fusion = reference + nature + description + montant
 // Permet de détecter les doublons et de mettre à jour le statut/date de paiement
 function rowKey(r) {
   return [r.reference, r.nature, r.description, r.montant.toFixed(2)].join('||');
+}
+
+// Appariement des lignes connues et importées, OCCURRENCE PAR OCCURRENCE.
+//
+// Deux lignes légitimes peuvent partager la même clé (deux notes de frais de 45 € sur
+// une même référence) : la fusion passait par une Map indexée par la clé, qui n'en
+// gardait qu'une (90 € devenaient 45 €). Chaque occurrence d'une clé est maintenant
+// appariée à une seule occurrence de l'autre côté, comme si la clé portait son rang
+// (clé#1, clé#2…). Le mois ne fait pas partie de la clé : un mois ou une date corrigés
+// à la source restent une mise à jour de la même ligne.
+//
+// Au sein d'une clé, on apparie d'abord les lignes identiques (mois, dates, statut),
+// puis celles du même mois, puis une ligne connue d'un mois couvert par l'import (elle
+// en est sortie), enfin le reste par rang : un export qui réordonne des lignes
+// identiques ne produit pas de fausse mise à jour, et un export partiel ne déplace pas
+// la ligne d'un mois qu'il ne couvre pas.
+// Renvoie une Map index importé -> index connu.
+function matchRows(existing, incoming) {
+  const groups = new Map();
+  const group = (k) => { let g = groups.get(k); if (!g) groups.set(k, g = { ex: [], inc: [] }); return g; };
+  existing.forEach((r, i) => group(rowKey(r)).ex.push(i));
+  incoming.forEach((r, i) => group(rowKey(r)).inc.push(i));
+  const months = new Set(incoming.map(r => r.mois));
+  const passes = [
+    (a, b) => a.mois === b.mois && a.date === b.date && a.statut === b.statut && a.datePaiement === b.datePaiement,
+    (a, b) => a.mois === b.mois,
+    (a) => months.has(a.mois),
+    () => true
+  ];
+  const pairs = new Map();
+  groups.forEach(({ ex, inc }) => {
+    if (!ex.length || !inc.length) return;
+    const free = ex.slice();
+    passes.forEach((same) => inc.forEach((ii) => {
+      if (pairs.has(ii)) return;
+      const j = free.findIndex((ei) => same(existing[ei], incoming[ii]));
+      if (j !== -1) { pairs.set(ii, free[j]); free.splice(j, 1); }
+    }));
+  });
+  return pairs;
 }
 
 // Lignes du dataset rendues obsolètes par un import (calcul pur, sans effet de bord).
@@ -243,52 +283,57 @@ function rowKey(r) {
 //
 // On ne compare QUE sur les mois présents dans l'import : un export partiel ou
 // filtré sur un client ne peut pas effacer l'historique qu'il ne couvre pas.
-function supersededRows(existing, incoming) {
-  const incomingKeys = new Set(incoming.map(rowKey));
+function supersededIndexes(existing, incoming, pairs) {
+  const matched = new Set(pairs.values());
   const incomingMonths = new Set(incoming.map(r => r.mois));
-  return existing.filter(r => incomingMonths.has(r.mois) && !incomingKeys.has(rowKey(r)));
+  const out = new Set();
+  existing.forEach((r, i) => { if (!matched.has(i) && incomingMonths.has(r.mois)) out.add(i); });
+  return out;
+}
+function supersededRows(existing, incoming) {
+  const idx = supersededIndexes(existing, incoming, matchRows(existing, incoming));
+  return existing.filter((r, i) => idx.has(i));
 }
 
 // options.dropMissing = false : fusion purement additive (comportement historique),
 // utilisé quand l'utilisateur refuse les suppressions proposées à l'import.
 function mergeDatasets(existing, incoming, options = {}) {
   const dropMissing = options.dropMissing !== false;
-  const removedRows = dropMissing ? supersededRows(existing, incoming) : [];
-  const removedKeys = new Set(removedRows.map(rowKey));
+  const pairs = matchRows(existing, incoming);
+  const removed = dropMissing ? supersededIndexes(existing, incoming, pairs) : new Set();
+  const removedRows = existing.filter((r, i) => removed.has(i));
+  const nextOf = new Map();
+  pairs.forEach((ei, ii) => nextOf.set(ei, incoming[ii]));
 
-  const map = new Map();
-  existing.forEach(r => {
-    const k = rowKey(r);
-    if (removedKeys.has(k)) return;
-    map.set(k, r);
-  });
-
+  const rows = [];
   const addedRows = [];
   const updatedRows = [];
   let unchanged = 0;
 
-  incoming.forEach(r => {
-    const k = rowKey(r);
-    if (map.has(k)) {
-      const prev = map.get(k);
-      // Mise à jour si statut, date de paiement, date d'émission ou mois diffèrent
-      // (une date ou un mois corrigés à la source étaient ignorés : l'arrivée
-      // estimée et l'audit des délais restaient sur l'ancienne valeur).
-      if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement
-          || prev.date !== r.date || prev.mois !== r.mois) {
-        map.set(k, r);
-        updatedRows.push({ prev: { ...prev }, next: r });
-      } else {
-        unchanged++;
-      }
+  existing.forEach((prev, ei) => {
+    if (removed.has(ei)) return;
+    const r = nextOf.get(ei);
+    if (!r) { rows.push(prev); return; }
+    // Mise à jour si statut, date de paiement, date d'émission ou mois diffèrent
+    // (une date ou un mois corrigés à la source étaient ignorés : l'arrivée
+    // estimée et l'audit des délais restaient sur l'ancienne valeur).
+    if (prev.statut !== r.statut || prev.datePaiement !== r.datePaiement
+        || prev.date !== r.date || prev.mois !== r.mois) {
+      rows.push(r);
+      updatedRows.push({ prev: { ...prev }, next: r });
     } else {
-      map.set(k, r);
-      addedRows.push(r);
+      rows.push(prev);
+      unchanged++;
     }
+  });
+  incoming.forEach((r, ii) => {
+    if (pairs.has(ii)) return;
+    rows.push(r);
+    addedRows.push(r);
   });
 
   return {
-    rows: Array.from(map.values()),
+    rows,
     stats: { added: addedRows.length, updated: updatedRows.length, unchanged, removed: removedRows.length },
     changes: { addedRows, updatedRows, removedRows }
   };

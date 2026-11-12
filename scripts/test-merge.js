@@ -151,4 +151,60 @@ test('TJM et jours lus même avec des espaces dans la parenthèse', () => {
   assert.strictEqual(mai.tjm, 610);
 });
 
+// Deux lignes légitimes identiques (deux notes de frais de 45 € le même mois, sur la même
+// référence) : la fusion par Map n'en gardait qu'une. Elles sont appariées occurrence par
+// occurrence, sans que le mois entre dans la clé.
+const NDF = '30/09/2030,09-2030,RC-2030-09-0001,Note de frais,Revenu - Note de frais,"45,00",';
+const deuxNotes = parseCSV([HEADER, NDF + 'Payé,05/10/2030', NDF + 'Non payé,'].join('\n'));
+const avecNotes = mergeDatasets([], deuxNotes);
+
+test('deux notes de frais identiques sont gardées toutes les deux', () => {
+  assert.strictEqual(deuxNotes.length, 2);
+  assert.strictEqual(avecNotes.rows.length, 2);
+  assert.strictEqual(avecNotes.stats.added, 2);
+  assert.strictEqual(aggregateOf(avecNotes.rows).totals.notes_frais, 90);
+});
+
+test('réimporter des lignes identiques ne crée pas de doublon, même dans un autre ordre', () => {
+  const again = mergeDatasets(avecNotes.rows, deuxNotes);
+  assert.strictEqual(again.rows.length, 2);
+  assert.deepStrictEqual({ ...again.stats }, { added: 0, updated: 0, unchanged: 2, removed: 0 });
+  const inverse = mergeDatasets(avecNotes.rows, deuxNotes.slice().reverse());
+  assert.strictEqual(inverse.rows.length, 2);
+  assert.strictEqual(inverse.stats.updated, 0);
+  assert.strictEqual(inverse.stats.unchanged, 2);
+});
+
+test('une note retirée à la source est supprimée, l\'autre est gardée', () => {
+  const une = parseCSV([HEADER, NDF + 'Payé,05/10/2030'].join('\n'));
+  const res = mergeDatasets(avecNotes.rows, une);
+  assert.strictEqual(res.stats.removed, 1);
+  assert.strictEqual(res.rows.length, 1);
+  assert.strictEqual(res.rows[0].statut, 'Payé');
+  assert.strictEqual(supersededRows(avecNotes.rows, une).length, 1);
+});
+
+test('une date d\'émission ou un mois corrigés mettent toujours la ligne à jour', () => {
+  const PS = ',RC-2030-06-0001,Profit share,Revenu - Profit Share,"3 000,00",Non payé,';
+  const avant = mergeDatasets([], parseCSV([HEADER, '16/06/2030,06-2030' + PS].join('\n'))).rows;
+  const date = mergeDatasets(avant, parseCSV([HEADER, '16/07/2030,06-2030' + PS].join('\n')));
+  assert.strictEqual(date.stats.updated, 1);
+  assert.strictEqual(date.rows.length, 1);
+  assert.strictEqual(date.rows[0].date, '16/07/2030');
+  const mois = mergeDatasets(avant, parseCSV([HEADER, '16/07/2030,07-2030' + PS].join('\n')));
+  assert.strictEqual(mois.stats.updated, 1);
+  assert.strictEqual(mois.rows.length, 1);
+  assert.strictEqual(mois.rows[0].mois, '07-2030');
+});
+
+test('un export partiel ne déplace pas une ligne identique d\'un mois qu\'il ne couvre pas', () => {
+  // Référence vide : même clé sur deux mois. L'export suivant ne couvre qu'octobre.
+  const PROV = ',,Provision congés payés,Revenu - Provision Congés,"283,00",Non payé,';
+  const deuxMois = mergeDatasets([], parseCSV([HEADER, '30/09/2030,09-2030' + PROV, '31/10/2030,10-2030' + PROV].join('\n')));
+  assert.strictEqual(deuxMois.rows.length, 2);
+  const partiel = mergeDatasets(deuxMois.rows, parseCSV([HEADER, '31/10/2030,10-2030' + PROV].join('\n')));
+  assert.deepStrictEqual({ ...partiel.stats }, { added: 0, updated: 0, unchanged: 1, removed: 0 });
+  assert.strictEqual(aggregateOf(partiel.rows).totals.provision_conges_total, 566);
+});
+
 console.log(`\n${passed} tests OK`);
