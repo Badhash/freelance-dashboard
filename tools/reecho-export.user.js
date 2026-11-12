@@ -126,8 +126,6 @@
         if (exporting) return;
         btn.style.display = (findOperationsTab() || findOperationsTable()) ? '' : 'none';
     }
-    refreshVisibility();
-    setInterval(refreshVisibility, 1000);
 
     // ============================================================
     // LECTURE DU DOM
@@ -431,4 +429,11 @@
             exporting = false;
         }
     }
+
+    // Démarrage en DERNIER : refreshVisibility utilise norm et les expressions définies plus
+    // haut avec const. Appelée avant leur définition, elle levait une ReferenceError dès qu'un
+    // tableau ou des onglets étaient déjà affichés au chargement : le script s'arrêtait et le
+    // bouton n'apparaissait jamais.
+    refreshVisibility();
+    setInterval(refreshVisibility, 1000);
 })();
