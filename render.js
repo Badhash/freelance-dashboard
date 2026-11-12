@@ -47,8 +47,21 @@ function dropInvalidRows() {
 
 function buildViewModel() {
   const t = AGG.totals;
-  // === Formules recopiées À L'IDENTIQUE de l'ancien render-balance.js ===
+  // Salaire net, notes de frais et tickets restaurant émis mais pas encore payés : ni reçus
+  // (exclus du solde sur encaissé), ni comptés dans ce qu'on te doit, ils n'apparaissaient que
+  // dans la vue mensuelle (« en attente »). Même règle que celle-ci : statut différent de « Payé ».
+  const salPending = t.salaire_net - t.salaire_net_paye;
+  const fraisPending = (t.notes_frais - t.notes_frais_paye) + (t.tickets_resto - t.tickets_resto_paye);
+  const versPending = salPending + fraisPending;
+  const pendOf = (arr) => UI.sum(arr.filter((d) => d.statut !== 'Payé'), 'montant');
+  const versPendingList = [];
+  AGG.months.forEach((m) => {
+    const sal = pendOf(m.details_salaire);
+    const frais = pendOf(m.details_notes_frais) + pendOf(m.details_tickets_resto);
+    if (Math.abs(sal) > 0.005 || Math.abs(frais) > 0.005) versPendingList.push({ mois: m.mois, sal, frais });
+  });
   const soldeFacture = t.profit_share_non_paye
+    + versPending
     + (t.provision_conges_total - t.provision_conges_payee)
     + (t.cooptation_revenu_total - t.cooptation_revenu_paye);
   const creditsEncaisses = t.ca_paye + t.cooptation_credit_paye + t.refacturation_paye;
@@ -136,7 +149,7 @@ function buildViewModel() {
 
   return {
     t, today, soldeFacture, soldeEncaisse, creditsEncaisses, chargesPayees, versementsRecus,
-    psPending, psSum, provRest, provMois, provPer, coopPending, coopRest, tjm, med, medCA,
+    psPending, psSum, versPending, versPendingList, provRest, provMois, provPer, coopPending, coopRest, tjm, med, medCA,
     arrivals, ghosts, clientPending, curY, prevY, lastM, sy,
     // Profit shares en retard, sans échéance estimable, et « au moins un émis » (pour ne pas
     // écrire « tout ce qui a été émis t'a été versé » quand rien n'a encore été émis).

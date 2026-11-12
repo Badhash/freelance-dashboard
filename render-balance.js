@@ -14,6 +14,8 @@ function renderBalanceWidget() {
 function heroSegments() {
   return [
     { label: 'Profit shares en attente', v: VM.psSum, c: 'var(--c-ps)' },
+    // Même teinte que « Salaire net en attente » dans la vue mensuelle.
+    { label: 'Salaire et frais en attente', v: VM.versPending, c: 'var(--c-sal-tint)' },
     { label: 'Provision congés', v: VM.provRest, c: 'var(--c-sal)' },
     { label: 'Cooptation', v: VM.coopRest, c: 'var(--c-extra)' }
   ].filter((s) => s.v > 0.005);
@@ -264,8 +266,14 @@ function renderSoldeDetail() {
   const due = (a) => (!a.eta ? ' · date d’arrivée inconnue'
     : a.left < 0 ? ` · était attendu vers le ${UI.dShort(a.eta)}${UI.NBP}: en retard de ${-a.left}${UI.NB}j`
     : ` · attendu vers le ${UI.dShort(a.eta)}`);
-  const recv = VM.arrivals.map((a) => `<li class="line"><span class="l"><span class="n">Profit share ${UI.monthLower(a.mois)}</span><span class="h">${a.date_emission ? `Émis le ${UI.esc(a.date_emission)}` : 'Date d’émission inconnue'}${due(a)}</span></span><span class="v">${UI.eur2(a.montant)}</span></li>`).join('')
-    || '<li class="line"><span class="l"><span class="n">Aucun profit share en attente</span></span></li>';
+  // Salaire, notes de frais et tickets émis mais pas encore payés, par mois d'activité
+  // (mêmes montants que « Salaire net en attente » et « Tickets et frais en attente » du mois).
+  const versLine = (n, mois, v) => `<li class="line"><span class="l"><span class="n">${n}</span><span class="h">${UI.monthLabel(mois)} · émis, pas encore payé</span></span><span class="v">${UI.eur2(v)}</span></li>`;
+  const versLines = VM.versPendingList.map((p) => (Math.abs(p.sal) > 0.005 ? versLine('Salaire net', p.mois, p.sal) : '')
+    + (Math.abs(p.frais) > 0.005 ? versLine('Tickets et frais', p.mois, p.frais) : '')).join('');
+  const pendSub = VM.psSum + VM.versPending;
+  const recv = (VM.arrivals.map((a) => `<li class="line"><span class="l"><span class="n">Profit share ${UI.monthLower(a.mois)}</span><span class="h">${a.date_emission ? `Émis le ${UI.esc(a.date_emission)}` : 'Date d’émission inconnue'}${due(a)}</span></span><span class="v">${UI.eur2(a.montant)}</span></li>`).join('') + versLines)
+    || '<li class="line"><span class="l"><span class="n">Aucun versement en attente</span></span></li>';
   let adv = '';
   if (VM.provRest > 0) adv += `<li class="line"><span class="l"><span class="n">Provision congés payés</span><span class="h">${VM.provMois} mois × ${UI.eur0(VM.provPer)} · jamais versée, à récupérer à la sortie ou lors d’une prise de congés</span></span><span class="v">${UI.eur2(VM.provRest)}</span></li>`;
   VM.coopPending.forEach((c) => { adv += `<li class="line"><span class="l"><span class="n">Cooptation</span><span class="h">${UI.monthLabel(c.mois)} · en attente</span></span><span class="v">${UI.eur2(c.montant)}</span></li>`; });
@@ -276,7 +284,7 @@ function renderSoldeDetail() {
       <span class="ic-tile">${icon('receipt')}</span>
       <span class="fh-t"><span class="fold-title">Détail du solde</span><span class="fold-sub">D’où viennent les ${UI.eur2(VM.soldeFacture)} qu’on te doit et les ${signedEur2(VM.soldeEncaisse)} sur ton compte</span></span>
       <span class="fold-sums" aria-hidden="true">
-        <span class="sum-chip"><span class="sw" style="background:var(--c-ps)"></span>En attente <b>${UI.eur0(VM.psSum)}</b></span>
+        <span class="sum-chip"><span class="sw" style="background:var(--c-ps)"></span>En attente <b>${UI.eur0(pendSub)}</b></span>
         <span class="sum-chip"><span class="sw" style="background:var(--c-sal)"></span><span>Provisions<span class="hide-s"> et créances</span></span> <b>${UI.eur0(provSub)}</b></span>
         <span class="sum-chip"><span class="sw" style="background:var(--c-ink)"></span>Sur encaissé <b>${signedEur0(VM.soldeEncaisse)}</b></span>
       </span>
@@ -286,7 +294,7 @@ function renderSoldeDetail() {
       <div class="solde-grid">
         <div class="sub-card">
           <div class="sub-head"><h3><span class="sw" style="background:var(--c-ps)"></span>Ils te paieront plus tard</h3><span class="chip">${VM.med ? `Délai médian ${VM.med} j` : 'Délai pas encore mesuré'}</span></div>
-          <div class="sub-total tab">${UI.eur2(VM.psSum)}</div>
+          <div class="sub-total tab">${UI.eur2(pendSub)}</div>
           <ul class="lines">${recv}</ul>
         </div>
         <div class="sub-card">
@@ -294,7 +302,7 @@ function renderSoldeDetail() {
           <div class="sub-total tab">${UI.eur2(provSub)}</div>
           <ul class="lines">${adv}</ul>
         </div>
-        <p class="equation"><span class="eq"><b>${UI.eur2(VM.psSum)}</b> en attente + <b>${UI.eur2(provSub)}</b> de provisions et créances</span><span class="res">= <span class="ledger-total">${UI.eur2(VM.soldeFacture)}</span></span></p>
+        <p class="equation"><span class="eq"><b>${UI.eur2(pendSub)}</b> en attente + <b>${UI.eur2(provSub)}</b> de provisions et créances</span><span class="res">= <span class="ledger-total">${UI.eur2(VM.soldeFacture)}</span></span></p>
       </div>
       <div class="ledger" data-fold-root>
         <div class="ledger-head">
@@ -311,7 +319,7 @@ function renderSoldeDetail() {
               ${lrow('Commission portage', t.commission_paye, '−')}${lrow('Charges sociales salaire', t.charges_salaire_paye, '−')}${lrow('Charges sur profit share', t.charges_ps_paye, '−')}${lrow('Impôts France (PAS)', t.impot_france, '−')}${lrow('Charges diverses', t.charges_diverses_paye, '−')}
               <div class="lrow tot"><span>Sous-total</span><span class="ledger-total">−${UI.eur2(VM.chargesPayees)}</span></div></div>
             <div class="lcol"><h4><span class="sw tri"></span>Versements vers toi</h4>
-              ${lrow('Salaires nets', t.salaire_net, '−')}${lrow('Profit shares', t.profit_share_paye, '−')}${lrow('Notes de frais', t.notes_frais, '−')}${lrow('Tickets restaurant', t.tickets_resto, '−')}${lrow('Cooptations reversées', t.cooptation_revenu_paye, '−')}
+              ${lrow('Salaires nets', t.salaire_net_paye, '−')}${lrow('Profit shares', t.profit_share_paye, '−')}${lrow('Notes de frais', t.notes_frais_paye, '−')}${lrow('Tickets restaurant', t.tickets_resto_paye, '−')}${lrow('Cooptations reversées', t.cooptation_revenu_paye, '−')}
               <div class="lrow tot"><span>Sous-total</span><span class="ledger-total">−${UI.eur2(VM.versementsRecus)}</span></div></div>
             <p class="ledger-final"><span class="lf-eq tab">${UI.eur2(VM.creditsEncaisses)} − ${UI.eur2(VM.chargesPayees)} − ${UI.eur2(VM.versementsRecus)}</span><span class="lf-res"><span class="lf-l">Solde sur encaissé</span> <span class="ledger-total">${signedEur2(VM.soldeEncaisse)}</span></span></p>
           </div>
@@ -333,9 +341,9 @@ function renderWaterfall() {
   const S = VM.soldeEncaisse;
   const afterCharges = C - VM.chargesPayees;
   const parts = [
-    { label: 'Salaires nets', v: t.salaire_net, c: 'var(--c-sal)' },
+    { label: 'Salaires nets', v: t.salaire_net_paye, c: 'var(--c-sal)' },
     { label: 'Profit shares', v: t.profit_share_paye, c: 'var(--c-ps)' },
-    { label: 'Frais, tickets, cooptation', v: t.notes_frais + t.tickets_resto + t.cooptation_revenu_paye, c: 'var(--c-extra)' }
+    { label: 'Frais, tickets, cooptation', v: t.notes_frais_paye + t.tickets_resto_paye + t.cooptation_revenu_paye, c: 'var(--c-extra)' }
   ].filter((p) => p.v > 0.005);
   const lo = Math.min(0, C, afterCharges, S);
   const hi = Math.max(0, C, afterCharges, S);

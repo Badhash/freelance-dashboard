@@ -9,9 +9,9 @@ publiée sur GitHub Pages et installable comme application (PWA).
 
 ## Fonctionnalités
 
-- **Aperçu** : total à récupérer au centime (profit shares en attente, provision congés,
-  cooptation) avec sa composition, prochain versement, et solde déjà présent sur le compte
-  de portage.
+- **Aperçu** : total à récupérer au centime (profit shares en attente, salaire et frais
+  émis mais pas encore payés, provision congés, cooptation) avec sa composition, prochain
+  versement, et solde déjà présent sur le compte de portage.
 - **Prochains versements** : escalier cumulé des profit shares en attente, avec une date
   d'arrivée estimée (date d'émission + délai médian constaté).
 - **Indicateurs** : CA facturé et jours facturés de l'année comparés à la même période de
