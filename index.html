@@ -267,6 +267,14 @@
       <input type="password" id="auth-unlock-password" class="auth-input" autocomplete="current-password" placeholder="Ton mot de passe">
       <div class="auth-error" id="auth-unlock-error" role="alert"></div>
       <button class="auth-submit" id="auth-unlock-submit" type="button">Déverrouiller</button>
+      <!-- Proposé seulement après un échec du déverrouillage, en aal2 (supabase-sync.js, doResetCrypto). -->
+      <div class="auth-reset" id="auth-reset" style="display:none;">
+        <p class="auth-foot"><i data-icon="alert"></i>Mot de passe changé et ancien oublié&nbsp;? Réinitialise le chiffrement&nbsp;: le cloud est re-chiffré avec ton mot de passe actuel, à partir des données de cet appareil.</p>
+        <label class="auth-label" for="auth-reset-confirm">Confirme ton mot de passe actuel</label>
+        <input type="password" id="auth-reset-confirm" class="auth-input" autocomplete="current-password" placeholder="Le même, une seconde fois">
+        <div class="auth-error" id="auth-reset-error" role="alert"></div>
+        <button class="auth-submit danger" id="auth-reset-submit" type="button">Réinitialiser le chiffrement</button>
+      </div>
     </div>
   </div>
 </div>

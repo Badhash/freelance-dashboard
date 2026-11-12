@@ -66,6 +66,7 @@
   let pendingEnroll = null;      // { factorId } pendant un enrôlement
   let pendingPassword = null;    // mot de passe en attente (login → dérivation clé post-aal2)
   let knownRev;                  // révision du cloud vue en dernier (voir readRevision)
+  let unlockFailed = false;      // le mot de passe saisi ne déchiffre pas le cloud (voir doResetCrypto)
 
   // Clé de chiffrement prête ? (vit en mémoire dans SupabaseCrypto, jamais persistée)
   function hasCryptoKey() { return !!(window.SupabaseCrypto && window.SupabaseCrypto.hasKey()); }
@@ -262,7 +263,7 @@
 
     onClick('auth-btn', () => {
       if (!currentUser) { openModal('login'); setTimeout(() => { const f = $('auth-email'); if (f) f.focus(); }, 50); }
-      else if (aal2 && !hasCryptoKey()) { openModal('unlock'); setTimeout(() => { const f = $('auth-unlock-password'); if (f) { f.value = ''; f.focus(); } }, 50); }
+      else if (aal2 && !hasCryptoKey()) { openUnlock(false); }
       else if (aal2) { showAccount(); }
       else { openModal(); proceedMfa(); }
     });
@@ -282,6 +283,7 @@
 
     onClick('auth-unlock-submit', doUnlock);
     onEnter('auth-unlock-password', doUnlock);
+    onClick('auth-reset-submit', doResetCrypto);
 
     onClick('auth-add-backup', startBackupEnroll);
     onClick('auth-logout', doLogout);
@@ -481,6 +483,7 @@
     closeModal();
     let keyOk = false;
     let needUnlock = false;
+    let verifierFailed = false;
     if (pendingPassword) {
       try {
         await ensureCryptoKey(pendingPassword);
@@ -489,8 +492,9 @@
         if (e && e.cryptoVerifier) {
           // Auth réussie mais le vérificateur échoue → le mot de passe a changé
           // depuis le dernier chiffrement (cf. footgun rotation de mot de passe).
-          showToast({ title: 'Re-chiffrement nécessaire',
-            body: 'Ton mot de passe a changé depuis le dernier chiffrement du cloud. Réimporte ton CSV puis clique « Sauvegarder » pour re-chiffrer.', ok: false });
+          // Le toast conseillait « Sauvegarder », bouton masqué sans clé : impasse.
+          // On ouvre le déverrouillage, qui propose aussi de réinitialiser le chiffrement.
+          verifierFailed = true;
         } else {
           showToast({ title: 'Clé de chiffrement', body: traduireErreur(e), ok: false });
         }
@@ -505,10 +509,28 @@
     showSaveButton(true);
     if (keyOk) {
       await autoLoadFromCloud({ silent: false });
+    } else if (verifierFailed) {
+      openUnlock(true);
+      setError('auth-unlock-error', 'Ton mot de passe de connexion ne déchiffre pas le cloud : il a sans doute changé depuis le dernier chiffrement. Saisis l\'ancien pour déverrouiller, ou réinitialise le chiffrement.');
     } else if (needUnlock) {
-      openModal('unlock');
-      setTimeout(() => { const f = $('auth-unlock-password'); if (f) { f.value = ''; f.focus(); } }, 50);
+      openUnlock(false);
     }
+  }
+
+  // Vue de déverrouillage. failed : le mot de passe vient d'être refusé par le vérificateur ;
+  // la réinitialisation du chiffrement n'est proposée qu'alors, et seulement en aal2.
+  function openUnlock(failed) {
+    unlockFailed = !!failed;
+    setError('auth-unlock-error', '');
+    setError('auth-reset-error', '');
+    showResetOption();
+    openModal('unlock');
+    setTimeout(() => { const f = $('auth-unlock-password'); if (f) { f.value = ''; f.focus(); } }, 50);
+  }
+  function showResetOption() {
+    const on = !!(aal2 && unlockFailed && !hasCryptoKey());
+    show($('auth-reset'), on);
+    if (!on && $('auth-reset-confirm')) $('auth-reset-confirm').value = '';
   }
 
   // ============================================================
@@ -606,18 +628,96 @@
     try {
       await ensureCryptoKey(pw);
       if ($('auth-unlock-password')) $('auth-unlock-password').value = '';
+      unlockFailed = false;
+      showResetOption();
       updateAuthButton();
       showSaveButton(true);
       closeModal();
       await autoLoadFromCloud({ silent: false });
     } catch (e) {
       if (e && e.cryptoVerifier) {
-        setError('auth-unlock-error', 'Mot de passe incorrect — ou ton mot de passe a changé depuis le dernier chiffrement (réimporte ton CSV puis Sauvegarde).');
+        unlockFailed = true;
+        showResetOption();
+        setError('auth-unlock-error', 'Mot de passe incorrect — ou ton mot de passe a changé depuis le dernier chiffrement. Si tu ne connais plus l\'ancien, tu peux réinitialiser le chiffrement ci-dessous.');
       } else {
         setError('auth-unlock-error', traduireErreur(e));
       }
     } finally {
       setBusy('auth-unlock-submit', false);
+    }
+  }
+
+  // ============================================================
+  // RÉINITIALISATION DU CHIFFREMENT (mot de passe changé, ancien inconnu)
+  // ============================================================
+  // Après un changement de mot de passe, la clé dérivée ne correspond plus au vérificateur :
+  // le déverrouillage échoue, et le bouton Sauvegarder (qui exige la clé) reste masqué. Aucun
+  // moyen de re-chiffrer. Cette action, explicite et confirmée, repart de zéro : nouveau sel,
+  // nouveau vérificateur, puis ré-envoi des données de CET appareil chiffrées avec la nouvelle
+  // clé, par le même chemin que la sauvegarde. Ce qui n'existe que dans le cloud est perdu
+  // (illisible de toute façon sans l'ancien mot de passe).
+  async function doResetCrypto() {
+    const SC = window.SupabaseCrypto;
+    setError('auth-reset-error', '');
+    await refreshAAL();
+    if (!SC || !client || !currentUser || !aal2 || !unlockFailed || hasCryptoKey()) { showResetOption(); return; }
+    const pw = $('auth-unlock-password') ? $('auth-unlock-password').value : '';
+    const pw2 = $('auth-reset-confirm') ? $('auth-reset-confirm').value : '';
+    if (!pw) { setError('auth-reset-error', 'Saisis ton mot de passe actuel dans le champ ci-dessus.'); return; }
+    if (pw !== pw2) { setError('auth-reset-error', 'Les deux mots de passe ne sont pas identiques.'); return; }
+    const count = Array.isArray(DATASET) ? DATASET.length : 0;
+    // La confirmation ne s'empile pas sur la modale de connexion (même plan, et Échap comme
+    // Tab y resteraient) : celle-ci se ferme, puis revient telle quelle si l'on annule.
+    closeModal();
+    const ok = await showConfirm({
+      title: 'Réinitialiser le chiffrement ?',
+      message: 'Les données du cloud chiffrées avec l\'ancien mot de passe seront définitivement remplacées par celles de cet appareil, chiffrées avec le mot de passe saisi :\n\n'
+             + '• ' + (count ? count + ' opération' + (count > 1 ? 's' : '') : 'aucune opération : le cloud sera vidé') + '\n'
+             + '• réglages (projection, règles clients…)\n\n'
+             + 'Ce qui n\'est que dans le cloud sera perdu. Si tu connais l\'ancien mot de passe, déverrouille plutôt avec lui pour récupérer d\'abord les données du cloud.',
+      okLabel: 'Réinitialiser',
+      cancelLabel: 'Annuler',
+      danger: true
+    });
+    if (!ok) { openModal('unlock'); return; }
+
+    setBusy('auth-reset-submit', true);
+    let keySet = false;
+    try {
+      const salt = SC.randomBytes(16);
+      const key = await SC.deriveKey(pw, salt, PBKDF2_ITERS);
+      const checkEnc = await SC.makeVerifier(key);
+      const uid = currentUser.id;
+      const { error: e } = await client.from('app_settings').upsert([
+        { user_id: uid, key: CRYPTO_SALT_KEY,  value: { salt: SC.b64encode(salt), iterations: PBKDF2_ITERS, v: 1 } },
+        { user_id: uid, key: CRYPTO_CHECK_KEY, value: { enc: checkEnc } }
+      ], { onConflict: 'user_id,key' });
+      if (e) throw e;              // sel non persisté → on NE pose PAS la clé
+      SC.setKey(key);
+      keySet = true;
+      unlockFailed = false;
+      await writeSnapshot();
+      if ($('auth-unlock-password')) $('auth-unlock-password').value = '';
+      showResetOption();
+      updateAuthButton();
+      showSaveButton(true);
+      closeModal();
+      showToast({ title: 'Chiffrement réinitialisé', body: count + ' opérations et réglages re-chiffrés avec ton mot de passe actuel.', ok: true });
+    } catch (e) {
+      console.error(e);
+      if (keySet) {
+        // Nouvelle clé en place côté cloud et en mémoire : la sauvegarde normale peut reprendre l'envoi.
+        showResetOption();
+        updateAuthButton();
+        showSaveButton(true);
+        closeModal();
+        showToast({ title: 'Envoi incomplet', body: 'Le nouveau chiffrement est en place, mais l\'envoi des données a échoué (' + traduireErreur(e) + '). Clique « Sauvegarder » pour réessayer.', ok: false });
+      } else {
+        openModal('unlock');
+        setError('auth-reset-error', traduireErreur(e) + ' Rien n\'a été modifié.');
+      }
+    } finally {
+      setBusy('auth-reset-submit', false);
     }
   }
 
@@ -978,6 +1078,7 @@
     pendingEnroll = null;
     pendingPassword = null;
     knownRev = undefined;
+    unlockFailed = false;
     if (window.SupabaseCrypto) window.SupabaseCrypto.clearKey();  // la clé ne survit pas à la déconnexion
     showSaveButton(false);
     updateAuthButton();

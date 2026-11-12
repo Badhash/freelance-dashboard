@@ -77,6 +77,10 @@ un export comme l'état complet des mois qu'il couvre.
   depuis ton dernier chargement, elle est refusée et l'app propose de recharger le cloud
   et de le fusionner avec tes données locales. Des réglages locaux différents de ceux du
   cloud ne sont remplacés qu'après confirmation.
+- Après un changement de mot de passe, le cloud reste chiffré avec l'ancien : déverrouille
+  avec l'ancien, ou, s'il est perdu, utilise « Réinitialiser le chiffrement » (proposé
+  quand le déverrouillage échoue), qui re-chiffre le cloud à partir des données de
+  l'appareil.
 - La page charge les polices Google Fonts. La bibliothèque Supabase est servie par l'app
   elle-même (`vendor/supabase-js-2.118.0.js`, version figée), plus par un CDN.
 
