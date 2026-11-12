@@ -1,7 +1,9 @@
 // ============================================================
 // SUPABASE — CONFIG (bloc isolé)
 // ============================================================
-// Configuration : C'EST LE SEUL FICHIER À ÉDITER pour brancher le cloud.
+// Configuration : fichier à éditer pour brancher le cloud. Si l'URL du projet
+// change, la reporter aussi dans la CSP d'index.html (connect-src, en https://
+// et wss://) : sans cela le navigateur bloque toute requête vers Supabase.
 //
 // Où trouver ces valeurs : Supabase Dashboard → ton projet →
 //   Project Settings → API

@@ -83,10 +83,14 @@ un export comme l'état complet des mois qu'il couvre.
   l'appareil.
 - La page charge les polices Google Fonts. La bibliothèque Supabase est servie par l'app
   elle-même (`vendor/supabase-js-2.118.0.js`, version figée), plus par un CDN.
+- Une politique de sécurité du contenu (CSP, balise dans `index.html`) n'autorise que les
+  scripts de l'app et les connexions vers le projet Supabase configuré.
 
 Pour activer le cloud sur ton propre projet : exécute `supabase_setup.sql` dans l'éditeur SQL
 de Supabase, puis renseigne l'URL du projet et la clé publique (« anon ») dans
-`supabase-config.js`. Sans configuration, aucun bouton cloud n'apparaît.
+`supabase-config.js`, et remplace l'URL du projet (en `https://` et `wss://`) dans la
+directive `connect-src` de la CSP d'`index.html`. Sans configuration, aucun bouton cloud
+n'apparaît.
 
 ## Structure
 

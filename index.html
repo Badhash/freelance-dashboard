@@ -2,6 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<!-- CSP : scripts de l'app seulement (le script de thème en ligne est autorisé par son hash :
+     à recalculer s'il change d'un octet), connexions limitées au projet Supabase. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-G/D5t29VUhJ418os6pq39/DXQ5k+bi7WEcjSaxITEnE='; connect-src 'self' https://awpvoiqnfcdppbjdunfo.supabase.co wss://awpvoiqnfcdppbjdunfo.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
