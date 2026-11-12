@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Reecho — Export CSV Dashboard
-// @namespace    https://github.com/naderhassan/reecho-dashboard
-// @version      2.0.0
+// @namespace    freelance-dashboard
+// @version      2.1.0
 // @description  Ajoute un bouton pour exporter toutes les opérations du compte d'activité en CSV (format du dashboard)
 // @match        https://*.reecho.fr/*
 // @match        https://reecho.fr/*
@@ -17,7 +17,10 @@
 //   - dates JJ/MM/AAAA (le nouvel outil affiche AAAA-MM-JJ) ;
 //   - montants dans le sens naturel de leur nature, donc positifs (le nouvel
 //     outil signe du point de vue du compte : crédits « + », charges et
-//     revenus versés « − ») ;
+//     revenus versés « − ») ; un montant qui n'a pas la forme « 1 234,56 »
+//     arrête l'export plutôt que d'être mal lu ;
+//   - statut ramené à « Payé » ou « Non payé », les seules valeurs que le
+//     dashboard reconnaît ; une valeur inconnue arrête l'export ;
 //   - « — » (pas de date de paiement) exporté vide.
 
 (function () {
@@ -174,14 +177,15 @@
             const raw = {};
             for (const field in idx) raw[field] = cellText(cells[idx[field]]);
             if (!raw.nature || !raw.mois) continue;
+            const where = ` (${raw.mois} · ${raw.nature}${raw.reference ? ' · ' + raw.reference : ''})`;
             out.push([
                 toFrDate(raw.date),
                 toDashboardMonth(raw.mois),
                 raw.reference,
                 raw.description,
                 raw.nature,
-                formatAmount(toNaturalAmount(parseDisplayedAmount(raw.montant), raw.nature)),
-                raw.statut,
+                formatAmount(toNaturalAmount(parseDisplayedAmount(raw.montant, where), raw.nature)),
+                toDashboardStatus(raw.statut, where),
                 toFrDate(raw.datePaiement)
             ]);
         }
@@ -207,13 +211,24 @@
     }
 
     // "+ 13 420,00 €" -> 13420 ; "− 805,20 €" (signe moins U+2212) -> -805.2
-    function parseDisplayedAmount(text) {
-        const t = (text || '').trim();
-        const first = t.charCodeAt(0);
-        const negative = first === 0x2d || first === 0x2212 || first === 0x2013;
-        const value = parseFloat(t.replace(/[^\d,]/g, '').replace(',', '.'));
-        if (Number.isNaN(value)) throw new Error(`Montant illisible : "${text}"`);
-        return negative ? -value : value;
+    // Seule la forme française « 1 234,56 » est acceptée : un autre format (« 1.234,56 »,
+    // « 13 420 € » sans centimes…) était lu en retirant tout sauf chiffres et virgule, donc
+    // potentiellement faux sans rien signaler. L'export s'arrête plutôt.
+    const AMOUNT_RE = /^([+\-\u2212\u2013]?)\s*(\d[\d\s]*,\d{2})\s*€?$/;
+    function parseDisplayedAmount(text, where) {
+        const m = (text || '').replace(/\s+/g, ' ').trim().match(AMOUNT_RE);
+        if (!m) throw new Error(`Montant au format inattendu : "${text}"${where || ''}. Attendu : 1 234,56 €. Export annulé.`);
+        const value = parseFloat(m[2].replace(/\s/g, '').replace(',', '.'));
+        return m[1] && m[1] !== '+' ? -value : value;
+    }
+
+    // Statut exporté tel que le dashboard le lit : « Payé » ou « Non payé ». Le texte affiché
+    // passait tel quel ; une autre graphie (« payée », « Encaissé »…) y était comptée non payée.
+    function toDashboardStatus(text, where) {
+        const t = norm(text);
+        if (/^(paye|payee|encaisse|encaissee)$/.test(t)) return 'Payé';
+        if (/^non (paye|payee|encaisse|encaissee)$/.test(t)) return 'Non payé';
+        throw new Error(`Statut inconnu : "${text}"${where || ''}. Attendu : « Payé » ou « Non payé ». Export annulé.`);
     }
 
     // Sens naturel de la nature : un « Crédit » est positif quand il entre, une
@@ -261,20 +276,29 @@
         await wait(300);
     }
 
-    // "239 / 239 opération(s)" : un écart veut dire recherche ou filtre actif.
+    // Nombre affiché à la française, milliers séparés par une espace (normale, insécable ou
+    // fine, toutes ramenées à « » par cellText) : « 1 239 ». « (\d+) » ne lisait pas ces
+    // nombres : au-delà de 999 opérations, le contrôle du filtre actif et celui du nombre de
+    // lignes lues étaient désactivés sans rien dire.
+    const NUM = '(\\d{1,3}(?: \\d{3})+|\\d+)';
+    const toInt = (s) => +s.replace(/ /g, '');
+    const FILTER_RE = new RegExp('^' + NUM + '\\s*/\\s*' + NUM + '\\s+op', 'i');
+    const RANGE_RE = new RegExp('^' + NUM + '\\s*[^\\d\\s]\\s*' + NUM + '\\s+sur\\s+' + NUM + '\\s+op', 'i');
+
+    // "1 200 / 1 239 opération(s)" : un écart veut dire recherche ou filtre actif.
     function getFilterCounter() {
         for (const el of document.querySelectorAll('span')) {
-            const m = cellText(el).match(/^(\d+)\s*\/\s*(\d+)\s+op/i);
-            if (m) return { shown: +m[1], total: +m[2] };
+            const m = cellText(el).match(FILTER_RE);
+            if (m) return { shown: toInt(m[1]), total: toInt(m[2]) };
         }
         return null;
     }
 
-    // "1-100 sur 239 opérations"
+    // "1-100 sur 1 239 opérations"
     function getRangeInfo() {
         for (const el of document.querySelectorAll('span')) {
-            const m = cellText(el).match(/^(\d+)\s*[^\d\s]\s*(\d+)\s+sur\s+(\d+)\s+op/i);
-            if (m) return { from: +m[1], to: +m[2], total: +m[3], text: m[0] };
+            const m = cellText(el).match(RANGE_RE);
+            if (m) return { from: toInt(m[1]), to: toInt(m[2]), total: toInt(m[3]), text: m[0] };
         }
         return null;
     }
