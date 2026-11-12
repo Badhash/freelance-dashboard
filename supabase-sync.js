@@ -30,16 +30,25 @@
 
   // --- Réglages synchronisés (clés app_settings ↔ clés localStorage) -------
   // Le thème (dashboard_theme_v1) reste volontairement LOCAL à l'appareil.
+  // sanitize : forme attendue de la valeur déchiffrée, vérifiée AVANT localStorage.setItem.
+  // Renvoie la valeur à écrire (éventuellement filtrée) ou undefined pour l'ignorer.
+  const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const asObject = (v) => (isPlainObject(v) ? v : undefined);
+  // Jours saisis par mois (« MM-AAAA » → nombre de jours) : toute autre entrée est écartée.
+  const asProjOverrides = (v) => (isPlainObject(v)
+    ? Object.fromEntries(Object.entries(v).filter(([k, n]) => /^(0[1-9]|1[0-2])-\d{4}$/.test(k) && typeof n === 'number' && Number.isFinite(n) && n >= 0))
+    : undefined);
+  const asClientRules = (v) => (Array.isArray(v) ? sanitizeClientRules(v) : undefined);
   const SETTINGS_KEYS = [
     // typeof-guard : loadFiscalConfig/loadAEConfig peuvent être ABSENTS (feature
     // fiscale retirée pour reconstruction). On ne référence donc l'identifiant
     // que s'il existe → pas de ReferenceError, et la synchro reprend telle quelle
     // dès que la feature est reconstruite.
-    { key: 'fiscal_config',  ls: 'dashboard_fiscal_config_v1',    fallback: () => (typeof loadFiscalConfig === 'function' ? safeLoad(loadFiscalConfig, {}) : {}) },
-    { key: 'checklist',      ls: 'dashboard_fiscal_checklist_v1', fallback: () => ({}) },
-    { key: 'ae_config',      ls: 'dashboard_ae_config_v1',        fallback: () => (typeof loadAEConfig === 'function' ? safeLoad(loadAEConfig, {}) : {}) },
-    { key: 'proj_overrides', ls: 'dashboard_proj_overrides_v1',   fallback: () => ({}) },
-    { key: 'client_rules',   ls: 'dashboard_client_rules_v1',     fallback: () => [] }
+    { key: 'fiscal_config',  ls: 'dashboard_fiscal_config_v1',    sanitize: asObject, fallback: () => (typeof loadFiscalConfig === 'function' ? safeLoad(loadFiscalConfig, {}) : {}) },
+    { key: 'checklist',      ls: 'dashboard_fiscal_checklist_v1', sanitize: asObject, fallback: () => ({}) },
+    { key: 'ae_config',      ls: 'dashboard_ae_config_v1',        sanitize: asObject, fallback: () => (typeof loadAEConfig === 'function' ? safeLoad(loadAEConfig, {}) : {}) },
+    { key: 'proj_overrides', ls: 'dashboard_proj_overrides_v1',   sanitize: asProjOverrides, fallback: () => ({}) },
+    { key: 'client_rules',   ls: 'dashboard_client_rules_v1',     sanitize: asClientRules, fallback: () => [] }
   ];
 
   // Clés méta de chiffrement dans app_settings (EN CLAIR, exclues de la synchro)
@@ -712,19 +721,18 @@
         if (row.key === CRYPTO_SALT_KEY || row.key === CRYPTO_CHECK_KEY) continue;
         const map = SETTINGS_KEYS.find(s => s.key === row.key);
         if (!map || row.value == null) continue;
-        // Valeur chiffrée { enc } → déchiffrer ; tolère une valeur en clair (pré-migration).
+        // Seule une valeur chiffrée { enc } est acceptée. Une valeur en clair ne peut venir
+        // que d'une écriture hors de l'app (le serveur, ou quiconque y écrit) : elle
+        // modifiait les réglages locaux (règles clients, projection) sans rien déchiffrer.
+        if (!SC || typeof row.value.enc !== 'string') { console.warn('Réglage ' + row.key + ' ignoré : valeur non chiffrée'); continue; }
         let plain;
         try {
-          plain = (SC && row.value && row.value.enc != null)
-            ? await SC.decryptSettingValue(row.value)
-            : row.value;
+          plain = await SC.decryptSettingValue(row.value);
         } catch (e) { console.warn('Déchiffrement réglage ' + row.key, e); continue; } // skip-one
-        // Règles client : forme validée avant d'écrire (une valeur malformée
-        // venue du cloud faisait planter le rendu à chaque ouverture).
-        if (row.key === 'client_rules') {
-          if (!Array.isArray(plain)) continue;
-          plain = sanitizeClientRules(plain);
-        }
+        // Forme validée avant d'écrire (une valeur malformée venue du cloud faisait
+        // planter le rendu à chaque ouverture).
+        plain = map.sanitize(plain);
+        if (plain === undefined) { console.warn('Réglage ' + row.key + ' ignoré : forme inattendue'); continue; }
         try { localStorage.setItem(map.ls, JSON.stringify(plain)); } catch (e) {}
         // CLIENT_RULES est mis en cache (let de data.js) → réassignation explicite.
         if (row.key === 'client_rules') {
