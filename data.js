@@ -656,6 +656,12 @@ function joursOuvres(year, month) {
 const PROJ_COEFFS_DEFAULTS = {
   salaire_net_fixe: 0,        // 0 = sera dérivé du dataset
   charges_salaire_fixe: 0,
+  // Montants mensuels prélevés sur le CA avant le profit share (règle 12 de l'audit) :
+  // provision congés, PAS et charges diverses. Oubliés, ils gonflaient le profit share
+  // projeté d'autant (433 € par mois dans l'exemple de l'audit).
+  provision_conges_fixe: 0,
+  impot_france_fixe: 0,
+  charges_diverses_fixe: 0,
   tr_per_jour: 0,
   commission_pct: 0.06,        // taux portage standard (6 %) — pré-rempli
   charges_ps_pct: 0.03
@@ -671,11 +677,15 @@ function computeProjCoeffs() {
   if (recent.length === 0) return { ...PROJ_COEFFS_DEFAULTS };
 
   let nbSal = 0, totSal = 0, totCharges = 0;
+  let totProv = 0, totPAS = 0, totDiv = 0;
   let totTR = 0, totJours = 0;
   let totComm = 0, totCA = 0, totChPS = 0;
   recent.forEach(m => {
     if (m.salaire_net > 0) { totSal += m.salaire_net; nbSal++; }
     if (m.charges_salaire > 0) totCharges += m.charges_salaire;
+    totProv += m.provision_conges;
+    totPAS += m.impot_france;
+    totDiv += m.charges_diverses;
     totTR += m.tickets_resto;
     totJours += m.jours_travailles;
     totComm += m.commission_portage;
@@ -687,6 +697,9 @@ function computeProjCoeffs() {
   return {
     salaire_net_fixe:     nbSal ? totSal / nbSal : d.salaire_net_fixe,
     charges_salaire_fixe: nbSal ? totCharges / nbSal : d.charges_salaire_fixe,
+    provision_conges_fixe: nbSal ? totProv / nbSal : d.provision_conges_fixe,
+    impot_france_fixe:    nbSal ? totPAS / nbSal : d.impot_france_fixe,
+    charges_diverses_fixe: nbSal ? totDiv / nbSal : d.charges_diverses_fixe,
     tr_per_jour:          totJours ? totTR / totJours : d.tr_per_jour,
     commission_pct:       totCA ? totComm / totCA : d.commission_pct,
     charges_ps_pct:       totCA ? totChPS / totCA : d.charges_ps_pct
@@ -705,11 +718,17 @@ function projectMonth(year, month, jours, tjm) {
   const charges_salaire = jours > 0 ? PROJ_COEFFS.charges_salaire_fixe : 0;
   const salaire_brut = salaire_net + charges_salaire;
   const tickets = jours * PROJ_COEFFS.tr_per_jour;
-  // Profit share = ce qui reste après toutes les sorties
-  const profit_share = ca - commission - salaire_brut - charges_ps - tickets;
+  // Comme le salaire : dus pour un mois travaillé, quel que soit le nombre de jours.
+  const provision_conges = jours > 0 ? PROJ_COEFFS.provision_conges_fixe : 0;
+  const impot_france = jours > 0 ? PROJ_COEFFS.impot_france_fixe : 0;
+  const charges_diverses = jours > 0 ? PROJ_COEFFS.charges_diverses_fixe : 0;
+  // Profit share = ce qui reste après toutes les sorties (équation de clôture, règle 12 de l'audit)
+  const profit_share = ca - commission - salaire_brut - charges_ps - tickets
+    - provision_conges - impot_france - charges_diverses;
   return {
     year, month, jours, tjm,
     ca, commission, salaire_net, charges_salaire, charges_ps,
+    provision_conges, impot_france, charges_diverses,
     tickets, profit_share,
     total_percu: salaire_net + profit_share + tickets
   };

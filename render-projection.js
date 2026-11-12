@@ -2,7 +2,8 @@
 // AURORA — projection jusqu'à fin d'année (#projection-widget).
 // Logique recopiée À L'IDENTIQUE de l'ancien render-projection.js
 // (lignes réalisées / projetées, overrides dashboard_proj_overrides_v1,
-// projectMonth, joursOuvres, PROJ_COEFFS). Seul l'affichage change :
+// projectMonth, joursOuvres, PROJ_COEFFS), sauf un point : un mois écoulé
+// sans facture vaut 0 jour par défaut. Seul l'affichage change :
 // titre-phrase, total à venir, tuiles, cumul perçu N vs N-1 (réalisé plein,
 // projeté pointillé), compteurs ± 0,5 j avec mini-barre par mois, tableau.
 // Compteurs : champ texte décimal (« 18,5 » comme « 18.5 »), recalcul à chaque
@@ -21,11 +22,15 @@ function projModel() {
   const [lkM, lkY] = lastBilledMois.split('-').map(Number);
   const projYear = lkY;
   const overrides = loadProjOverrides();
+  // Mois écoulé : antérieur au mois précédent (celui-ci peut encore être facturé). Sans
+  // facture, il ne rapportera rien : 0 jour par défaut, au lieu de tous ses jours ouvrés.
+  const prevIdx = VM.today.getFullYear() * 12 + VM.today.getMonth() - 1;
   const rows = [];
   for (let mo = lkM; mo <= 12; mo++) {
     const moisKey = String(mo).padStart(2, '0') + '-' + projYear;
     const realMonth = AGG.monthsByKey[moisKey];
     const isKnown = realMonth !== undefined && realMonth.facturation > 0;
+    const past = !isKnown && projYear * 12 + mo - 1 < prevIdx;
     const jOuvres = joursOuvres(projYear, mo);
     let jours;
     if (isKnown) jours = realMonth.jours_travailles;
@@ -33,9 +38,9 @@ function projModel() {
       // Valeur stockée (ou restaurée du cloud) : forcée en nombre et bornée, jamais réinjectée telle quelle.
       jours = Math.min(jOuvres, Math.max(0, Number(overrides[moisKey])));
     }
-    else jours = jOuvres;
+    else jours = past ? 0 : jOuvres;
     const proj = projectMonth(projYear, mo, jours, tjm);
-    const r = { ...proj, moisKey, isKnown, joursOuvres: jOuvres, realData: realMonth || null };
+    const r = { ...proj, moisKey, isKnown, past, joursOuvres: jOuvres, realData: realMonth || null };
     r.ca = isKnown ? realMonth.facturation : proj.ca;
     r.sn = isKnown ? realMonth.salaire_net : proj.salaire_net;
     r.ps = isKnown ? realMonth.profit_share_total : proj.profit_share;
@@ -93,7 +98,10 @@ function renderProjection(keepFocus) {
   const oldScroll = host.querySelector('.table-scroll');
   const scrollX = oldScroll ? oldScroll.scrollLeft : 0;
   const yearTotal = cur[11].v;
-  const daysTxt = fut.map((r) => `${UI.num1(r.jours)} j en ${UI.MF[r.month - 1].toLowerCase()}`);
+  // Un mois écoulé laissé à 0 jour n'est pas « à venir » : il n'entre pas dans la phrase.
+  const ahead = fut.filter((r) => !(r.past && r.jours === 0));
+  const worked = fut.filter((r) => r.jours > 0).length;
+  const daysTxt = ahead.map((r) => `${UI.num1(r.jours)} j en ${UI.MF[r.month - 1].toLowerCase()}`);
   const daysSentence = daysTxt.length > 1 ? daysTxt.slice(0, -1).join(', ') + ' et ' + daysTxt[daysTxt.length - 1] : daysTxt.join('');
   const known = rows.filter((r) => r.isKnown);
   const maxRow = Math.max(1, ...rows.map((r) => r.total));
@@ -101,7 +109,7 @@ function renderProjection(keepFocus) {
   const dayRows = rows.map((r) => `
     <div class="day-row${r.isKnown ? ' known' : ''}">
       <span class="dn">${UI.MF[r.month - 1]}</span>
-      <span class="dh">${r.isKnown ? `${UI.num1(r.joursAff)} j facturés sur ${r.joursOuvres}` : `${r.joursOuvres} jours ouvrés · ${UI.num1(r.conges)} j de congés`}</span>
+      <span class="dh">${r.isKnown ? `${UI.num1(r.joursAff)} j facturés sur ${r.joursOuvres}` : r.past ? `Mois écoulé sans facture · ${r.joursOuvres} jours ouvrés` : `${r.joursOuvres} jours ouvrés · ${UI.num1(r.conges)} j de congés`}</span>
       <span class="dr">${r.isKnown ? UI.pill('ok', 'Réalisé', 'check') : stepperHtml(r)}</span>
       <span class="db">${bar(r)}<span class="dt tab">${r.isKnown ? '' : '≈ '}${UI.eur0(r.total)}</span></span>
     </div>`).join('');
@@ -121,7 +129,7 @@ function renderProjection(keepFocus) {
       <div>
         <span class="eyebrow">${icon('sparkles')}Projection fin ${projYear}</span>
         <h2 id="projection-title">Tes jours d’ici au 31 décembre te rapporteront encore <b>≈ ${UI.eur0(ft.total)}</b>.</h2>
-        <p>${fut.length ? `Avec ${daysSentence}, au TJM de ${UI.eur0(tjm)}. Versés au fil des mois suivants${UI.NBP}: le salaire début du mois d’après, le profit share environ ${VM.med ? `${VM.med} jours` : 'trois mois'} après son émission. Ajuste tes jours${UI.NBP}: tout se recalcule aussitôt.` : 'Plus aucun mois à projeter cette année.'}</p>
+        <p>${ahead.length ? `Avec ${daysSentence}, au TJM de ${UI.eur0(tjm)}. Versés au fil des mois suivants${UI.NBP}: le salaire début du mois d’après, le profit share environ ${VM.med ? `${VM.med} jours` : 'trois mois'} après son émission. Ajuste tes jours${UI.NBP}: tout se recalcule aussitôt.` : 'Plus aucun mois à projeter cette année.'}</p>
       </div>
     </header>
     <article class="card proj" aria-labelledby="projection-title">
@@ -130,10 +138,10 @@ function renderProjection(keepFocus) {
         <div class="proj-hero">
           <span class="eyebrow">Total projeté à venir</span>
           <div class="v" id="projection-total">${UI.money(ft.total)}</div>
-          <p>${fut.length} mois · salaire, profit share et tickets · ${UI.eur0(yearTotal)} sur toute l’année ${projYear}</p>
+          <p>${ahead.length} mois · salaire, profit share et tickets · ${UI.eur0(yearTotal)} sur toute l’année ${projYear}</p>
         </div>
         <div class="proj-tiles" id="projection-summary">
-          <div class="tile"><div class="tv tab">${UI.eur0(ft.sn)}</div><div class="tl"><span class="sw" style="background:var(--c-sal)"></span>Salaire net à venir</div><div class="th">${fut.length} × ${UI.eur0(PROJ_COEFFS.salaire_net_fixe)} env.</div></div>
+          <div class="tile"><div class="tv tab">${UI.eur0(ft.sn)}</div><div class="tl"><span class="sw" style="background:var(--c-sal)"></span>Salaire net à venir</div><div class="th">${worked} × ${UI.eur0(PROJ_COEFFS.salaire_net_fixe)} env.</div></div>
           <div class="tile"><div class="tv tab">${UI.eur0(ft.ps)}</div><div class="tl"><span class="sw" style="background:var(--c-ps)"></span>Profit share à venir</div><div class="th">${UI.num1(ft.jours)} jours × ${UI.eur0(tjm)}, moins les charges</div></div>
           <div class="tile"><div class="tv tab">${UI.eur0(ft.ca)}</div><div class="tl"><span class="sw" style="background:var(--c-ink)"></span>CA à facturer</div><div class="th">Brut, d’ici fin ${projYear}</div></div>
         </div>
@@ -147,7 +155,7 @@ function renderProjection(keepFocus) {
         </div>
         <div class="days">
           <h3>Tes jours facturés</h3>
-          <p>Par défaut${UI.NBP}: tous les jours ouvrés. Mets tes jours réels attendus.</p>
+          <p>Par défaut${UI.NBP}: tous les jours ouvrés, aucun pour un mois écoulé sans facture. Mets tes jours réels attendus.</p>
           <div class="day-legend legend" aria-hidden="true"><span><i class="lk box" style="background:var(--c-sal)"></i>Salaire</span><span><i class="lk box" style="background:var(--c-ps)"></i>Profit share</span><span><i class="lk box" style="background:var(--c-extra)"></i>Tickets</span></div>
           ${dayRows}
         </div>
